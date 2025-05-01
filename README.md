@@ -1,5 +1,6 @@
 # arduinoMI
 Ports of mutable intstruments eurorack code to arduino.
+This port was possible because of the work of Volker Boehm to bring MI modules to supercollider: https://github.com/v7b1/mi-UGens Very cool.
 
 Still need to implement proper audio rendering, but the engines from plaits all make sound :)
 
