@@ -63,10 +63,6 @@ PWMAudio DAC(PWMOUT);  // 16 bit PWM audio
 #include <STMLIB.h>
 #include <PLAITS.h>
 
-//using namespace plaits;
-//using namespace stm_audio_bootloader;
-//using namespace stmlib;
-
 plaits::Modulations modulations;
 plaits::Patch patch;
 plaits::Voice voice;
@@ -104,7 +100,7 @@ struct Unit {
 struct Unit voices[1];
 volatile plaits::Patch renderPatch ;
 volatile plaits:: Modulations renderModulations ;
-volatile plaits::Voice *renderVoice; 
+volatile plaits::Voice *renderVoice;
 
 
 // Plaits modulation vars
@@ -132,7 +128,7 @@ float pitch = 60.0f;
 
 //unsigned int SWPin = CLOCKIN;
 
-#define TIMER0_INTERVAL_MS 20.833333333333   // running at 48Khz
+#define TIMER0_INTERVAL_MS 20.833333333333   // \20.833333333333running at 48Khz
 #define DEBOUNCING_INTERVAL_MS   2// 80
 #define LOCAL_DEBUG              1
 
@@ -141,14 +137,15 @@ volatile int counter = 0;
 // Init RPI_PICO_Timer, can use any from 0-15 pseudo-hardware timers
 RPI_PICO_Timer ITimer0(0);
 
-bool TimerHandler0(struct repeating_timer *t) {  
-  (void) t;  
+bool TimerHandler0(struct repeating_timer *t) {
+  (void) t;
   bool sync = true;
-     //if ( DAC.availableForWrite() > 1 ) DAC.write( outputPlaits[counter].out, sync ); // offset for volume
-    for (size_t i = 0; i < 16; i++) {
-        if ( DAC.availableForWrite() ) DAC.write( outputPlaits[i].out + 244, sync ); // 244 is mozzi audio bias
-    } 
-  counter++;
+  if ( DAC.availableForWrite() )  {
+    for (size_t i = 0; i < kBlockSize; i++) {
+      DAC.write( (uint16_t)outputPlaits[i].out , sync ); // 244 is mozzi audio bias
+    }
+    counter++;
+  }
   return true;
 }
 
@@ -399,7 +396,7 @@ void setup() {
   }
 
   // set up Pico PWM audio output
-  DAC.setBuffers(4, 128); // DMA buffers
+  DAC.setBuffers(1, 16); // DMA buffers
   //DAC.onTransmit(cb);
   DAC.setFrequency(SAMPLERATE);
   DAC.begin();
@@ -595,10 +592,9 @@ void initVoices() {
   voices[0].modulations.frequency_patched = false;
 
 }
-/*
+
 void cb() {
-  if (DAC.availableForWrite() > 16) {
-    voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
+  if (DAC.availableForWrite() > 14) {
     for (int i = 0; i <  plaits::kBlockSize; i++) {
       uint16_t out = outputPlaits[i].out;   // left channel called .aux
       DAC.write( out );
@@ -606,7 +602,8 @@ void cb() {
   }
 }
 
-void audioOutput() {
+/*
+  void audioOutput() {
   voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
 
   for (int i = 0; i <  plaits::kBlockSize; i++) {
@@ -616,27 +613,27 @@ void audioOutput() {
   // write samples to DMA buffer - this is a blocking call so it stalls when buffer is full
   // f.l() + MOZZI_AUDIO_BIAS
   // left
-}
+  }
 
-bool canBufferAudioOutput() {
+  bool canBufferAudioOutput() {
 
   if ( DAC.availableForWrite() > 32 ) {
     return true;
   }
   return false;
-}
+  }
 
 
-bool updateAudio() {
+  bool updateAudio() {
   if (canBufferAudioOutput()) {
     audioOutput();
     return true;
   }
   return false;
 
-}
+  }
 */
-void renderSamples(){
+void renderSamples() {
   // called at the end of the timer render routing to generate more samples
   //voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
 }
@@ -649,9 +646,9 @@ bool canBufferAudioOutput() {
 
 void loop() {
   // updateAudio();
-  delay(1);
+  //delay(1);
   if ( counter > 1 ) {
-    voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);    
+    voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
     counter = 0; // increments on each pass of the timer when the timer writes
   }
 
@@ -664,24 +661,24 @@ void setup1() {
 }
 
 int engineCount = 0;
+int engineInc = 0;
 
 // second core deals with ui / control rate updates
 void loop1() {
 
-    float trigger = randomDouble(0.01, 1.0); // Dust.kr( LFNoise2.kr(0.1).range(0.1, 7) );
-    float harmonics = randomDouble(0.1, 1.0); // SinOsc.kr(0.03, 0, 0.5, 0.5).range(0.0, 1.0);
-    float timbre = randomDouble(0.1, 1.0); //LFTri.kr(0.07, 0, 0.5, 0.5).range(0.0, 1.0);
-    float morph = randomDouble(0.1, 0.7) ; //LFTri.kr(0.11, 0, 0.5, 0.5).squared;
-    float pitch = randomDouble(24,48); // TIRand.kr(24, 48, trigger);
-    float engine = randomDouble(0,15); //TRand.kr(0, 15, trig: trigger).round;
-    float octave = randomDouble(0.2, 0.5);
-    float decay = randomDouble(0.01, 0.8);
-    /*
+  float trigger = randomDouble(0.01, .7); // Dust.kr( LFNoise2.kr(0.1).range(0.1, 7) );
+  float harmonics = randomDouble(0.1, .8); // SinOsc.kr(0.03, 0, 0.5, 0.5).range(0.0, 1.0);
+  float timbre = randomDouble(0.1, .8); //LFTri.kr(0.07, 0, 0.5, 0.5).range(0.0, 1.0);
+  float morph = randomDouble(0.1, 0.8) ; //LFTri.kr(0.11, 0, 0.5, 0.5).squared;
+  float pitch = abs(randomDouble(34, 60)); // TIRand.kr(24, 48, trigger);
+  float octave = randomDouble(0.3, 0.5);
+  float decay = randomDouble(0.1, 0.7);
+  /*
     var sub = SinOsc.ar(pitch.midicps, 0, 0.1);
     var mi = MiPlaits.ar( pitch, engine, harmonics, timbre, morph,
-        trigger: trigger, decay: 0.8, lpg_colour: 0.2, mul: 0.5);
+      trigger: trigger, decay: 0.8, lpg_colour: 0.2, mul: 0.5);
     mi + sub
-    */
+  */
 
   voices[0].patch.engine = engineCount;
   //voices[0].transposition_ = 0.;
@@ -690,20 +687,23 @@ void loop1() {
   voices[0].patch.harmonics = harmonics;
   voices[0].patch.morph = morph;
   voices[0].patch.timbre = timbre;
-  voices[0].patch.decay = decay;
+  voices[0].patch.decay = 0.5f;
   voices[0].patch.lpg_colour = 0.2;
-  if (trigger > 0.3 ) {
+  if (trigger > 0.2 ) {
     voices[0].modulations.trigger = trigger;
-     voices[0].modulations.trigger_patched = true; 
+    voices[0].modulations.trigger_patched = true;
   } else {
-     engineCount ++; // don't switch engine so often :)
-     voices[0].modulations.trigger = 0.0f;
-     voices[0].modulations.trigger_patched = false; 
-  }
 
-  
+    voices[0].modulations.trigger = 0.0f;
+    voices[0].modulations.trigger_patched = false;
+  }
+  engineInc++ ;
+  if (engineInc > 5) {
+    engineCount ++; // don't switch engine so often :)
+    engineInc = 0;
+  }
   if (engineCount > 15) engineCount = 0;
-  
+
   //updateControl();
 
   uint32_t now = millis();
@@ -785,7 +785,7 @@ void loop1() {
         int engine = voices[0].patch.engine;
         voices[0].modulations.trigger_patched = false;
         voices[0].modulations.trigger = 0.0f;
-        
+
         engine = engine + encoder_delta;
         if (engine > -1 && engine < 16) {
           engine_in = engine;
@@ -861,7 +861,7 @@ void loop1() {
   scanbuttons();
   displayUpdate();
 
-delay(4000);
+  delay(2000);
 
 
 }
@@ -923,8 +923,8 @@ void displayUpdate() {
   display.print(voices[0].patch.timbre);
   // play/pause
   display.setCursor(play_text_pos.x, play_text_pos.y);
-  display.print("mode: ");
-  display.print(pressedB);
+  display.print("s: ");
+  display.print(outputPlaits[0].out);
 
   display.display();
 }
@@ -967,11 +967,11 @@ void HandleNoteOn(byte channel, byte note, byte velocity) {
 void aNoteOn(float note, int velocity) {
   if (velocity == 0) {
     aNoteOff(note, velocity);
-    
+
     return;
   }
   //voices[0].patch.note = pitch;
-  
+
   voices[0].modulations.trigger_patched = true;
   voices[0].modulations.trigger = 5.f;
 
