@@ -445,8 +445,8 @@ void updateControl() {
   bool anybuttonpressed;
   anybuttonpressed = false;
 
-  int p1 = analogRead(MODR_PIN); // value is 0-4065
-  int p2 = analogRead(INTS_PIN); // value is 0-4065
+  int p1 = potvalue[0]; //analogRead(MODR_PIN); // value is 0-4065
+  int p2 = potvalue[1]; // analogRead(INTS_PIN); // value is 0-4065
 
 
   morph_in = (float)p1 / 1000.0f; //map(p1, 0, 4065, 0.0, 1.0); // IN(2);
@@ -598,7 +598,7 @@ void loop1() {
 
       if ( i == 8) {
         engineCount = engineCount + encoder_delta;
-        CONSTRAIN(engineCount, 0, 16);
+        CONSTRAIN(engineCount, 0, 47);
         engine_in = engineCount; // ( engine +) % voices[0].voice_.GetNumEngines();
 
       }

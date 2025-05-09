@@ -30,6 +30,9 @@ void aNoteOn(float note, int velocity) {
   };
 
   trigger_in = randomDouble(0.0, 1.0);
+  if (trigger_in < 0.3) {
+    trigger_in = 0.0;
+  }
 
 
   //voices[0].patch.note = pitch;
