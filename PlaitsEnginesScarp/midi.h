@@ -28,7 +28,8 @@ void aNoteOn(float note, int velocity) {
     trigger_in = 0.0f;
     return;
   };
-  trigger_in = randomDouble(0.0, 2.0);
+  voices[0].patch.note = pitch_in;
+  trigger_in = randomDouble(0.0, 1.0);
   if (trigger_in > 0.3 ) {
     voices[0].modulations.trigger = trigger_in;
     voices[0].modulations.trigger_patched = true;
