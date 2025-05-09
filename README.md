@@ -1,10 +1,13 @@
 # arduinoMI
 Ports of mutable intstruments eurorack code to arduino.
+
 This port was possible because of the work of Volker Boehm to bring MI modules to supercollider: https://github.com/v7b1/mi-UGens Very cool.
 
-Still need to implement proper audio rendering, but the engines from plaits all make sound :)
+Still need to implement proper audio rendering in plaits, but the engines from plaits all make sound :) And braids is already very clean!
 
-The STMLIB and PLAITS directories can be placed in your Arduino/libraries/ folder and used as follows:
+I'll release basic sketches without all the scarp hardware when I have a bit of time. I pushed to scarp since it makes it easy to test with inputs. Which is why I built scarp after all :)
+
+The STMLIB, BRAIDS and PLAITS directories can be placed in your Arduino/libraries/ folder and used as follows, for plaits:
 ```
 // plaits dsp
 #include <STMLIB.h>
@@ -41,3 +44,5 @@ struct Unit {
 ```
 
 See the included sketches.
+
+Curently, plaits is still a bit noisy but braids is really, really nice. 
