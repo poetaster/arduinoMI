@@ -316,7 +316,8 @@ void initVoices() {
   voices[0].patch = patch;
   voices[0].patch.engine = 0;
   voices[0].transposition_ = 0.;
-  voices[0].octave_ = 0.5;
+  voices[0].octave_ = 0.6
+  ;
   voices[0].patch.note = 48.0;
   voices[0].patch.harmonics = 0.3;
   voices[0].patch.morph = 0.3;
@@ -401,9 +402,9 @@ void updateControl() {
   int p2 = analogRead(INTS_PIN); // value is 0-4065
 
 
-  harm_in = (float)p1 / 1000.0f; //map(p1, 0, 4065, 0.0, 1.0); // IN(2);
+  morph_in = (float)p1 / 1000.0f; //map(p1, 0, 4065, 0.0, 1.0); // IN(2);
   timbre_in = (float)p2 / 1000.0f; //map(p2, 0, 4065, 0.0, 1.0); //IN(3);
-  CONSTRAIN(harm_in, 0.0f, 1.0f);
+  CONSTRAIN(morph_in, 0.0f, 1.0f);
   CONSTRAIN(timbre_in, 0.0f, 1.0f);
   scanbuttons();
 
@@ -571,7 +572,7 @@ void loop1() {
 
       if ( i == 8) {
         engineCount = engineCount + encoder_delta;
-        CONSTRAIN(engineCount, 0, 15);
+        CONSTRAIN(engineCount, 0, 16);
 
         engine_in = engineCount; // ( engine +) % voices[0].voice_.GetNumEngines();
 
@@ -583,7 +584,7 @@ void loop1() {
 
       if ( (encoder_pos != encoder_pos_last ) && i == 1  ) {
         engineCount = engineCount + encoder_delta;
-        CONSTRAIN(engineCount, 0, 15);
+        CONSTRAIN(engineCount, 0, 16);
         engine_in = engineCount;
 
       }
@@ -626,12 +627,12 @@ void loop1() {
 
 
     if (encoder_delta > 1) {
-      morph_in = morph_in + 0.1f;
-      CONSTRAIN(morph_in, 0.0f, 1.0f);
+      harm_in = harm_in + 0.03f;
+      CONSTRAIN(harm_in, 0.0f, 1.0f);
 
     } else {
-      morph_in = morph_in - 0.1f;
-      CONSTRAIN(morph_in, 0.0f, 1.0f);
+      harm_in = harm_in - 0.03f;
+      CONSTRAIN(harm_in, 0.0f, 1.0f);
 
     }
     //display_value(RATE_value - 50); // this is wrong, bro :)
@@ -671,7 +672,7 @@ void loop1() {
 
 
 void automatic() {
-  if (engineCount > 15) engineCount = 0;
+  if (engineCount > 16) engineCount = 0;
 
   /*
     float trigger = randomDouble(0.0, 2.0); // Dust.kr( LFNoise2.kr(0.1).range(0.1, 7) );

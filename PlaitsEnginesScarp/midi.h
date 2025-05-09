@@ -16,21 +16,27 @@ void HandleNoteOn(byte channel, byte note, byte velocity) {
 
 void aNoteOff( float note, int velocity) {
   trigger_in = 0.0f;
-  voices[0].modulations.trigger = 0.f;
-  voices[0].modulations.trigger_patched = false;
+  //voices[0].modulations.trigger_patched = false;
+  //voices[0].modulations.trigger = 0.f;
   //envelope.noteOff();
   //digitalWrite(LED, LOW);
 }
+
 void aNoteOn(float note, int velocity) {
   if (velocity == 0) {
     aNoteOff(note, velocity);
-    trigger_in = 1.0f;
+    trigger_in = 0.0f;
     return;
+  };
+  trigger_in = randomDouble(0.0, 2.0);
+  if (trigger_in > 0.3 ) {
+    voices[0].modulations.trigger = trigger_in;
+    voices[0].modulations.trigger_patched = true;
+  } else {
+    voices[0].modulations.trigger = 0.0f;
+    voices[0].modulations.trigger_patched = false;
   }
-  trigger_in = 1.0f;
-  //voices[0].modulations.trigger_patched = true;
-  voices[0].modulations.trigger = 1.0f;
-  voices[0].modulations.trigger_patched = false;
+
   //voices[0].patch.note = pitch;
   //carrier_freq = note;
   //envelope.noteOn();
