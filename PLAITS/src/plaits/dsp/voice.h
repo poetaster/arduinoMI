@@ -52,7 +52,7 @@
 #include "plaits/dsp/engine/virtual_analog_engine.h"
 #include "plaits/dsp/engine/waveshaping_engine.h"
 #include "plaits/dsp/engine/wavetable_engine.h"
-
+#include "plaits/dsp/engine/wave_terrain_engine.h"
 #include "plaits/dsp/envelope.h"
 
 #include "plaits/dsp/fx/low_pass_gate.h"
@@ -207,6 +207,7 @@ class Voice {
   VirtualAnalogEngine virtual_analog_engine_;
   WaveshapingEngine waveshaping_engine_;
   WavetableEngine wavetable_engine_;
+  WaveTerrainEngine waveterrain_engine_;
 
   stmlib::HysteresisQuantizer engine_quantizer_;
   
