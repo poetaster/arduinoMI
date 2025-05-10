@@ -2,18 +2,9 @@
   (c) 2024 blueprint@poetaster.de
   GPLv3
 
-  BASED in part on
-  Arduino Mozzi MIDI FM Synthesis 2
-  https://diyelectromusic.wordpress.com/2020/08/19/arduino-fm-midi-synthesis-with-mozzi-part-2/
-
+      Some sources, including the stmlib and plaits lib are
       MIT License
-      Copyright (c) 2020 diyelectromusic (Kevin)
-
-  Using principles from the following Arduino tutorials:
-    Arduino MIDI Library - https://github.com/FortySevenEffects/arduino_midi_library
-    Mozzi Library        - https://sensorium.github.io/Mozzi/
-
-  Much of this code is based on the Mozzi example Knob_LightLevel_x2_FMsynth (C) Tim Barrass
+      Copyright (c)  2020 (emilie.o.gillet@gmail.com)
 */
 
 bool debugging = true;
@@ -70,7 +61,7 @@ plaits::Voice voice;
 //UserData user_data;
 //UserDataReceiver user_data_receiver;
 
-char shared_buffer[16384];
+char shared_buffer[32768];
 stmlib::BufferAllocator allocator;
 
 //float a0 = (440.0 / 8.0) / kSampleRate; //48000.00;
@@ -87,6 +78,7 @@ struct Unit {
   float               octave_;
   short               trigger_connected;
   short               trigger_toggle;
+  bool                last_trig; // from braids
 
   char                *shared_buffer;
   void                *info_out;
@@ -105,14 +97,14 @@ volatile plaits::Voice *renderVoice;
 float morph_in = 0.7f; // IN(4);
 float trigger_in = 0.0f; //IN(5);
 float level_in = 0.0f; //IN(6);
-float harm_in = 0.1f;
+float harm_in = 0.5f;
 float timbre_in = 0.1f;
 int engine_in;
 
 float fm_mod = 0.0f ; //IN(7);
 float timb_mod = 0.0f; //IN(8);
 float morph_mod = 0.0f; //IN(9);
-float decay_in = 0.5f; // IN(10);
+float decay_in = 0.2f; // IN(10);
 float lpg_in = 0.1f ;// IN(11);
 float pitch_in = 60.0f;
 
@@ -317,13 +309,19 @@ void initVoices() {
   voices[0].patch.engine = 0;
   voices[0].transposition_ = 0.;
   voices[0].octave_ = 0.6
-  ;
+                      ;
   voices[0].patch.note = 48.0;
-  voices[0].patch.harmonics = 0.3;
+  voices[0].patch.harmonics = 0.5;
   voices[0].patch.morph = 0.3;
   voices[0].patch.timbre = 0.3;
+  voices[0].last_trig = false;
 
-  stmlib::BufferAllocator allocator(shared_buffer, 16384);
+  voices[0].shared_buffer = shared_buffer;
+  // init with zeros
+  memset(voices[0].shared_buffer, 0, 32768);
+
+
+  stmlib::BufferAllocator allocator(shared_buffer, 32768);
   voice.Init(&allocator);
 
   voices[0].voice_ = &voice;
@@ -398,8 +396,9 @@ void updateControl() {
   bool anybuttonpressed;
   anybuttonpressed = false;
 
-  int p1 = analogRead(MODR_PIN); // value is 0-4065
-  int p2 = analogRead(INTS_PIN); // value is 0-4065
+  // use the debounced values from readpots
+  int p1 = potvalue[0]; //analogRead(MODR_PIN); // value is 0-4065
+  int p2 = potvalue[1]; // analogRead(INTS_PIN); // value is 0-4065
 
 
   morph_in = (float)p1 / 1000.0f; //map(p1, 0, 4065, 0.0, 1.0); // IN(2);
@@ -426,7 +425,7 @@ void updateControl() {
         aNoteOff(freqs[pressedB], 0);
         noteA = freqs[i];
         pitch_in = freqs[i] + 24.0f;
-        voices[0].patch.note = pitch_in;
+        //voices[0].patch.note = pitch_in;
         aNoteOn( freqs[i], 100 );
       }
       pressedB = i;
@@ -480,19 +479,12 @@ void loop() {
     voices[0].patch.timbre = timbre_in;
     voices[0].patch.decay = decay_in; //0.5f;
     voices[0].patch.lpg_colour = lpg_in;
-    /*
-        if (trigger_in > 0.2 ) {
-          voices[0].modulations.trigger = trigger_in;
-          voices[0].modulations.trigger_patched = true;
-        } else {
-          voices[0].modulations.trigger = 0.0f;
-          voices[0].modulations.trigger_patched = false;
-        }
-    */
+    voices[0].modulations.trigger = trigger_in;
+
     voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
     counter = 0; // increments on each pass of the timer when the timer writes
   }
-  
+
 
 }
 
@@ -627,11 +619,11 @@ void loop1() {
 
 
     if (encoder_delta > 1) {
-      harm_in = harm_in + 0.03f;
+      harm_in = harm_in + 0.05f;
       CONSTRAIN(harm_in, 0.0f, 1.0f);
 
     } else {
-      harm_in = harm_in - 0.03f;
+      harm_in = harm_in - 0.05f;
       CONSTRAIN(harm_in, 0.0f, 1.0f);
 
     }

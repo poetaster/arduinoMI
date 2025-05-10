@@ -52,6 +52,8 @@
  #include "plaits/dsp/engine/waveshaping_engine.h"
  #include "plaits/dsp/engine/wavetable_engine.cc"
  #include "plaits/dsp/engine/wavetable_engine.h"
+ #include "plaits/dsp/engine/wave_terrain_engine.cc"
+ #include "plaits/dsp/engine/wave_terrain_engine.h"
  #include "plaits/dsp/envelope.h"
  #include "plaits/dsp/fx/diffuser.h"
  #include "plaits/dsp/fx/fx_engine.h"

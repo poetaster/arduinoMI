@@ -28,13 +28,20 @@ void aNoteOn(float note, int velocity) {
     trigger_in = 0.0f;
     return;
   };
-  voices[0].patch.note = pitch_in;
-  trigger_in = randomDouble(0.0, 1.0);
-  if (trigger_in > 0.3 ) {
-    voices[0].modulations.trigger = trigger_in;
+
+
+  double trig = randomDouble(0.1, 0.9);
+  bool trigger = (trig > 0.4);
+  bool trigger_flag = (trigger && (!voices[0].last_trig));
+
+  voices[0].last_trig = trigger;
+  decay_in = randomDouble(0.05,0.3);
+  
+  if (trigger_flag) {
+    trigger_in = trig;
     voices[0].modulations.trigger_patched = true;
   } else {
-    voices[0].modulations.trigger = 0.0f;
+    trigger_in = 0.f;
     voices[0].modulations.trigger_patched = false;
   }
 
