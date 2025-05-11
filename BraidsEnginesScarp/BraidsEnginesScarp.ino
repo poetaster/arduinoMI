@@ -30,6 +30,8 @@ bool debugging = true;
 #define PWMOUT 22
 PWMAudio DAC(PWMOUT);  // 16 bit PWM audio
 
+#include "Midier.h"
+
 // button inputs
 #define BUTTON0  0 // key1 input on schematic
 #define BUTTON1  2
@@ -460,22 +462,49 @@ void updateControl() {
     if (button[i]) {
 
       anybuttonpressed = true;
-      if (i < 8)  digitalWrite(led[i] , HIGH);
+      if (i < 8) {
+        digitalWrite(led[i] , HIGH);
 
-      // a track button is pressed
-      current_track = i; // keypress selects track we are working on
+        // a track button is pressed
+        current_track = i; // keypress selects track we are working on
 
-      if ( encoder_delta == 0) {
-        //if (pressedB != i) {
-        // turn off the last note
-        //aNoteOff(freqs[pressedB],0);
-        //}
-        aNoteOff(freqs[pressedB], 0);
-        noteA = freqs[i];
-        pitch_in = freqs[i];
-        aNoteOn( freqs[i], 100 );
+        if ( encoder_delta == 0) {
+          aNoteOff(currentMode[i], 0);
+          //noteA = freqs[i];
+          scaleRoot = i;
+          pitch_in = currentMode[i]; //freqs[i];
+          aNoteOn( pitch_in, 100 );
+        }
+        pressedB = i;
+      } else {
+        modeIndex = modeIndex + 1;
+        if (modeIndex == 8 ) modeIndex = 0;
+        
+        switch (modeIndex) {
+          case 0:
+            mode = midier::Mode::Ionian;
+            break;
+          case 1:
+            mode = midier::Mode::Dorian;
+            break;
+          case 2:
+            mode = midier::Mode::Phrygian;
+            break;
+          case 3:
+            mode = midier::Mode::Lydian;
+            break;
+          case 4:
+            mode = midier::Mode::Mixolydian;
+            break;
+          case 5:
+            mode = midier::Mode::Aeolian;
+            break;
+          case 6:
+            mode = midier::Mode::Locrian;
+            break;
+        }
+        makeScale( roots[scaleRoot], mode);
       }
-      pressedB = i;
     }
   }
 }
