@@ -205,7 +205,9 @@ Adafruit_SH1106G display = Adafruit_SH1106G(128, 64, &Wire);
 #include "font.h"
 #include "helvnCB6pt7b.h"
 #define myfont helvnCB6pt7b // Org_01 looks better but is small.
+#include "shapes.h" // char array of names of instruments.
 #include "display.h"
+
 
 // variables for UI state management
 int encoder_pos_last = 0;
@@ -316,7 +318,9 @@ void setup() {
 
   // init the braids voices
   initVoices();
-
+  // initialize a mode to play
+  mode = midier::Mode::Ionian;
+  makeScale( roots[scaleRoot], mode);
 
   // Connect the HandleNoteOn function to the library, so it is called upon reception of a NoteOn.
   //MIDI.setHandleNoteOn(HandleNoteOn);  // Put only the name of the function
@@ -471,7 +475,7 @@ void updateControl() {
         if ( encoder_delta == 0) {
           aNoteOff(currentMode[i], 0);
           //noteA = freqs[i];
-          scaleRoot = i;
+          if (button[8]) scaleRoot = i; // change scaleroot if both encoder and another button is pressed.
           pitch_in = currentMode[i]; //freqs[i];
           aNoteOn( pitch_in, 100 );
         }

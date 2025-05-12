@@ -81,7 +81,7 @@ void displayUpdate() {
   // bpm
   display.setCursor(bpm_text_pos.x, bpm_text_pos.y);
   display.print("r: ");
-  display.print(engine_in);
+  display.print(engine_in);//SETTING_OSCILLATOR_SHAPE
 
   // transpose
   display.setCursor(trans_text_pos.x, trans_text_pos.y);
@@ -93,14 +93,21 @@ void displayUpdate() {
   display.print("h: ");
   display.print(harm_in);  // user sees 1-8
 
-  // seq info / meta
+  // name
   display.setCursor(seq_info_pos.x, seq_info_pos.y);
-  display.print("m: ");
+  display.print("P: ");
+  display.print(oscnames[engine_in]);
+  
+  // color
+  display.setCursor(trans_text_pos.x, play_text_pos.y);
+  display.print("c: ");
   display.print(morph_in);
+
 
   display.setCursor(mode_text_pos.x, play_text_pos.y);
   display.print("t: ");
   display.print(timbre_in);
+  
   // play/pause
   display.setCursor(play_text_pos.x, play_text_pos.y);
   display.print("m: ");
