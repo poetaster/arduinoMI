@@ -1,3 +1,4 @@
+
 void HandleNoteOff(byte channel, byte note, byte velocity) {
   //envelope.noteOff();
 
@@ -31,17 +32,18 @@ void aNoteOn(float note, int velocity) {
 
 
   double trig = randomDouble(0.1, 0.9);
-  bool trigger = (trig > 0.4);
+  bool trigger = (trig > 0.1);
   bool trigger_flag = (trigger && (!voices[0].last_trig));
 
   voices[0].last_trig = trigger;
-  decay_in = randomDouble(0.05,0.3);
+ 
   
   if (trigger_flag) {
     trigger_in = trig;
+     //decay_in = randomDouble(0.05,0.3);
     voices[0].modulations.trigger_patched = true;
   } else {
-    trigger_in = 0.f;
+    trigger_in = 0.0f;
     voices[0].modulations.trigger_patched = false;
   }
 

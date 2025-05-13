@@ -104,8 +104,8 @@ int engine_in;
 float fm_mod = 0.0f ; //IN(7);
 float timb_mod = 0.0f; //IN(8);
 float morph_mod = 0.0f; //IN(9);
-float decay_in = 0.2f; // IN(10);
-float lpg_in = 0.1f ;// IN(11);
+float decay_in = 0.5f; // IN(10);
+float lpg_in = 0.5f ;// IN(11);
 float pitch_in = 60.0f;
 
 // clock timer  stuff
@@ -308,8 +308,9 @@ void initVoices() {
   voices[0].patch = patch;
   voices[0].patch.engine = 0;
   voices[0].transposition_ = 0.;
-  voices[0].octave_ = 0.6
-                      ;
+  voices[0].patch.decay = decay_in; //0.5f;
+  voices[0].patch.lpg_colour = lpg_in;
+                      
   voices[0].patch.note = 48.0;
   voices[0].patch.harmonics = 0.5;
   voices[0].patch.morph = 0.3;
@@ -318,9 +319,7 @@ void initVoices() {
 
   voices[0].shared_buffer = shared_buffer;
   // init with zeros
-  memset(voices[0].shared_buffer, 0, 32768);
-
-
+  //memset(voices[0].shared_buffer, 0, 32768);
   stmlib::BufferAllocator allocator(shared_buffer, 32768);
   voice.Init(&allocator);
 
@@ -472,7 +471,7 @@ void loop() {
     voices[0].patch.frequency_modulation_amount = fm_mod;
     voices[0].patch.engine = engine_in;
     //voices[0].transposition_ = 0.;
-    //voices[0].octave_ = 0.5;
+    voices[0].octave_ = 0.5;
     voices[0].patch.note = pitch_in;
     voices[0].patch.harmonics = harm_in;
     voices[0].patch.morph = morph_in;
