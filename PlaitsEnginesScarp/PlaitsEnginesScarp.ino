@@ -130,11 +130,13 @@ RPI_PICO_Timer ITimer0(0);
 bool TimerHandler0(struct repeating_timer *t) {
   (void) t;
   bool sync = true;
-  if ( DAC.availableForWrite() ) {
+  if ( DAC.availableForWrite()) {
+    //DAC.write( (uint16_t)outputPlaits[counter].out, sync);
+    
     for (size_t i = 0; i < plaits::kBlockSize; i++) {
       DAC.write( (uint16_t)outputPlaits[i].out , sync ); // 244 is mozzi audio bias
     }
-    counter =  1;
+    counter = 1;
   }
   return true;
 }
@@ -233,7 +235,7 @@ void setup() {
   }
 
   // set up Pico PWM audio output
-  DAC.setBuffers(4, 32); // plaits::kBlockSize); // DMA buffers
+  DAC.setBuffers(4, plaits::kBlockSize * 2); // DMA buffers
   //DAC.onTransmit(cb);
   DAC.setFrequency(SAMPLERATE);
   DAC.begin();
@@ -467,7 +469,7 @@ void updateControl() {
 
 void loop() {
   // updateAudio();
-  if ( counter > 0 ) {
+  if ( counter ==  1) {
     voices[0].patch.frequency_modulation_amount = fm_mod;
     voices[0].patch.engine = engine_in;
     //voices[0].transposition_ = 0.;
