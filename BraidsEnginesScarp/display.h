@@ -122,7 +122,7 @@ void displaySplash() {
   display.setTextColor(WHITE, 0);
   display.drawRect(0, 0, dw - 1, dh - 1, WHITE);
   display.setCursor(25, 32);
-  display.print("PikoBeatBox");
+  display.print("Scarped Braids");
   display.display();
   // a little LED dance
   /*
