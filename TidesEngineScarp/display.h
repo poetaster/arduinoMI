@@ -46,8 +46,23 @@ const pos_t edit_text_offset = { .x = 3, .y = 22,  .str = "" };
 const int gate_bar_width = 14;
 const int gate_bar_height = 4;
 
+int graphcounter = 0;
+char points[127] = {};
+
+void displayGraph(float y) {
+  int x = abs(y * 512);
+  points[graphcounter] = x;
+  graphcounter++;
+  if (graphcounter > 128) graphcounter = 0;
+  
+}
+
 void displayUpdate() {
   display.clearDisplay();
+  
+  for (int i= 0; i< 127; i++) {
+     display.drawPixel(i, points[i]+25, SH110X_WHITE );
+  }
   //display.setFont(&myfont); don't need to call this every time!
   //display.setTextColor(WHITE, 0);
   /*
@@ -81,7 +96,7 @@ void displayUpdate() {
   // bpm
   display.setCursor(bpm_text_pos.x, bpm_text_pos.y);
   display.print("r: ");
-  display.print(engine_in);//SETTING_OSCILLATOR_SHAPE
+  display.print(oscnames[engine_in]);//SETTING_OSCILLATOR_SHAPE
 
   // transpose
   display.setCursor(trans_text_pos.x, trans_text_pos.y);
@@ -94,9 +109,9 @@ void displayUpdate() {
   display.print(harm_in);  // user sees 1-8
 
   // name
-  display.setCursor(seq_info_pos.x, seq_info_pos.y);
-  display.print("P: ");
-  display.print(oscnames[engine_in]);
+ // display.setCursor(seq_info_pos.x, seq_info_pos.y);
+ // display.print("P: ");
+ // display.print(oscnames[engine_in]);
   
   // color
   display.setCursor(trans_text_pos.x, play_text_pos.y);
@@ -122,7 +137,7 @@ void displaySplash() {
   display.setTextColor(WHITE, 0);
   display.drawRect(0, 0, dw - 1, dh - 1, WHITE);
   display.setCursor(25, 32);
-  display.print("Scarped Tides");
+  display.print("Tides");
   display.display();
   // a little LED dance
   /*

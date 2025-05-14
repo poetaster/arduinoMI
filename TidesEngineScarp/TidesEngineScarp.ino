@@ -164,7 +164,7 @@ float   shape_in = 0.1f;  //IN0(1);
 float   slope_in = 0.1f;  //IN0(2);
 float   smooth_in = 0.1f; // IN0(3);
 float   shift_in = 0.1f; // IN0(4);
-int pitch_in = midi_frequency(60);
+int pitch_in = 60;
 
 
 // Braids vars
@@ -455,7 +455,7 @@ void updateControl() {
           aNoteOff(currentMode[i], 0);
           //noteA = freqs[i];
           if (button[8]) scaleRoot = i; // change scaleroot if both encoder and another button is pressed.
-          pitch_in = midi_frequency(currentMode[i]); //freqs[i];
+          pitch_in = currentMode[i]; //freqs[i];
           aNoteOn( pitch_in, 100 );
         }
         pressedB = i;
@@ -495,7 +495,7 @@ void updateControl() {
 void updateTidesAudio() {
   // ugen defaults: MiTides.ar(freq: 1, shape: 0.5, slope: 0.5, smooth: 0.5, shift: 0.2, trig: 0, clock: 0, output_mode: 3, ramp_mode: 1, ratio: 9, rate: 1, mul: 1.0, add: 0.0)
 
-  float   freq_in = pitch_in; // IN0(0);
+  float   freq_in = midi_frequency(pitch_in); // IN0(0);
   float   shape_in = morph_in; // IN0(1);
   float   slope_in = timbre_in; // IN0(2);
   float   smooth_in = harm_in; // IN0(3);
@@ -505,7 +505,7 @@ void updateTidesAudio() {
   float   trig_in = trigger_in; // IN(5);
   float   clock_in = clock_in; // IN(6);
 
-  int     outp_mode = 2;
+  int     outp_mode = 3;
   int     rmp_mode = 1;
   int     ratio = 9;
   int     rate = 1; //IN0(10);     // choose from CONTROL or AUDIO rate/range
@@ -530,9 +530,15 @@ void updateTidesAudio() {
   CONSTRAIN(ratio, 0, 18);
   
   tides::OutputMode   output_mode = (tides::OutputMode)outp_mode;
-  tides::RampMode     ramp_mode = (tides::RampMode)rmp_mode;
+  tides::RampMode     ramp_mode =  (tides::RampMode)rmp_mode;
   tides::Range        range = (tides::Range)rate; //voices[0].range;
   tides::Ratio        r_ = kRatios[ratio];
+  /*
+    unit->output_mode = tides::OUTPUT_MODE_FREQUENCY;
+    unit->previous_output_mode = tides::OUTPUT_MODE_FREQUENCY;
+    unit->ramp_mode = tides::RAMP_MODE_LOOPING;
+    unit->range = tides::RANGE_AUDIO;
+    */
 
 
   float   frequency, shape, slope, shift, smoothness;
@@ -596,8 +602,12 @@ void updateTidesAudio() {
       //            frequency = freq_lp;
       must_reset_ramp_extractor = true;
     }
-
-
+/*
+    Serial.print("freq: ");
+    Serial.println(freq_in);
+        Serial.print("pitch: ");
+    Serial.println(pitch_in);
+    */
     // parameter inputs
     shape = shape_in;
     CONSTRAIN(shape, 0.f, 1.f);
@@ -626,16 +636,11 @@ void updateTidesAudio() {
     for (int i = 0; i < kAudioBlockSize; ++i) {
       for (int j = 0; j < kNumOutputs; ++j) {
         samplesum = samplesum + ( out[i].channel[j]);
-        Serial.print("channel: ");
-        Serial.print(j);
-        Serial.print(" value: ");
-        Serial.println(out[i].channel[j]);
       }
       samplesum = (samplesum/(float)kNumOutputs) ;
-      Serial.println(samplesum);
+      displayGraph(samplesum);
+      
       samples = samplesum * 32767;
-      Serial.println(samples);
-      //CONSTRAIN(samplesum, -32767,32767);
       voices[0].buffer[i] = (int16_t)samples  ;
     } 
   }
