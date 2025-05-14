@@ -1,19 +1,12 @@
 /*
-  (c) 2024 blueprint@poetaster.de
-  GPLv3
-
-  BASED in part on
-  Arduino Mozzi MIDI FM Synthesis 2
-  https://diyelectromusic.wordpress.com/2020/08/19/arduino-fm-midi-synthesis-with-mozzi-part-2/
-
-      MIT License
-      Copyright (c) 2020 diyelectromusic (Kevin)
-
-  Using principles from the following Arduino tutorials:
-    Arduino MIDI Library - https://github.com/FortySevenEffects/arduino_midi_library
-    Mozzi Library        - https://sensorium.github.io/Mozzi/
-
-  Much of this code is based on the Mozzi example Knob_LightLevel_x2_FMsynth (C) Tim Barrass
+  (c) 2025 blueprint@poetaster.de GPLv3
+   
+   Based on  mi_Ugens, Copyright (c) 2020 Volker Böhm. All rights reserved. GPLv3
+   https://vboehm.net
+      
+   Mutable Instruments sources, including the stmlib, tides, plaits elements and braids libs are
+   MIT License
+   Copyright (c)  2020 (emilie.o.gillet@gmail.com)
 */
 
 bool debugging = true;
