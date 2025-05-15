@@ -356,7 +356,7 @@ void initVoices() {
   voices[0].ps.strength = 0.5f;
   voices[0].ps.gate = 0;
 
-  voices[0].part->set_resonator_model(elements::RESONATOR_MODEL_MODAL);
+  voices[0].part->set_resonator_model(elements::RESONATOR_MODEL_STRING);
   // generate some samples
   updateElementsAudio();
 
@@ -442,7 +442,8 @@ void updateControl() {
           aNoteOff(currentMode[i], 0);
           //noteA = freqs[i];
           if (button[8]) scaleRoot = i; // change scaleroot if both encoder and another button is pressed.
-          pitch_in = currentMode[i]; //freqs[i];
+          
+          pitch_in = currentMode[i] + 24; //freqs[i];
           aNoteOn( pitch_in, 100 );
         }
         pressedB = i;
@@ -490,21 +491,21 @@ void updateElementsAudio() {
 
   float   voct_in = pitch_in; // IN0(3);
   float   strength = 0.5f; //IN0(4);
-  float   contour = 0.5f; // IN0(5); // envelope shape
+  float   contour = 0.9f ; //harm_in; // IN0(5); // envelope shape
   float   bow_level = 0.f; // IN0(6);
   float   blow_level = 0.f; // IN0(7);
   float   strike_level = 0.5f; // IN0(8);
   float   flow = 0.f; //IN0(9); blow meta
   float   mallet = 0.5f ; //IN0(10); // strike meta
-  float   bow_timbre = 0.f ;//timbre_in; //IN0(11);
-  float   blow_timbre = 0.f ;//timbre_in; //IN0(12);
+  float   bow_timbre = timbre_in; //IN0(11);
+  float   blow_timbre = timbre_in; //IN0(12);
   float   strike_timbre = timbre_in; // IN0(13);
-  float   geometry = 0.99f ; //harm_in; // IN0(14);
+  float   geometry = harm_in + 0.5f; // IN0(14);
   float   brightness = 0.3f; // IN0(15);
-  float   damping = 0.8f; // IN0(16);
-  float   position = 0.2f; // IN0(17);
-  float   space = 0.2f; //IN0(18);
-  int     model = 1; //2.f; //IN0(19);
+  float   damping = 0.05f; // IN0(16);
+  float   position = 0.5f; // IN0(17);
+  float   space = morph_in + 0.01f; //IN0(18);
+  int     model = engine_in; //2.f; //IN0(19);
   bool    easter_egg = false; //0.f; //IN0(20) > 0.f;
 
 

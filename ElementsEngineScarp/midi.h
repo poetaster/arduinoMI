@@ -71,7 +71,7 @@ void aNoteOn(float note, int velocity) {
   };
 
   trigger_in = randomDouble(0.0, 1.0);
-  if (trigger_in < 0.2) {
+  if (trigger_in < 0.1) {
     trigger_in = 0.f;
   } else {
     /*

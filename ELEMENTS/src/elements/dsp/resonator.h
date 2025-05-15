@@ -40,7 +40,7 @@
 
 namespace elements {
 
-const size_t kMaxModes = 32; // blue was 64
+const size_t kMaxModes = 64; // blue was 64
 const size_t kMaxBowedModes = 8;
 const size_t kMaxDelayLineSize = 1024;
 

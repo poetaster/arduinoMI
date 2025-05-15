@@ -153,7 +153,7 @@ void Part::Process(
   space = space >= 0.1f ? space - 0.1f : 0.0f;
   float spread = space <= 0.7f ? space : 0.7f;
   float reverb_amount = space >= 0.5f ? 1.0f * (space - 0.5f) : 0.0f;
-  float reverb_time = 0.35f + 1.2f * reverb_amount;
+  float reverb_time = 0.01f; //0.35f + 1.2f * reverb_amount;
   
   // Render each voice.
   for (size_t i = 0; i < kNumVoices; ++i) {
@@ -217,7 +217,7 @@ void Part::Process(
   
     // TODO: vb, check metering code
   // Metering.
-    /*
+    
   float exciter_level = voice_[active_voice_].exciter_level();
   float resonator_level = resonator_level_;
   for (size_t i = 0; i < size; ++i) {
@@ -239,10 +239,11 @@ void Part::Process(
 
   resonator_level *= 16.0f;
   scaled_resonator_level_ = resonator_level < 1.0f ? resonator_level : 1.0f;
-  */
+  
     
     
   // Apply reverb.
+  
   reverb_.set_amount(reverb_amount);
   reverb_.set_diffusion(patch_.reverb_diffusion);
     bool freeze = patch_.space >= 1.1f;  // vb, 1.75f;
@@ -256,6 +257,7 @@ void Part::Process(
     reverb_.set_lp(patch_.reverb_lp);
   }
   reverb_.Process(main, aux, size);
+  
 }
 
 }  // namespace elements
