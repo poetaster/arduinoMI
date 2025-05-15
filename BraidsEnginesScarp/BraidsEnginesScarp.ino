@@ -306,7 +306,8 @@ void setup() {
 
   pinMode(LED, OUTPUT);
 
-
+  pinMode(23, OUTPUT); // thi is to switch to PWM for power to avoid ripple noise
+  digitalWrite(23, HIGH);
 
   // init the braids voices
   initVoices();

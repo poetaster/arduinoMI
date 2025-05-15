@@ -290,7 +290,8 @@ void setup() {
 
   pinMode(LED, OUTPUT);
 
-
+  pinMode(23, OUTPUT); // thi is to switch to PWM for power to avoid ripple noise
+  digitalWrite(23, HIGH);
 
   // init the elements voice
   initVoices();
@@ -490,11 +491,11 @@ void updateElementsAudio() {
   float   *gate_in;// = IN(2);
 
   float   voct_in = pitch_in; // IN0(3);
-  float   strength = 0.5f; //IN0(4);
+  float   strength = 0.7f; //IN0(4);
   float   contour = 0.9f ; //harm_in; // IN0(5); // envelope shape
   float   bow_level = 0.f; // IN0(6);
   float   blow_level = 0.f; // IN0(7);
-  float   strike_level = 0.5f; // IN0(8);
+  float   strike_level = 0.9f; // IN0(8);
   float   flow = 0.f; //IN0(9); blow meta
   float   mallet = 0.5f ; //IN0(10); // strike meta
   float   bow_timbre = timbre_in; //IN0(11);
@@ -502,7 +503,7 @@ void updateElementsAudio() {
   float   strike_timbre = timbre_in; // IN0(13);
   float   geometry = harm_in + 0.5f; // IN0(14);
   float   brightness = 0.3f; // IN0(15);
-  float   damping = 0.05f; // IN0(16);
+  float   damping = harm_in + 0.1f; // IN0(16);
   float   position = 0.5f; // IN0(17);
   float   space = morph_in + 0.01f; //IN0(18);
   int     model = engine_in; //2.f; //IN0(19);

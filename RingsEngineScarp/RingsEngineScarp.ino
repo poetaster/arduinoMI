@@ -1,4 +1,4 @@
-/*
+bb/*
   (c) 2025 blueprint@poetaster.de GPLv3
 
    Based on  mi_Ugens, Copyright (c) 2020 Volker Böhm. All rights reserved. GPLv3
@@ -287,7 +287,8 @@ void setup() {
 
   pinMode(LED, OUTPUT);
 
-
+  pinMode(23, OUTPUT); // thi is to switch to PWM for power to avoid ripple noise
+  digitalWrite(23, HIGH);
 
   // init the braids voices
   initVoices();
