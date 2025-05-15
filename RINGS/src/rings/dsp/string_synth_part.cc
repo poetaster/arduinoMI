@@ -36,6 +36,8 @@ using namespace std;
 using namespace stmlib;
 
 void StringSynthPart::Init(uint16_t* reverb_buffer) {
+    sr_ = Dsp::getSr();     // vb
+    a3_ = Dsp::getA3();     // vb
   active_group_ = 0;
   acquisition_delay_ = 0;
   
@@ -62,7 +64,7 @@ void StringSynthPart::Init(uint16_t* reverb_buffer) {
   ensemble_.Init(reverb_buffer);
   
   note_filter_.Init(
-      kSampleRate / kMaxBlockSize,
+      sr_ / kMaxBlockSize,
       0.001f,  // Lag time with a sharp edge on the V/Oct input or trigger.
       0.005f,  // Lag time after the trigger has been received.
       0.050f,  // Time to transition from reactive to filtered.
@@ -102,132 +104,6 @@ void StringSynthPart::ComputeRegistration(
   }
 }
 
-#ifdef BRYAN_CHORDS
-
-// Chord table by Bryan Noll:
-// - more compact, leaving room for a bass
-// - more frequent note changes between adjacent chords.
-// - dropped fifth.
-/*
-const float chords[kMaxStringSynthPolyphony][kNumChords][kMaxChordSize] = {
-  {
-    { -12.0f, -0.01f,  0.0f,  0.01f,  0.02f, 11.99f, 12.0f, 24.0f }, // OCT
-    { -12.0f, -5.01f, -5.0f,  0.0f,   7.0f,  12.0f,  19.0f, 24.0f }, // 5
-    { -12.0f, -5.0f,   0.0f,  5.0f,   7.0f,  12.0f,  17.0f, 24.0f }, // sus4
-    { -12.0f, -5.0f,   0.0f,  0.01f,  3.0f,  12.0f,  19.0f, 24.0f }, // m
-    { -12.0f, -5.01f, -5.0f,  0.0f,   3.0f,  10.0f,  19.0f, 24.0f }, // m7
-    { -12.0f, -5.0f,   0.0f,  3.0f,  10.0f,  14.0f,  19.0f, 24.0f }, // m9
-    { -12.0f, -5.01f, -5.0f,  0.0f,   3.0f,  10.0f,  17.0f, 24.0f }, // m11
-    { -12.0f, -5.0f,   0.0f,  2.0f,   9.0f,  16.0f,  19.0f, 24.0f }, // 69
-    { -12.0f, -5.0f,   0.0f,  4.0f,  11.0f,  14.0f,  19.0f, 24.0f }, // M9
-    { -12.0f, -5.0f,   0.0f,  4.0f,   7.0f,  11.0f,  19.0f, 24.0f }, // M7
-    { -12.0f, -5.0f,   0.0f,  4.0f,   7.0f,  12.0f,  19.0f, 24.0f }, // M
-  },
-  {
-    { -12.0f, -0.01f,  0.0f,  0.01f, 12.0f,  12.01f }, // OCT
-    { -12.0f, -5.01f, -5.0f,  0.0f,   7.0f,  12.0f  }, // 5
-    { -12.0f, -5.0f,   0.0f,  5.0f,   7.0f,  12.0f  }, // sus4
-    { -12.0f, -5.0f,   0.0f,  0.01f,  3.0f,  12.0f  }, // m
-    { -12.0f, -5.01f, -5.0f,  0.0f,   3.0f,  10.0f  }, // m7
-    { -12.0f, -5.0f,   0.0f,  3.0f,  10.0f,  14.0f  }, // m9
-    { -12.0f, -5.0f,   0.0f,  3.0f,  10.0f,  17.0f  }, // m11
-    { -12.0f, -5.0f,   0.0f,  2.0f,   9.0f,  16.0f  }, // 69
-    { -12.0f, -5.0f,   0.0f,  4.0f,  11.0f,  14.0f  }, // M9
-    { -12.0f, -5.0f,   0.0f,  4.0f,   7.0f,  11.0f  }, // M7
-    { -12.0f, -5.0f,   0.0f,  4.0f,   7.0f,  12.0f  }, // M
-  },
-  {
-    { -12.0f, 0.0f,  0.01f, 12.0f }, // OCT
-    { -12.0f, 6.99f, 7.0f,  12.0f }, // 5
-    { -12.0f, 5.0f,  7.0f,  12.0f }, // sus4
-    { -12.0f, 3.0f, 11.99f, 12.0f }, // m
-    { -12.0f, 3.0f,  9.99f, 10.0f }, // m7
-    { -12.0f, 3.0f, 10.0f,  14.0f }, // m9
-    { -12.0f, 3.0f, 10.0f,  17.0f }, // m11
-    { -12.0f, 2.0f,  9.0f,  16.0f }, // 69
-    { -12.0f, 4.0f, 11.0f,  14.0f }, // M9
-    { -12.0f, 4.0f,  7.0f,  11.0f }, // M7
-    { -12.0f, 4.0f,  7.0f,  12.0f }, // M
-  },
-  {
-    { 0.0f,  0.01f, 12.0f }, // OCT
-    { 0.0f,  7.0f,  12.0f }, // 5
-    { 5.0f,  7.0f,  12.0f }, // sus4
-    { 0.0f,  3.0f,  12.0f }, // m
-    { 0.0f,  3.0f,  10.0f }, // m7
-    { 3.0f, 10.0f,  14.0f }, // m9
-    { 3.0f, 10.0f,  17.0f }, // m11
-    { 2.0f,  9.0f,  16.0f }, // 69
-    { 4.0f, 11.0f,  14.0f }, // M9
-    { 4.0f,  7.0f,  11.0f }, // M7
-    { 4.0f,  7.0f,  12.0f }, // M
-  }
-};
-*/
-#else
-
-// Original chord table:
-// - wider, occupies more room in the spectrum.
-// - minimum number of note changes between adjacent chords.
-// - consistent with the chord table used for the sympathetic strings model.
-/*
-const float chords[kMaxStringSynthPolyphony][kNumChords][kMaxChordSize] = {
-  {
-    { -24.0f, -12.0f, 0.0f, 0.01f, 0.02f, 11.99f, 12.0f, 24.0f },
-    { -24.0f, -12.0f, 0.0f, 3.0f,  7.0f,  10.0f,  19.0f, 24.0f },
-    { -24.0f, -12.0f, 0.0f, 3.0f,  7.0f,  12.0f,  19.0f, 24.0f },
-    { -24.0f, -12.0f, 0.0f, 3.0f,  7.0f,  14.0f,  19.0f, 24.0f },
-    { -24.0f, -12.0f, 0.0f, 3.0f,  7.0f,  17.0f,  19.0f, 24.0f },
-    { -24.0f, -12.0f, 0.0f, 6.99f, 7.0f,  18.99f, 19.0f, 24.0f },
-    { -24.0f, -12.0f, 0.0f, 4.0f,  7.0f,  17.0f,  19.0f, 24.0f },
-    { -24.0f, -12.0f, 0.0f, 4.0f,  7.0f,  14.0f,  19.0f, 24.0f },
-    { -24.0f, -12.0f, 0.0f, 4.0f,  7.0f,  12.0f,  19.0f, 24.0f },
-    { -24.0f, -12.0f, 0.0f, 4.0f,  7.0f,  11.0f,  19.0f, 24.0f },
-    { -24.0f, -12.0f, 0.0f, 5.0f,  7.0f,  12.0f,  17.0f, 24.0f },
-  },
-  {
-    { -24.0f, -12.0f, 0.0f, 0.01f, 12.0f, 12.01f },
-    { -24.0f, -12.0f, 0.0f, 3.00f, 7.0f,  10.0f },
-    { -24.0f, -12.0f, 0.0f, 3.00f, 7.0f,  12.0f },
-    { -24.0f, -12.0f, 0.0f, 3.00f, 7.0f,  14.0f },
-    { -24.0f, -12.0f, 0.0f, 3.00f, 7.0f,  17.0f },
-    { -24.0f, -12.0f, 0.0f, 6.99f, 12.0f, 19.0f },
-    { -24.0f, -12.0f, 0.0f, 4.00f, 7.0f,  17.0f },
-    { -24.0f, -12.0f, 0.0f, 4.00f, 7.0f,  14.0f },
-    { -24.0f, -12.0f, 0.0f, 4.00f, 7.0f,  12.0f },
-    { -24.0f, -12.0f, 0.0f, 4.00f, 7.0f,  11.0f },
-    { -24.0f, -12.0f, 0.0f, 5.00f, 7.0f, 12.0f },
-  },
-  {
-    { -12.0f, 0.0f, 0.01f, 12.0f },
-    { -12.0f, 3.0f, 7.0f,  10.0f },
-    { -12.0f, 3.0f, 7.0f,  12.0f },
-    { -12.0f, 3.0f, 7.0f,  14.0f },
-    { -12.0f, 3.0f, 7.0f,  17.0f },
-    { -12.0f, 7.0f, 12.0f, 19.0f },
-    { -12.0f, 4.0f, 7.0f,  17.0f },
-    { -12.0f, 4.0f, 7.0f,  14.0f },
-    { -12.0f, 4.0f, 7.0f,  12.0f },
-    { -12.0f, 4.0f, 7.0f,  11.0f },
-    { -12.0f, 5.0f, 7.0f, 12.0f },
-  },
-  {
-    { 0.0f, 0.01f, 12.0f },
-    { 0.0f, 3.0f,  10.0f },
-    { 0.0f, 3.0f,  7.0f },
-    { 0.0f, 3.0f,  14.0f },
-    { 0.0f, 3.0f,  17.0f },
-    { 0.0f, 7.0f,  19.0f },
-    { 0.0f, 4.0f,  17.0f },
-    { 0.0f, 4.0f,  14.0f },
-    { 0.0f, 4.0f,  7.0f },
-    { 0.0f, 4.0f,  11.0f },
-    { 0.0f, 5.0f,  7.0f },
-  }
-};
-*/
-#endif  // BRYAN_CHORDS
-
 void StringSynthPart::ProcessEnvelopes(
     float shape,
     uint8_t* flags,
@@ -241,7 +117,7 @@ void StringSynthPart::ProcessEnvelopes(
   }
   
   // Convert the arbitrary values to actual units.
-  float period = kSampleRate / kMaxBlockSize;
+  float period = sr_ / kMaxBlockSize;
   float attack_time = SemitonesToRatio(attack * 96.0f) * 0.005f * period;
   // float decay_time = SemitonesToRatio(decay * 96.0f) * 0.125f * period;
   float decay_time = SemitonesToRatio(decay * 84.0f) * 0.180f * period;
@@ -288,7 +164,7 @@ void StringSynthPart::ProcessFormantFilter(
     float b = formants[vowel_integral + 1][i];
     float f = a + (b - a) * vowel_fractional;
     f *= shift;
-    formant_filter_[i].set_f_q<FREQUENCY_DIRTY>(f / kSampleRate, resonance);
+    formant_filter_[i].set_f_q<FREQUENCY_DIRTY>(f / sr_, resonance);
     formant_filter_[i].Process<FILTER_MODE_BAND_PASS>(
         filter_in_buffer_,
         filter_out_buffer_,
@@ -338,6 +214,7 @@ void StringSynthPart::Process(
   float envelope_values[kMaxStringSynthPolyphony];
   ProcessEnvelopes(patch.damping, envelope_flags, envelope_values);
   
+    // vb, do we need to do this?
   copy(&in[0], &in[size], &aux[0]);
   copy(&in[0], &in[size], &out[0]);
   int32_t chord_size = min(kStringSynthVoices / polyphony_, kMaxChordSize);
@@ -378,7 +255,7 @@ void StringSynthPart::Process(
         amplitudes[2 * (num_harmonics - 1) + 1] += amplitudes[2 * i + 1];
       }
 
-      float frequency = SemitonesToRatio(note - 69.0f) * a3;
+      float frequency = SemitonesToRatio(note - 69.0f) * a3_;
       voice_[group * chord_size + chord_note].Render(
           frequency,
           amplitudes,

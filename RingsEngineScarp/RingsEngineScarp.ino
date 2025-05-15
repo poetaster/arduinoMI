@@ -1,4 +1,4 @@
-bb/*
+/*
   (c) 2025 blueprint@poetaster.de GPLv3
 
    Based on  mi_Ugens, Copyright (c) 2020 Volker Böhm. All rights reserved. GPLv3
@@ -60,6 +60,9 @@ PWMAudio DAC(PWMOUT);  // 16 bit PWM audio
 
 const size_t kBlockSize = rings::kMaxBlockSize;
 
+float rings::Dsp::sr = 48000.0f;
+float rings::Dsp::a3 = 440.0f / 48000.0f;
+
 
 struct Unit {
 
@@ -72,7 +75,8 @@ struct Unit {
   uint16_t                *reverb_buffer;
 
   float                   *silence;
-  float                   *input;
+  float                   *out, *aux;     // output buffers
+  float                   *input; // input buffer
 
   bool                    prev_trig;
   int                     prev_poly;
@@ -80,9 +84,6 @@ struct Unit {
   // we're using the original rendering, not vbs
   int16_t                 obuff[kBlockSize]; // from float[]s below in update routine
   int16_t                 abuff[kBlockSize]; // ditto
-  float in[kBlockSize];
-  float out[kBlockSize];
-  float aux[kBlockSize];
 };
 
 struct Unit voices[1];
@@ -132,14 +133,14 @@ RPI_PICO_Timer ITimer0(0);
 bool TimerHandler0(struct repeating_timer *t) {
   (void) t;
   bool sync = true;
-  /*
+  
   if ( DAC.availableForWrite() ) {
     for (size_t i = 0; i < kBlockSize; i++) {
-      DAC.write( voices[0].out[i] , sync );
+      DAC.write( voices[0].obuff[i] , sync );
     }
     counter =  1;
   }
-  */
+  
   return true;
 }
 
@@ -242,7 +243,7 @@ void setup() {
   DAC.setBuffers(4, kBlockSize); // DMA buffers
   //DAC.onTransmit(cb);
   DAC.setFrequency(SAMPLERATE);
-  //DAC.begin();
+  DAC.begin();
 
   // Additions
   // ENCODER
@@ -287,8 +288,7 @@ void setup() {
 
   pinMode(LED, OUTPUT);
 
-  pinMode(23, OUTPUT); // thi is to switch to PWM for power to avoid ripple noise
-  digitalWrite(23, HIGH);
+
 
   // init the braids voices
   initVoices();
@@ -308,28 +308,29 @@ void setup() {
 // initialize voice parameters
 void initVoices() {
 
-
-  // init some params
-  //voices[0].pd.osc = new braids::MacroOscillator;
-  //memset(voices[0].pd.osc, 0, sizeof(*voices[0].pd.osc));
+   rings::Dsp::setSr(SAMPLERATE);
   // allocate memory + init with zeros
-  //voices[0].reverb_buffer = (uint16_t*)malloc(voices[0].mWorld, 32768 * sizeof(uint16_t));
+  
+  voices[0].reverb_buffer = (uint16_t*)malloc(32768 * sizeof(uint16_t));
   memset(voices[0].reverb_buffer, 0, 32768 * sizeof(uint16_t));
 
-  //voices[0].silence = (float*)RTAlloc(voices[0].mWorld, kBlockSize * sizeof(float));
+  voices[0].silence = (float*)malloc(kBlockSize * sizeof(float));
   memset(voices[0].silence, 0, kBlockSize * sizeof(float));
 
-  //voices[0].input = (float*)RTAlloc(voices[0].mWorld, kBlockSize * sizeof(float));
+  voices[0].input = (float*)malloc(kBlockSize * sizeof(float));
   memset(voices[0].input, 0, kBlockSize * sizeof(float));
-
+  
+  voices[0].out = (float *)malloc(kBlockSize * sizeof(float));
+  voices[0].aux = (float *)malloc(kBlockSize * sizeof(float));
+  
   // zero out...
   memset(&voices[0].strummer, 0, sizeof(voices[0].strummer));
   memset(&voices[0].part, 0, sizeof(voices[0].part));
   memset(&voices[0].string_synth, 0, sizeof(voices[0].string_synth));
-  memset(voices[0].out, 0, sizeof(int16_t)*kBlockSize);
-  memset(voices[0].aux, 0, sizeof(int16_t)*kBlockSize);
 
-  voices[0].strummer.Init(0.01, rings::kSampleRate / kBlockSize);
+
+
+  voices[0].strummer.Init(0.01, 48000.0f / kBlockSize);
   voices[0].part.Init(voices[0].reverb_buffer);
   voices[0].string_synth.Init(voices[0].reverb_buffer);
 
@@ -346,7 +347,7 @@ void initVoices() {
   // we're fixing this for the moment until we can test with input
   voices[0].performance_state.internal_exciter = true;
   Serial.println("got to first update");
-  //updateRingsAudio() ;
+  updateRingsAudio() ;
   Serial.println("survived first update");
   // check input rates
   /*
@@ -377,44 +378,9 @@ void cb() {
   }
 }
 
-/*
-  void audioOutput() {
-  voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
-
-  for (int i = 0; i <  plaits::kBlockSize; i++) {
-    uint16_t out = outputPlaits[i].out;
-    if ( DAC.availableForWrite() ) DAC.write( out );
-  }
-  // write samples to DMA buffer - this is a blocking call so it stalls when buffer is full
-  // f.l() + MOZZI_AUDIO_BIAS
-  // left
-  }
-
-  bool canBufferAudioOutput() {
-
-  if ( DAC.availableForWrite() > 32 ) {
-    return true;
-  }
-  return false;
-  }
 
 
-  bool updateAudio() {
-  if (canBufferAudioOutput()) {
-    audioOutput();
-    return true;
-  }
-  return false;
 
-  }
-*/
-
-bool canBufferAudioOutput() {
-  if ( DAC.availableForWrite() > 32 ) {
-    return true;
-  }
-  return false;
-}
 void updateControl() {
 
   //MIDI.read();
@@ -486,11 +452,10 @@ void updateControl() {
 }
 
 void updateRingsAudio() {
+  
+  // our output buffers, post rendering
   int16_t *obuff = voices[0].obuff;
   int16_t *abuff = voices[0].abuff;
-  float *out = voices[0].out;
-  float *aux = voices[0].aux;
-  float *in = voices[0].in;
 
   float   *trig_in; // = IN(1);
 
@@ -503,7 +468,7 @@ void updateRingsAudio() {
   float   pos_in = 0.25f ; //IN0(6);
 
   short   model = engine_in; // IN0(7);
-  short   polyphony = 4; // IN0(8);
+  short   polyphony = 1; // IN0(8);
   bool    intern_exciter = true; // (IN0(9) > 0.f);
   bool    easter_egg = false; // (IN0(10) > 0.f);
   bool    bypass = false; // (IN0(11) > 0.f);
@@ -514,7 +479,9 @@ void updateRingsAudio() {
   rings::Patch *patch = &voices[0].patch;
   rings::PerformanceState *ps = &voices[0].performance_state;
 
-  float   *input = voices[0].input;
+  float   *in = voices[0].input;
+  float   *out = voices[0].out;
+  float   *aux = voices[0].aux;
   size_t  size = kBlockSize;
 
 
@@ -532,7 +499,7 @@ void updateRingsAudio() {
     ps->internal_exciter = true;
     }
   */
-  input = voices[0].silence;
+  in = voices[0].silence;
 
   // ... and use internal exciter!
   ps->internal_exciter = true;
@@ -641,12 +608,11 @@ void updateRingsAudio() {
 
 
   }
-  // to pwm buffers
   for (size_t i = 0; i < size; ++i) {
-    obuff[i] = stmlib::Clip16(static_cast<int32_t>(out[i] * 32768.0f));
-    abuff[i] = stmlib::Clip16(static_cast<int32_t>(aux[i] * 32768.0f));
-  }
+    obuff[i] = stmlib::Clip16(static_cast<int16_t>(out[i] * 32768.0f));
+    //abuff[i] = stmlib::Clip16(static_cast<int16_t>(aux[i] * 32768.0f));
 
+  }
 
 
 }
@@ -654,7 +620,7 @@ void updateRingsAudio() {
 void loop() {
   // when the osc buffer has been written to PWM buffer
   if ( counter > 0 ) {
-    //updateRingsAudio();
+    updateRingsAudio();
     counter = 0; // increments on each pass of the timer when the timer writes
   }
 

@@ -32,12 +32,17 @@
 
 #include "rings/resources.h"
 
+
 namespace rings {
 
 using namespace std;
 using namespace stmlib;
 
 void Part::Init(uint16_t* reverb_buffer) {
+    //vb
+    sr_ = Dsp::getSr();
+    a3_ = Dsp::getA3();
+    
   active_voice_ = 0;
   
   fill(&note_[0], &note_[kMaxPolyphony], 0.0f);
@@ -46,18 +51,20 @@ void Part::Init(uint16_t* reverb_buffer) {
   polyphony_ = 1;
   model_ = RESONATOR_MODEL_MODAL;
   dirty_ = true;
+    step_counter_ = 0;      // vb, init step_counter_
   
   for (int32_t i = 0; i < kMaxPolyphony; ++i) {
     excitation_filter_[i].Init();
     plucker_[i].Init();
-    dc_blocker_[i].Init(1.0f - 10.0f / kSampleRate);
+    dc_blocker_[i].Init(1.0f - 10.0f / sr_);
+      resonator_[i].Init();     // vb, init resonators
   }
   
   reverb_.Init(reverb_buffer);
   limiter_.Init();
 
   note_filter_.Init(
-      kSampleRate / kMaxBlockSize,
+      sr_ / kMaxBlockSize,
       0.001f,  // Lag time with a sharp edge on the V/Oct input or trigger.
       0.010f,  // Lag time after the trigger has been received.
       0.050f,  // Time to transition from reactive to filtered.
@@ -93,7 +100,7 @@ void Part::ConfigureResonators() {
               model_ == RESONATOR_MODEL_STRING_AND_REVERB;
           string_[i].Init(has_dispersion);
 
-          float f_lfo = float(kMaxBlockSize) / float(kSampleRate);
+          float f_lfo = float(kMaxBlockSize) / sr_;
           f_lfo *= lfo_frequencies[i];
           lfo_[i].Init<COSINE_OSCILLATOR_APPROXIMATE>(f_lfo);
         }
@@ -371,7 +378,7 @@ void Part::RenderStringVoice(
         frequencies,
         num_strings);
     for (int32_t i = 0; i < num_strings; ++i) {
-      frequencies[i] = SemitonesToRatio(frequencies[i] - 69.0f) * a3;
+      frequencies[i] = SemitonesToRatio(frequencies[i] - 69.0f) * a3_;
     }
   } else {
     frequencies[0] = frequency;
@@ -474,7 +481,7 @@ void Part::Process(
     copy(&in[0], &in[size], &aux[0]);
     return;
   }
-  
+    
   ConfigureResonators();
   
   note_filter_.Process(
@@ -493,6 +500,9 @@ void Part::Process(
   
   note_[active_voice_] = note_filter_.note();
   
+    // vb, we should be able to do this a little later, but we can't
+    // at the moment, don't see why, though.
+    // polyphony stops working...
   fill(&out[0], &out[size], 0.0f);
   fill(&aux[0], &aux[size], 0.0f);
   for (int32_t voice = 0; voice < polyphony_; ++voice) {
@@ -500,13 +510,13 @@ void Part::Process(
     // filter.
     float cutoff = patch.brightness * (2.0f - patch.brightness);
     float note = note_[voice] + performance_state.tonic + performance_state.fm;
-    float frequency = SemitonesToRatio(note - 69.0f) * a3;
+    float frequency = SemitonesToRatio(note - 69.0f) * a3_;
     float filter_cutoff_range = performance_state.internal_exciter
       ? frequency * SemitonesToRatio((cutoff - 0.5f) * 96.0f)
       : 0.4f * SemitonesToRatio((cutoff - 1.0f) * 108.0f);
     float filter_cutoff = min(voice == active_voice_
       ? filter_cutoff_range
-      : (10.0f / kSampleRate), 0.499f);
+      : (10.0f / sr_), 0.499f);
     float filter_q = performance_state.internal_exciter ? 1.5f : 0.8f;
 
     // Process input with excitation filter. Inactive voices receive silence.
@@ -516,6 +526,10 @@ void Part::Process(
     } else {
       fill(&resonator_input_[0], &resonator_input_[size], 0.0f);
     }
+      // vb: would be nice to postpone zeroing out to here
+      // so we can spare having to copy the input.
+//      fill(&out[0], &out[size], 0.0f);
+//      fill(&aux[0], &aux[size], 0.0f);
     
     if (model_ == RESONATOR_MODEL_MODAL) {
       RenderModalVoice(
@@ -536,6 +550,7 @@ void Part::Process(
       }
     } else {
       // Dispatch odd/even voices to individual outputs.
+        // vb: odd --> aux // even --> out
       float* destination = voice & 1 ? aux : out;
       for (size_t i = 0; i < size; ++i) {
         destination[i] += out_buffer_[i] - aux_buffer_[i];

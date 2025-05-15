@@ -211,7 +211,8 @@ class OnsetDetector {
   float envelope_[3];
   float onset_df_;
   
-  float bands_[3][32];
+  //float bands_[3][32];
+    float bands_[3][64];        // vb, this must be at least blocksize, no?
   
   ZScorer z_df_;
   
