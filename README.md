@@ -1,9 +1,13 @@
 # arduinoMI
 Ports of mutable intstruments eurorack code to arduino.
 
-This port was possible because of the work of Volker Boehm to bring MI modules to supercollider: https://github.com/v7b1/mi-UGens Very cool.
+Current status, 15.05.2025:
+* braids works well
+* tides works well, or so I believe
+* plaits has timing issues and isn't rendering properly
+* rings is not functional yet
 
-Still need to implement proper audio rendering in plaits, but the engines from plaits all make sound :) And braids is already very clean!
+This port was possible because of the work of Volker Boehm to bring MI modules to supercollider: https://github.com/v7b1/mi-UGens Very cool.
 
 I'll release basic sketches without all the scarp hardware when I have a bit of time. I pushed to scarp since it makes it easy to test with inputs. Which is why I built scarp after all :)
 

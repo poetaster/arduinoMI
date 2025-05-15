@@ -47,21 +47,34 @@ const int gate_bar_width = 14;
 const int gate_bar_height = 4;
 
 int graphcounter = 0;
-char points[127] = {};
+char pointsa[32] = {};
+char pointsb[32] = {};
+char pointsc[32] = {};
+char pointsd[32] = {};
 
-void displayGraph(float y) {
-  int x = abs(y * 512);
-  points[graphcounter] = x;
+void displayGraph(float a, float b, float c, float d) {
+  int w = abs(a * (127));
+  int x = abs(b * (64));
+  int y = abs(c * (32));
+  int z = abs(d * (32));
+  
+  pointsa[graphcounter] = w;
+  pointsb[graphcounter] = x;
+  pointsc[graphcounter] = y;
+  pointsd[graphcounter] = z;
   graphcounter++;
-  if (graphcounter > 128) graphcounter = 0;
+  if (graphcounter > 31) graphcounter = 0;
   
 }
 
 void displayUpdate() {
   display.clearDisplay();
   
-  for (int i= 0; i< 127; i++) {
-     display.drawPixel(i, points[i]+25, SH110X_WHITE );
+  for (int i= 0; i< 32; i++) {
+     display.drawPixel(i, pointsa[i]+25, SH110X_WHITE );
+     display.drawPixel(i+31, pointsb[i]+25, SH110X_WHITE );
+     display.drawPixel(i+63, pointsc[i]+25, SH110X_WHITE );    
+     display.drawPixel(i+95, pointsd[i]+25, SH110X_WHITE );    
   }
   //display.setFont(&myfont); don't need to call this every time!
   //display.setTextColor(WHITE, 0);

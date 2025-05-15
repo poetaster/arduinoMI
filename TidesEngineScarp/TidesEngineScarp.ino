@@ -154,7 +154,7 @@ struct Unit voices[1];
 float morph_in = 0.1f; // IN(4);
 float trigger_in; //IN(5);
 float level_in = 0.0f; //IN(6);
-float harm_in = 0.1f;
+float harm_in = 0.15f;
 float timbre_in = 0.1f;
 int engine_in;
 
@@ -164,7 +164,7 @@ float   shape_in = 0.1f;  //IN0(1);
 float   slope_in = 0.1f;  //IN0(2);
 float   smooth_in = 0.1f; // IN0(3);
 float   shift_in = 0.1f; // IN0(4);
-int pitch_in = 60;
+int pitch_in = 90;
 
 
 // Braids vars
@@ -455,7 +455,7 @@ void updateControl() {
           aNoteOff(currentMode[i], 0);
           //noteA = freqs[i];
           if (button[8]) scaleRoot = i; // change scaleroot if both encoder and another button is pressed.
-          pitch_in = currentMode[i]; //freqs[i];
+          pitch_in = currentMode[i] + 24; //freqs[i];
           aNoteOn( pitch_in, 100 );
         }
         pressedB = i;
@@ -638,7 +638,7 @@ void updateTidesAudio() {
         samplesum = samplesum + ( out[i].channel[j]);
       }
       samplesum = (samplesum/(float)kNumOutputs) ;
-      displayGraph(samplesum);
+      displayGraph(out[i].channel[0], out[i].channel[1], out[i].channel[2], out[i].channel[3]);
       
       samples = samplesum * 32767;
       voices[0].buffer[i] = (int16_t)samples  ;
@@ -769,11 +769,11 @@ void loop1() {
   // this is broken by mozzi, sigh.
   if (! anybuttonpressed && encoder_delta) {
     if (encoder_delta > 1) {
-      harm_in = harm_in + 0.03f;
+      harm_in = harm_in + 0.01f;
       CONSTRAIN(harm_in, 0.0f, 1.0f);
 
     } else {
-      harm_in = harm_in - 0.03f;
+      harm_in = harm_in - 0.01f;
       CONSTRAIN(harm_in, 0.0f, 1.0f);
 
     }
