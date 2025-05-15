@@ -633,9 +633,6 @@ void updateElementsAudio() {
   int16_t *obuff = voices[0].obuff;
   int16_t *abuff = voices[0].abuff;
 
-  //SoftLimit_block2(out, obuff, size);
-  //SoftLimit_block2(aux, abuff, size);
-
 
   voices[0].part->Process(ps, blow_in, strike_in, out, aux, size);
 

@@ -459,7 +459,7 @@ void updateRingsAudio() {
 
   float   *trig_in; // = IN(1);
 
-  float   voct_in = pitch_in; // IN0(2);
+  float   voct_in = pitch_in * 1.0f; // IN0(2);
 
   float   struct_in = harm_in; // IN0(3);
   float   bright_in = timbre_in; // IN0(4);
@@ -468,7 +468,7 @@ void updateRingsAudio() {
   float   pos_in = 0.25f ; //IN0(6);
 
   short   model = engine_in; // IN0(7);
-  short   polyphony = 1; // IN0(8);
+  short   polyphony = 3; // IN0(8);
   bool    intern_exciter = true; // (IN0(9) > 0.f);
   bool    easter_egg = false; // (IN0(10) > 0.f);
   bool    bypass = false; // (IN0(11) > 0.f);
