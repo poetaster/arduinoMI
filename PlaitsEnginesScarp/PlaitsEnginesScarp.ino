@@ -21,6 +21,9 @@ bool debugging = true;
 #define PWMOUT 22
 PWMAudio DAC(PWMOUT);  // 16 bit PWM audio
 
+#include "Midier.h"
+#include "names.h"
+
 // button inputs
 #define BUTTON0  0 // key1 input on schematic
 #define BUTTON1  2
@@ -117,7 +120,10 @@ float pitch_in = 60.0f;
 
 //unsigned int SWPin = CLOCKIN;
 
-#define TIMER0_INTERVAL_MS 20.833333333333   // \20.833333333333running at 48Khz
+#define TIMER0_INTERVAL_MS  20.833333333333
+//24.390243902439025 // 44.1
+// \20.833333333333running at 48Khz
+
 #define DEBOUNCING_INTERVAL_MS   2// 80
 #define LOCAL_DEBUG              0
 
@@ -131,7 +137,7 @@ bool TimerHandler0(struct repeating_timer *t) {
   bool sync = true;
   if ( DAC.availableForWrite()) {
     //DAC.write( (uint16_t)outputPlaits[counter].out);
-    
+
     for (size_t i = 0; i < plaits::kBlockSize; i++) {
       DAC.write( (uint16_t)outputPlaits[i].out , sync ); // 244 is mozzi audio bias
     }
@@ -287,6 +293,10 @@ void setup() {
 
   // init the plaits voices
 
+  // initialize a mode to play
+  mode = midier::Mode::Ionian;
+  makeScale( roots[scaleRoot], mode);
+
   initVoices();
   // prefill buffer
   voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
@@ -311,7 +321,7 @@ void initVoices() {
   voices[0].transposition_ = 0.;
   voices[0].patch.decay = decay_in; //0.5f;
   voices[0].patch.lpg_colour = lpg_in;
-                      
+
   voices[0].patch.note = 48.0;
   voices[0].patch.harmonics = 0.5;
   voices[0].patch.morph = 0.3;
@@ -321,7 +331,7 @@ void initVoices() {
   voices[0].shared_buffer = (char*)malloc(32768);
   // init with zeros
   memset(voices[0].shared_buffer, 0, 32768);
-  
+
   stmlib::BufferAllocator allocator(voices[0].shared_buffer, 32768);
 
   voices[0].voice_ = new plaits::Voice;
@@ -349,45 +359,6 @@ void cb() {
     }
   }
 }
-
-/*
-  void audioOutput() {
-  voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
-
-  for (int i = 0; i <  plaits::kBlockSize; i++) {
-    uint16_t out = outputPlaits[i].out;
-    if ( DAC.availableForWrite() ) DAC.write( out );
-  }
-  // write samples to DMA buffer - this is a blocking call so it stalls when buffer is full
-  // f.l() + MOZZI_AUDIO_BIAS
-  // left
-  }
-
-  bool canBufferAudioOutput() {
-
-  if ( DAC.availableForWrite() > 32 ) {
-    return true;
-  }
-  return false;
-  }
-
-
-  bool updateAudio() {
-  if (canBufferAudioOutput()) {
-    audioOutput();
-    return true;
-  }
-  return false;
-
-  }
-*/
-
-bool canBufferAudioOutput() {
-  if ( DAC.availableForWrite() > 32 ) {
-    return true;
-  }
-  return false;
-}
 void updateControl() {
 
   //MIDI.read();
@@ -412,78 +383,91 @@ void updateControl() {
     if (button[i]) {
 
       anybuttonpressed = true;
-      if (i < 8)  digitalWrite(led[i] , HIGH);
+      if (i < 8) {
+        digitalWrite(led[i] , HIGH);
+        // a track button is pressed
+        current_track = i; // keypress selects track we are working on
 
-      // a track button is pressed
-      current_track = i; // keypress selects track we are working on
+        if ( encoder_delta == 0) {
+          aNoteOff(currentMode[i], 0);
+          if (button[8]) scaleRoot = i; // change scaleroot if both encoder and another button is pressed.
+          pitch_in = currentMode[i]; //freqs[i];
+          aNoteOn( pitch_in, 100 );
+        }
+        pressedB = i;
+      } else {
+        modeIndex = modeIndex + 1;
+        if (modeIndex == 8 ) modeIndex = 0;
 
-      if ( encoder_delta == 0) {
-        //if (pressedB != i) {
-        // turn off the last note
-        //aNoteOff(freqs[pressedB],0);
-        //}
-        aNoteOff(freqs[pressedB], 0);
-        noteA = freqs[i];
-        pitch_in = freqs[i] + 24.0f;
-        //voices[0].patch.note = pitch_in;
-        aNoteOn( freqs[i], 100 );
+        switch (modeIndex) {
+          case 0:
+            mode = midier::Mode::Ionian;
+            break;
+          case 1:
+            mode = midier::Mode::Dorian;
+            break;
+          case 2:
+            mode = midier::Mode::Phrygian;
+            break;
+          case 3:
+            mode = midier::Mode::Lydian;
+            break;
+          case 4:
+            mode = midier::Mode::Mixolydian;
+            break;
+          case 5:
+            mode = midier::Mode::Aeolian;
+            break;
+          case 6:
+            mode = midier::Mode::Locrian;
+            break;
+        }
+        makeScale( roots[scaleRoot], mode);
       }
-      pressedB = i;
     }
   }
-
-  //we're faking triggers with button presses for now
-  /*
-    if ( trig_in > 0.0f ) {
-    voices[0].modulations.trigger_patched = true;
-    float sum = 0.f;
-
-    //if (INRATE(5) == calc_FullRate) {
-
-    if (trig_in > 0.9f) {
-      // trigger input is audio rate
-      // TODO: add vDSP vector summation
-      //for (int i = 0; i < inNumSamples; ++i)
-      //  sum += trig_in[i];
-      sum = trig_in;
-    }
-    else {          // trigger input is control rate
-      sum = trig_in;
-    }
-
-    voices[0].modulations.trigger = sum;
-    }
-    else {
-    voices[0].modulations.trigger_patched = false;
-    }
-    if (level_in > 0.0f) {
-    voices[0].modulations.level_patched = true;
-    voices[0].modulations.level = level_in;
-    }
-    else
-    voices[0].modulations.level_patched = false;
-  */
 }
+//we're faking triggers with button presses for now
+/*
+  if ( trig_in > 0.0f ) {
+  voices[0].modulations.trigger_patched = true;
+  float sum = 0.f;
+
+  //if (INRATE(5) == calc_FullRate) {
+
+  if (trig_in > 0.9f) {
+    // trigger input is audio rate
+    // TODO: add vDSP vector summation
+    //for (int i = 0; i < inNumSamples; ++i)
+    //  sum += trig_in[i];
+    sum = trig_in;
+  }
+  else {          // trigger input is control rate
+    sum = trig_in;
+  }
+
+  voices[0].modulations.trigger = sum;
+  }
+  else {
+  voices[0].modulations.trigger_patched = false;
+  }
+  if (level_in > 0.0f) {
+  voices[0].modulations.level_patched = true;
+  voices[0].modulations.level = level_in;
+  }
+  else
+  voices[0].modulations.level_patched = false;
+*/
+
 
 
 void loop() {
   // updateAudio();
   if ( counter > 0) {
-    voices[0].patch.frequency_modulation_amount = fm_mod;
-    voices[0].patch.engine = engine_in;
-    //voices[0].transposition_ = 0.;
-    voices[0].octave_ = 0.5;
-    voices[0].patch.note = pitch_in;
-    voices[0].patch.harmonics = harm_in;
-    voices[0].patch.morph = morph_in;
-    voices[0].patch.timbre = timbre_in;
-    voices[0].patch.decay = decay_in; //0.5f;
-    voices[0].patch.lpg_colour = lpg_in;
-    voices[0].modulations.trigger = trigger_in;
-
     voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
     counter = 0; // increments on each pass of the timer when the timer writes
   }
+
 
 
 }
@@ -581,30 +565,6 @@ void loop1() {
 
       }
 
-      // change pitch on pot 0
-      if (display_mode == 0 ) { // change sample if pot has moved enough
-        //noteA = (map(mozziAnalogRead(MODR_PIN), POT_MIN, POT_MAX, 200, 10000));
-        //voice[current_track].sampleincrement = (uint16_t)(map(potvalue[0], POT_MIN, POT_MAX, 2048, 8192)); // change sample pitch if pot has moved enough
-      }
-
-      // change volume on pot 1
-      if (display_mode == 0) {
-        //mod_to_carrier_ratio = (map(mozziAnalogRead(AIN1), POT_MIN, POT_MAX, 1, 20));
-        //voice[current_track].level = (int16_t)(map(potvalue[1], POT_MIN, POT_MAX, 0, 1000));
-        // change sample volume level if pot has moved enough
-      }
-
-      if (!potlock[0] && display_mode == 1 ) {
-        //filter_fc = potvalue[0] * (LPF_MAX + 10) / 4096;
-      }
-
-      // set track euclidean triggers if either pot has moved enough
-      if (!potlock[1] && ! button[8] && display_mode == 1) {
-        //  seq[i].fills = map(potvalue[1], POT_MIN, POT_MAX, 0, 16);
-        //  seq[i].trigger->generateSequence(seq[i].fills, 15);
-        //seq[i].trigger= drumpatterns[map(potvalue[1],POT_MIN,POT_MAX,0,NUMPATTERNS-1)];
-      }
-
     } else {
       if (i < 8) digitalWrite(led[i] , LOW); // else the button is off.
     }
@@ -617,9 +577,9 @@ void loop1() {
     //RATE_value = RATE_value + encoder_delta;
     //voices[0].patch.note = voices[0].patch.note + RATE_value;
 
-    float turn = encoder_delta * 0.01f;
-    harm_in = harm_in + turn;
-    
+    float turn = ( encoder_delta * 0.01f ) + harm_in;
+    CONSTRAIN(turn, 0.f, 1.0f)
+    harm_in = turn;
     //display_value(RATE_value - 50); // this is wrong, bro :)
   }
 
@@ -650,7 +610,18 @@ void loop1() {
   displayUpdate();
 
   //delay(3000);
-
+  // Set all voice parameters
+  voices[0].patch.frequency_modulation_amount = fm_mod;
+  voices[0].patch.engine = engine_in;
+  //voices[0].transposition_ = 0.;
+  //voices[0].octave_ = 0.5;
+  voices[0].patch.note = pitch_in;
+  voices[0].patch.harmonics = harm_in;
+  voices[0].patch.morph = morph_in;
+  voices[0].patch.timbre = timbre_in;
+  voices[0].patch.decay = decay_in; //0.5f;
+  voices[0].patch.lpg_colour = lpg_in;
+  voices[0].modulations.trigger = trigger_in;
 
 }
 

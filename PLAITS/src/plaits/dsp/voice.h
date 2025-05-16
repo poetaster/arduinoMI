@@ -53,13 +53,14 @@
 #include "plaits/dsp/engine/waveshaping_engine.h"
 #include "plaits/dsp/engine/wavetable_engine.h"
 #include "plaits/dsp/engine/wave_terrain_engine.h"
+
 #include "plaits/dsp/envelope.h"
 
 #include "plaits/dsp/fx/low_pass_gate.h"
 
 namespace plaits {
 
-const int kMaxEngines = 16;
+const int kMaxEngines = 17;
 const int kMaxTriggerDelay = 8;
 const int kTriggerDelay = 5;
 
@@ -190,7 +191,7 @@ class Voice {
     CONSTRAIN(value, minimum_value, maximum_value);
     return value;
   }
-  
+/*  
   AdditiveEngine additive_engine_;
   BassDrumEngine bass_drum_engine_;
   ChordEngine chord_engine_;
@@ -208,6 +209,24 @@ class Voice {
   WaveshapingEngine waveshaping_engine_;
   WavetableEngine wavetable_engine_;
   WaveTerrainEngine waveterrain_engine_;
+*/
+  VirtualAnalogEngine virtual_analog_engine_;
+  WaveshapingEngine waveshaping_engine_;
+  FMEngine fm_engine_;
+  GrainEngine grain_engine_;
+  AdditiveEngine additive_engine_;
+  WavetableEngine wavetable_engine_;
+  ChordEngine chord_engine_;
+  SpeechEngine speech_engine_;
+  SwarmEngine swarm_engine_;
+  NoiseEngine noise_engine_;
+  ParticleEngine particle_engine_;
+  StringEngine string_engine_;
+  ModalEngine modal_engine_;
+  BassDrumEngine bass_drum_engine_;
+  SnareDrumEngine snare_drum_engine_;
+  HiHatEngine hi_hat_engine_;
+  WaveTerrainEngine wave_terrain_engine_;
 
   stmlib::HysteresisQuantizer engine_quantizer_;
   

@@ -38,7 +38,7 @@
 namespace plaits {
 
 const int kChordNumNotes = 4;
-const int kChordNumVoices = 5;
+const int kChordNumVoices = 3;
 const int kChordNumHarmonics = 3;
     
 #ifdef JON_CHORDS

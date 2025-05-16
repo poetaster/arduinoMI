@@ -82,13 +82,13 @@ void displayUpdate() {
   display.setCursor(bpm_text_pos.x, bpm_text_pos.y);
   display.print("r: ");
   display.print(voices[0].patch.engine);
-
-  // transpose
-  display.setCursor(trans_text_pos.x, trans_text_pos.y);
-  display.print("p:");
-  display.print(voices[0].patch.note);
-
-  // seqno
+  display.print(" ");
+  display.print(oscnames[engine_in]); 
+  // name
+  //display.setCursor(trans_text_pos.x, trans_text_pos.y);
+  //display.print(oscnames[engine_in]); 
+  
+  // harmonics
   display.setCursor(seqno_text_pos.x, seqno_text_pos.y);
   display.print("h: ");
   display.print(voices[0].patch.harmonics);  // user sees 1-8
@@ -97,6 +97,10 @@ void displayUpdate() {
   display.setCursor(seq_info_pos.x, seq_info_pos.y);
   display.print("m: ");
   display.print(morph_in);
+  
+  display.setCursor(trans_text_pos.x, seq_info_pos.y);
+  display.print("p:");
+  display.print(voices[0].patch.note);
 
   display.setCursor(mode_text_pos.x, play_text_pos.y);
   display.print("t: ");
