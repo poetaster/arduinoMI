@@ -4,8 +4,9 @@ Ports of mutable intstruments eurorack code to arduino.
 Current status, 15.05.2025:
 * braids works well
 * tides works well, or so I believe
+* rings is working well with a polyphony of 3
+* elements struggles a bit and I'm just favouring rings
 * plaits has timing issues and isn't rendering properly
-* rings is not functional yet
 
 This port was possible because of the work of Volker Boehm to bring MI modules to supercollider: https://github.com/v7b1/mi-UGens Very cool.
 
