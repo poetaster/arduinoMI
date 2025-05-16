@@ -6,7 +6,7 @@ Current status, 15.05.2025:
 * tides works well, or so I believe
 * rings is working well with a polyphony of 3
 * elements struggles a bit and I'm just favouring rings
-* plaits has timing issues and isn't rendering properly
+* plaits has voices that are not rendering properly but about 2/3s work fine.
 
 This port was possible because of the work of Volker Boehm to bring MI modules to supercollider: https://github.com/v7b1/mi-UGens Very cool.
 
