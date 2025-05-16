@@ -80,7 +80,6 @@ void displayUpdate() {
   */
   // bpm
   display.setCursor(bpm_text_pos.x, bpm_text_pos.y);
-  display.print("r: ");
   display.print(voices[0].patch.engine);
   display.print(" ");
   display.print(oscnames[engine_in]); 

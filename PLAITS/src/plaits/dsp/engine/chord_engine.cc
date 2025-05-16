@@ -38,8 +38,6 @@ using namespace std;
 using namespace stmlib;
 
     
-#ifdef JON_CHORDS
-    
     // Alternative chord table by Jon Butler jonbutler88@gmail.com
     const double chords[kChordNumChords][kChordNumNotes] = {
         // Fixed Intervals
@@ -65,24 +63,6 @@ using namespace stmlib;
         { 0.00, 3.00,  6.00,  9.00 },  // Fully Diminished
     };
     
-#else
-    
-const float chords[kChordNumChords][kChordNumNotes] = {
-  { 0.00f, 0.01f, 11.99f, 12.00f },  // OCT
-  { 0.00f, 7.01f,  7.00f, 12.00f },  // 5
-  { 0.00f, 5.00f,  7.00f, 12.00f },  // sus4
-  { 0.00f, 3.00f,  7.00f, 12.00f },  // m
-  { 0.00f, 3.00f,  7.00f, 10.00f },  // m7
-  { 0.00f, 3.00f, 10.00f, 14.00f },  // m9
-  { 0.00f, 3.00f, 10.00f, 17.00f },  // m11
-  { 0.00f, 2.00f,  9.00f, 16.00f },  // 69
-  { 0.00f, 4.00f, 11.00f, 14.00f },  // M9
-  { 0.00f, 4.00f,  7.00f, 11.00f },  // M7
-  { 0.00f, 4.00f,  7.00f, 12.00f },  // M
-};
-    
-    #endif  // JON_CHORDS
-
 void ChordEngine::Init(BufferAllocator* allocator) {
   for (int i = 0; i < kChordNumVoices; ++i) {
     divide_down_voice_[i].Init();
@@ -104,7 +84,7 @@ void ChordEngine::Init(BufferAllocator* allocator) {
     }
 
 const float fade_point[kChordNumVoices] = {
-  0.55f, 0.47f, 0.49f, //0.51f, 0.53f
+  0.55f, 0.47f, 0.49f, 0.51f, //0.53f
 };
 
 const int kRegistrationTableSize = 8;

@@ -69,7 +69,7 @@ stmlib::BufferAllocator allocator;
 //float a0 = (440.0 / 8.0) / kSampleRate; //48000.00;
 const size_t   kBlockSize = plaits::kBlockSize;
 
-plaits::Voice::Frame outputPlaits[ plaits::kBlockSize];
+plaits::Voice::Frame outputPlaits[plaits::kBlockSize];
 //plaits::Voice::out_buffer renderBuffer;
 
 struct Unit {
@@ -328,11 +328,11 @@ void initVoices() {
   voices[0].patch.timbre = 0.3;
   voices[0].last_trig = false;
 
-  voices[0].shared_buffer = (char*)malloc(32768);
+  voices[0].shared_buffer = (char*)malloc(16384);
   // init with zeros
-  memset(voices[0].shared_buffer, 0, 32768);
+  memset(voices[0].shared_buffer, 0, 16384);
 
-  stmlib::BufferAllocator allocator(voices[0].shared_buffer, 32768);
+  stmlib::BufferAllocator allocator(voices[0].shared_buffer, 16384);
 
   voices[0].voice_ = new plaits::Voice;
   voices[0].voice_->Init(&allocator);
