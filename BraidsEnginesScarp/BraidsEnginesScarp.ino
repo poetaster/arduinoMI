@@ -668,15 +668,9 @@ void loop1() {
   // now, after buttons check if only encoder moved and no buttons
   // this is broken by mozzi, sigh.
   if (! anybuttonpressed && encoder_delta) {
-    if (encoder_delta > 1) {
-      harm_in = harm_in + 0.03f;
-      CONSTRAIN(harm_in, 0.0f, 1.0f);
-
-    } else {
-      harm_in = harm_in - 0.03f;
-      CONSTRAIN(harm_in, 0.0f, 1.0f);
-
-    }
+    float turn = encoder_delta * 0.01f;
+    harm_in = harm_in + turn;
+    
     //display_value(RATE_value - 50); // this is wrong, bro :)
   }
 

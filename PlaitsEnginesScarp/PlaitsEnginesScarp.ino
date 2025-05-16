@@ -61,7 +61,6 @@ plaits::Voice voice;
 //UserData user_data;
 //UserDataReceiver user_data_receiver;
 
-char shared_buffer[32768];
 stmlib::BufferAllocator allocator;
 
 //float a0 = (440.0 / 8.0) / kSampleRate; //48000.00;
@@ -319,14 +318,14 @@ void initVoices() {
   voices[0].patch.timbre = 0.3;
   voices[0].last_trig = false;
 
-  voices[0].shared_buffer = shared_buffer;
+  voices[0].shared_buffer = (char*)malloc(32768);
   // init with zeros
-  //memset(voices[0].shared_buffer, 0, 32768);
-  stmlib::BufferAllocator allocator(shared_buffer, 32768);
-  voice.Init(&allocator);
+  memset(voices[0].shared_buffer, 0, 32768);
+  
+  stmlib::BufferAllocator allocator(voices[0].shared_buffer, 32768);
 
-  voices[0].voice_ = &voice;
-  voices[0].shared_buffer = shared_buffer;
+  voices[0].voice_ = new plaits::Voice;
+  voices[0].voice_->Init(&allocator);
 
   memset(&voices[0].patch, 0, sizeof(voices[0].patch));
   memset(&voices[0].modulations, 0, sizeof(voices[0].modulations));
@@ -618,16 +617,9 @@ void loop1() {
     //RATE_value = RATE_value + encoder_delta;
     //voices[0].patch.note = voices[0].patch.note + RATE_value;
 
-
-    if (encoder_delta > 1) {
-      harm_in = harm_in + 0.05f;
-      CONSTRAIN(harm_in, 0.0f, 1.0f);
-
-    } else {
-      harm_in = harm_in - 0.05f;
-      CONSTRAIN(harm_in, 0.0f, 1.0f);
-
-    }
+    float turn = encoder_delta * 0.01f;
+    harm_in = harm_in + turn;
+    
     //display_value(RATE_value - 50); // this is wrong, bro :)
   }
 
