@@ -107,7 +107,7 @@ float fm_mod = 0.0f ; //IN(7);
 float timb_mod = 0.0f; //IN(8);
 float morph_mod = 0.0f; //IN(9);
 float decay_in = 0.5f; // IN(10);
-float lpg_in = 0.5f ;// IN(11);
+float lpg_in = 0.2f ;// IN(11);
 float pitch_in = 60.0f;
 
 // clock timer  stuff
@@ -135,14 +135,17 @@ RPI_PICO_Timer ITimer0(0);
 bool TimerHandler0(struct repeating_timer *t) {
   (void) t;
   bool sync = true;
+  
   if ( DAC.availableForWrite()) {
-    //DAC.write( (uint16_t)outputPlaits[counter].out);
-
+    //DAC.write( (uint16_t)outputPlaits[counter].out)
+    
     for (size_t i = 0; i < plaits::kBlockSize; i++) {
-      DAC.write( (uint16_t)outputPlaits[i].out , sync ); // 244 is mozzi audio bias
+      DAC.write( outputPlaits[i].out , sync ); // 244 is mozzi audio bias
     }
+    
     counter = 1;
   }
+  
   return true;
 }
 
@@ -240,7 +243,7 @@ void setup() {
   }
 
   // set up Pico PWM audio output
-  DAC.setBuffers(4, plaits::kBlockSize * 2); // DMA buffers
+  DAC.setBuffers(4, plaits::kBlockSize * 3); // DMA buffers
   //DAC.onTransmit(cb);
   DAC.setFrequency(SAMPLERATE);
   DAC.begin();
@@ -350,15 +353,25 @@ void initVoices() {
   voices[0].modulations.frequency_patched = false;
 
 }
-
-void cb() {
-  if (DAC.availableForWrite() > 14) {
-    for (int i = 0; i <  plaits::kBlockSize; i++) {
-      uint16_t out = outputPlaits[i].out;   // left channel called .aux
-      DAC.write( out );
-    }
+void loop() {
+  // updateAudio();
+  if ( counter > 0) {
+    voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
+    counter = 0; // increments on each pass of the timer when the timer writes
   }
 }
+
+void cb() {
+  //if ( DAC.availableForWrite()) {
+    //DAC.write( (uint16_t)outputPlaits[counter].out);
+    bool sync = true;
+    for (size_t i = 0; i < plaits::kBlockSize; i++) {
+      DAC.write( outputPlaits[i].out , sync ); // 244 is mozzi audio bias
+    }
+    counter = counter + 1;
+  //}
+}
+
 void updateControl() {
 
   //MIDI.read();
@@ -461,16 +474,7 @@ void updateControl() {
 
 
 
-void loop() {
-  // updateAudio();
-  if ( counter > 0) {
-    voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
-    counter = 0; // increments on each pass of the timer when the timer writes
-  }
 
-
-
-}
 
 // second core dedicated to display foo
 

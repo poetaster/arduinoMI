@@ -11,7 +11,7 @@ int scaleRoot = 0; // start at c, yawn.
 
 int modeIndex = 0;
 int currentMode[8];
-
+int octave = 4;
 
 void makeScale(midier::Note root, midier::Mode mode) {
 
@@ -30,7 +30,7 @@ void makeScale(midier::Note root, midier::Mode mode) {
 
     // calculate the note of this chord degree
     const midier::Note note = scaleRoot + interval;
-    currentMode[ scaleDegree - 1 ] = midier::midi::number(note, 3);
+    currentMode[ scaleDegree - 1 ] = midier::midi::number(note, octave);
 
 
   }
