@@ -90,9 +90,6 @@ struct Unit {
 };
 
 struct Unit voices[1];
-volatile plaits::Patch renderPatch ;
-volatile plaits:: Modulations renderModulations ;
-volatile plaits::Voice *renderVoice;
 
 
 // Plaits modulation vars
@@ -316,8 +313,8 @@ void setup() {
 void initVoices() {
 
   // init some params
-  voices[0] = {};
-  voices[0].modulations = modulations;
+  //voices[0] = {};
+  //voices[0].modulations = modulations;
   voices[0].modulations.engine = 0;
   voices[0].patch = patch;
   voices[0].patch.engine = 0;
@@ -356,8 +353,24 @@ void initVoices() {
 void loop() {
   // updateAudio();
   if ( counter > 0) {
+    //voices[0].octave_ = octave_in;
+    voices[0].patch.note = pitch_in;
+    voices[0].patch.harmonics = harm_in;
+    voices[0].patch.morph = morph_in;
+    voices[0].patch.timbre = timbre_in;
     voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
     counter = 0; // increments on each pass of the timer when the timer writes
+
+    /*
+    voices[0].patch.decay = 0.5f;
+    voices[0].patch.lpg_colour = 0.2;
+    if (trigger_in > 0.2 ) {
+      voices[0].modulations.trigger = trigger_in;
+      voices[0].modulations.trigger_patched = true;
+    } else {
+      voices[0].modulations.trigger = 0.0f;
+      voices[0].modulations.trigger_patched = false;
+    }*/
   }
 }
 
@@ -404,7 +417,7 @@ void updateControl() {
         if ( encoder_delta == 0) {
           aNoteOff(currentMode[i], 0);
           if (button[8]) scaleRoot = i; // change scaleroot if both encoder and another button is pressed.
-          pitch_in = currentMode[i]; //freqs[i];
+          pitch_in = currentMode[i] + 12; //freqs[i];
           aNoteOn( pitch_in, 100 );
         }
         pressedB = i;
@@ -612,20 +625,9 @@ void loop1() {
   }
 
   displayUpdate();
-
+  // don't know why here :)
+    voices[0].patch.engine = engine_in;
   //delay(3000);
-  // Set all voice parameters
-  voices[0].patch.frequency_modulation_amount = fm_mod;
-  voices[0].patch.engine = engine_in;
-  //voices[0].transposition_ = 0.;
-  //voices[0].octave_ = 0.5;
-  voices[0].patch.note = pitch_in;
-  voices[0].patch.harmonics = harm_in;
-  voices[0].patch.morph = morph_in;
-  voices[0].patch.timbre = timbre_in;
-  voices[0].patch.decay = decay_in; //0.5f;
-  voices[0].patch.lpg_colour = lpg_in;
-  voices[0].modulations.trigger = trigger_in;
 
 }
 
