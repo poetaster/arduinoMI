@@ -240,7 +240,7 @@ void setup() {
   }
 
   // set up Pico PWM audio output
-  DAC.setBuffers(4, plaits::kBlockSize * 3); // DMA buffers
+  DAC.setBuffers(4, 32); //plaits::kBlockSize * 4); // DMA buffers
   //DAC.onTransmit(cb);
   DAC.setFrequency(SAMPLERATE);
   DAC.begin();
@@ -328,11 +328,11 @@ void initVoices() {
   voices[0].patch.timbre = 0.3;
   voices[0].last_trig = false;
 
-  voices[0].shared_buffer = (char*)malloc(16384);
+  voices[0].shared_buffer = (char*)malloc(32756);
   // init with zeros
-  memset(voices[0].shared_buffer, 0, 16384);
+  memset(voices[0].shared_buffer, 0, 32756);
 
-  stmlib::BufferAllocator allocator(voices[0].shared_buffer, 16384);
+  stmlib::BufferAllocator allocator(voices[0].shared_buffer, 32756);
 
   voices[0].voice_ = new plaits::Voice;
   voices[0].voice_->Init(&allocator);

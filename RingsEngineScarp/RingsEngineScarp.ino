@@ -133,14 +133,14 @@ RPI_PICO_Timer ITimer0(0);
 bool TimerHandler0(struct repeating_timer *t) {
   (void) t;
   bool sync = true;
-  
+
   if ( DAC.availableForWrite() ) {
     for (size_t i = 0; i < kBlockSize; i++) {
       DAC.write( voices[0].obuff[i] , sync );
     }
     counter =  1;
   }
-  
+
   return true;
 }
 
@@ -308,9 +308,9 @@ void setup() {
 // initialize voice parameters
 void initVoices() {
 
-   rings::Dsp::setSr(SAMPLERATE);
+  rings::Dsp::setSr(SAMPLERATE);
   // allocate memory + init with zeros
-  
+
   voices[0].reverb_buffer = (uint16_t*)malloc(32768 * sizeof(uint16_t));
   memset(voices[0].reverb_buffer, 0, 32768 * sizeof(uint16_t));
 
@@ -319,10 +319,10 @@ void initVoices() {
 
   voices[0].input = (float*)malloc(kBlockSize * sizeof(float));
   memset(voices[0].input, 0, kBlockSize * sizeof(float));
-  
+
   voices[0].out = (float *)malloc(kBlockSize * sizeof(float));
   voices[0].aux = (float *)malloc(kBlockSize * sizeof(float));
-  
+
   // zero out...
   memset(&voices[0].strummer, 0, sizeof(voices[0].strummer));
   memset(&voices[0].part, 0, sizeof(voices[0].part));
@@ -452,7 +452,7 @@ void updateControl() {
 }
 
 void updateRingsAudio() {
-  
+
   // our output buffers, post rendering
   int16_t *obuff = voices[0].obuff;
   int16_t *abuff = voices[0].abuff;
@@ -460,7 +460,9 @@ void updateRingsAudio() {
   float   *trig_in; // = IN(1);
 
   float   voct_in = pitch_in * 1.0f; // IN0(2);
-
+  
+  //Serial.println(voct_in);
+  
   float   struct_in = harm_in; // IN0(3);
   float   bright_in = timbre_in; // IN0(4);
 
@@ -469,7 +471,7 @@ void updateRingsAudio() {
 
   short   model = engine_in; // IN0(7);
   short   polyphony = 3; // IN0(8);
-  bool    intern_exciter = true; // (IN0(9) > 0.f);
+  bool    intern_exciter = false; // (IN0(9) > 0.f);
   bool    easter_egg = false; // (IN0(10) > 0.f);
   bool    bypass = false; // (IN0(11) > 0.f);
 
@@ -732,7 +734,7 @@ void loop1() {
   if (! anybuttonpressed && encoder_delta) {
     float turn = encoder_delta * 0.01f;
     harm_in = harm_in + turn;
-    
+
     //display_value(RATE_value - 50); // this is wrong, bro :)
   }
 

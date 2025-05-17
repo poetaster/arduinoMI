@@ -10,10 +10,43 @@ Current status, 15.05.2025:
 
 This port was possible because of the work of Volker Boehm to bring MI modules to supercollider: https://github.com/v7b1/mi-UGens Very cool.
 
-I'll release basic sketches without all the scarp hardware when I have a bit of time. I pushed to scarp since it makes it easy to test with inputs. Which is why I built scarp after all :)
+A simple sketch with no other io other than PWM pin 22 is located in BraidsEngines. It cycles through all voices with random parameters every 3 seoncds.
 
-The STMLIB, BRAIDS and PLAITS directories can be placed in your Arduino/libraries/ folder and used as follows, for plaits:
+The STMLIB, BRAIDS and PLAITS directories can be placed in your Arduino/libraries/ folder and used as follows, for braids & plaits:
 ```
+#define     MI_SAMPLERATE      96000.f
+#define     BLOCK_SIZE          32      // --> macro_oscillator.h !
+#define     SAMP_SCALE          (float)(1.0 / 32756.0)
+#include <STMLIB.h>
+#include <BRAIDS.h>
+typedef struct
+{
+  braids::MacroOscillator *osc;
+
+  float       samps[BLOCK_SIZE] ;
+  int16_t     buffer[BLOCK_SIZE];
+  uint8_t     sync_buffer[BLOCK_SIZE];
+
+} PROCESS_CB_DATA ;
+
+char shared_buffer[16384];
+const size_t   kBlockSize = BLOCK_SIZE;
+
+struct Unit {
+  braids::Quantizer   *quantizer;
+  braids::SignatureWaveshaper *ws;
+  bool            last_trig;
+  // resampler
+  //SRC_STATE       *src_state;
+  PROCESS_CB_DATA pd;
+  float           *samples;
+  float           ratio;
+};
+
+static long src_input_callback(void *cb_data, float **audio);
+struct Unit voices[1];
+
+
 // plaits dsp
 #include <STMLIB.h>
 #include <PLAITS.h>
