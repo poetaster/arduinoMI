@@ -348,7 +348,11 @@ void setup() {
   pinMode(LED7, OUTPUT);
 
   pinMode(LED, OUTPUT);
-
+  
+  // thi is to switch to PWM for power to avoid ripple noise
+  pinMode(23, OUTPUT);
+  digitalWrite(23, HIGH);
+  
 
 
   // init the braids voices
@@ -632,16 +636,21 @@ void updateTidesAudio() {
                                       out, kAudioBlockSize);
 
     float samplesum = 0.f;
-    int16_t samples;
+    int16_t sample1;
+    int16_t sample2;
+    
     for (int i = 0; i < kAudioBlockSize; ++i) {
       for (int j = 0; j < kNumOutputs; ++j) {
         samplesum = samplesum + ( out[i].channel[j]);
       }
-      samplesum = (samplesum/(float)kNumOutputs) ;
-      displayGraph(out[i].channel[0], out[i].channel[1], out[i].channel[2], out[i].channel[3]);
+      sample1 = stmlib::Clip16(static_cast<int16_t>(out[i].channel[0] * 32768.0f));
+      sample2 = stmlib::Clip16(static_cast<int16_t>(out[i].channel[1] * 32768.0f));      
+      //samplesum = (samplesum/(float)kNumOutputs) ;
       
-      samples = samplesum * 32767;
-      voices[0].buffer[i] = (int16_t)samples  ;
+      displayGraph(out[i].channel[0], out[i].channel[1], out[i].channel[2], out[i].channel[3]);
+     
+      voices[0].buffer[i] = stmlib::Mix( sample1, sample2, 0.3f ); // render sum to output
+      //voices[0].buffer[i] = (int16_t) out[i].channel[0] * 32767.f;
     } 
   }
 
@@ -668,7 +677,7 @@ void loop() {
 // second core dedicated to display foo
 
 void setup1() {
-  delay (1000); // wait for main core to start up perhipherals
+  delay (200); // wait for main core to start up perhipherals
 }
 
 int engineCount = 0;
@@ -768,15 +777,8 @@ void loop1() {
   // now, after buttons check if only encoder moved and no buttons
   // this is broken by mozzi, sigh.
   if (! anybuttonpressed && encoder_delta) {
-    if (encoder_delta > 1) {
-      harm_in = harm_in + 0.01f;
-      CONSTRAIN(harm_in, 0.0f, 1.0f);
-
-    } else {
-      harm_in = harm_in - 0.01f;
-      CONSTRAIN(harm_in, 0.0f, 1.0f);
-
-    }
+    float turn = encoder_delta * 0.01f;
+    harm_in = harm_in + turn;
     //display_value(RATE_value - 50); // this is wrong, bro :)
   }
 
