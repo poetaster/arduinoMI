@@ -12,6 +12,17 @@ This port was possible because of the work of Volker Boehm to bring MI modules t
 
 A simple sketch with no other io other than PWM pin 22 is located in BraidsEngines. It cycles through all voices with random parameters every 3 seoncds.
 
+To use the sketch, copy the STMLIB and BRAIDS directories to you ~/Arduino/libraries folder, open the BraidsEngines sketch change 
+
+#define PWMOUT 22
+
+to match whatever pin your using and
+
+choose 250mHz overclocking (well, 200 should do it too, but, 250 is stable) and optimize. Then install it on your pico. 
+
+You should hear it step through the patches making small changes as it goes.
+
+
 The STMLIB, BRAIDS and PLAITS directories can be placed in your Arduino/libraries/ folder and used as follows, for braids & plaits:
 ```
 #define     MI_SAMPLERATE      96000.f
