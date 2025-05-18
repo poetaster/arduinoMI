@@ -155,7 +155,7 @@ bool TimerHandler0(struct repeating_timer *t) {
   bool sync = true;
   if ( DAC.availableForWrite() ) {
     for (size_t i = 0; i < BLOCK_SIZE; i++) {
-      DAC.write( voices[0].pd.buffer[i] , sync ); 
+      DAC.write( voices[0].pd.buffer[i], sync); 
     }
     counter =  1;
   }
@@ -258,7 +258,7 @@ void setup() {
   }
 
   // set up Pico PWM audio output
-  DAC.setBuffers(4, 32); // plaits::kBlockSize); // DMA buffers
+  DAC.setBuffers(4, 64); // plaits::kBlockSize); // DMA buffers
   //DAC.onTransmit(cb);
   DAC.setFrequency(SAMPLERATE);
   DAC.begin();

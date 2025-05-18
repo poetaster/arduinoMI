@@ -49,13 +49,12 @@ namespace plaits {
 //
 // That's only 4.6 cts of error, but we care!
 
-static const float kCorrectedSampleRate = 48000.f;
-//const float a0 = (440.0f / 8.0f) / kCorrectedSampleRate;
+static const float kCorrectedSampleRate = 47872.34f;
+const float a0 = (440.0f / 8.0f) / kCorrectedSampleRate;
 
-const float a0 = (440.0f / 8.0f) / kSampleRate; //kCorrectedSampleRate;
 
-const size_t kMaxBlockSize = 48;   //24;  //256
-const size_t kBlockSize = 24;   //(was 12);
+const size_t kMaxBlockSize = 64;   //24;  //256
+const size_t kBlockSize = 32;   //(was 12);
 
 }  // namespace plaits
 

@@ -213,19 +213,12 @@ void initVoices() {
 // get some samples initially
   updateBraidsAudio();
 
-
-  // Initialize the sample rate converter
-  //int error;
-  //int converter = SRC_SINC_FASTEST;       //SRC_SINC_MEDIUM_QUALITY;
-
- /* if ((unit->src_state = src_callback_new(src_input_callback, converter, 1, &error, &unit->pd)) == NULL)
-  {
-  }
-  */
-  
-  //voices[0]->samples = (float *)RTAlloc(unit->mWorld, 1024 * sizeof(float));
-  
   /*
+  // Initialize the sample rate converter
+  int error;
+  int converter = SRC_SINC_FASTEST;       //SRC_SINC_MEDIUM_QUALITY;
+  
+
          // check resample flag
       int resamp = (int)IN0(5);
       CONSTRAIN(resamp, 0, 2);
@@ -246,6 +239,7 @@ void initVoices() {
       }
   */
 }
+
 void updateBraidsAudio() {
 
   int16_t *buffer = voices[0].pd.buffer;

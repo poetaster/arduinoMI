@@ -117,9 +117,10 @@ float pitch_in = 60.0f;
 
 //unsigned int SWPin = CLOCKIN;
 
-#define TIMER0_INTERVAL_MS  20.833333333333
-//24.390243902439025 // 44.1
-// \20.833333333333running at 48Khz
+#define TIMER0_INTERVAL_MS 20.833333333333 // running at 48Khz
+// 32768.0f 30.517578125
+// 24.390243902439025 // 44.1
+
 
 #define DEBOUNCING_INTERVAL_MS   2// 80
 #define LOCAL_DEBUG              0
@@ -137,7 +138,7 @@ bool TimerHandler0(struct repeating_timer *t) {
     //DAC.write( (uint16_t)outputPlaits[counter].out)
     
     for (size_t i = 0; i < plaits::kBlockSize; i++) {
-      DAC.write( outputPlaits[i].out , sync ); // 244 is mozzi audio bias
+      DAC.write( outputPlaits[i].out, sync); // 244 is mozzi audio bias
     }
     
     counter = 1;
@@ -240,7 +241,7 @@ void setup() {
   }
 
   // set up Pico PWM audio output
-  DAC.setBuffers(4, 32); //plaits::kBlockSize * 4); // DMA buffers
+  DAC.setBuffers(4, 64); //plaits::kBlockSize * 4); // DMA buffers
   //DAC.onTransmit(cb);
   DAC.setFrequency(SAMPLERATE);
   DAC.begin();
@@ -399,9 +400,9 @@ void updateControl() {
 
 
   morph_in = (float)p1 / 1000.0f; //map(p1, 0, 4065, 0.0, 1.0); // IN(2);
-  timbre_in = (float)p2 / 1000.0f; //map(p2, 0, 4065, 0.0, 1.0); //IN(3);
+  harm_in = (float)p2 / 1000.0f; //map(p2, 0, 4065, 0.0, 1.0); //IN(3);
   CONSTRAIN(morph_in, 0.0f, 1.0f);
-  CONSTRAIN(timbre_in, 0.0f, 1.0f);
+  CONSTRAIN(harm_in, 0.0f, 1.0f);
   scanbuttons();
 
 
@@ -594,9 +595,9 @@ void loop1() {
     //RATE_value = RATE_value + encoder_delta;
     //voices[0].patch.note = voices[0].patch.note + RATE_value;
 
-    float turn = ( encoder_delta * 0.01f ) + harm_in;
+    float turn = ( encoder_delta * 0.01f ) + timbre_in;
     CONSTRAIN(turn, 0.f, 1.0f)
-    harm_in = turn;
+    timbre_in = turn;
     //display_value(RATE_value - 50); // this is wrong, bro :)
   }
 

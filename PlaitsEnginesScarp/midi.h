@@ -11,7 +11,7 @@ int scaleRoot = 0; // start at c, yawn.
 
 int modeIndex = 0;
 int currentMode[8];
-int octave = 3;
+int octave = 4;
 
 void makeScale(midier::Note root, midier::Mode mode) {
 

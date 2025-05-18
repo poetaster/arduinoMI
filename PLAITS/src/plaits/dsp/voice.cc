@@ -141,9 +141,14 @@ void Voice::Render(
 
   decay_envelope_.Process(short_decay * 2.0f);
 
-  float compressed_level = 1.3f * modulations.level / (0.3f + fabsf(modulations.level));
-  CONSTRAIN(compressed_level, 0.0f, 1.0f);
-  p.accent = modulations.level_patched ? compressed_level : 0.8f;
+//  float compressed_level = 1.3f * modulations.level / (0.3f + fabsf(modulations.level)); VB
+//  CONSTRAIN(compressed_level, 0.0f, 1.0f);
+
+   const float compressed_level = max(
+       1.3f * modulations.level / (0.3f + fabsf(modulations.level)),
+       0.0f);
+
+p.accent = modulations.level_patched ? compressed_level : 0.8f;
 
   bool use_internal_envelope = modulations.trigger_patched;
 
