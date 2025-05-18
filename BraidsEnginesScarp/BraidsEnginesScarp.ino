@@ -258,7 +258,7 @@ void setup() {
   }
 
   // set up Pico PWM audio output
-  DAC.setBuffers(4, 64); // plaits::kBlockSize); // DMA buffers
+  DAC.setBuffers(4, 32); // plaits::kBlockSize); // DMA buffers
   //DAC.onTransmit(cb);
   DAC.setFrequency(SAMPLERATE);
   DAC.begin();
