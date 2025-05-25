@@ -93,6 +93,26 @@ void updateBraidsAudio() {
 
   braids::MacroOscillator *osc = voices[0].pd.osc;
 
+
+  // 0, 1 are AIN0, AIN1 for timbre/color cv control
+  if (!potlock[0]  ) { // change sample if pot has moved enough
+    uint16_t timbre = (uint16_t)(map(potvalue[0], POT_MIN, POT_MAX, 32767, 0));
+    timbre_in = timbre;
+  }
+  if (!potlock[1]  ) { // change sample if pot has moved enough
+    uint16_t morph = (uint16_t)(map(potvalue[1], POT_MIN, POT_MAX, 32767, 0));
+    morph_in = morph;
+  }
+
+  // fm / pitch updates
+  // noteB = map(noteB, 0, 4095, 36, 96);
+  int16_t pitch = map(analogRead(AIN2), 0, 1023, 127, 0); // cv for pitch was midi note << 7
+  //int pit = (int)voct_in;
+  //float frac = voct_in - pit;
+  
+  pitch_in = pitch;
+  osc->set_pitch(pitch_in<< 7);
+  
   // set parameters
   // CONSTRAIN(timbre_in, 0.f, 1.f);
   // CONSTRAIN(morph_in, 0.f, 1.f);
@@ -147,7 +167,7 @@ void updateBraidsAudio() {
 
   voices[0].last_trig = trigger_flag;
   
-  osc->set_pitch(pitch_in<< 7);
+  
 
 
   if (trigger_flag) {

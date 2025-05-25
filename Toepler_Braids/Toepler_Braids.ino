@@ -25,14 +25,14 @@ bool debug = true;
 #include <PWMAudio.h>
 
 #define SAMPLERATE 48000
-#define PWMOUT 0
+#define PWMOUT OUT2
 
 #include "utility.h"
 #include <STMLIB.h>
 #include <BRAIDS.h>
 #include "braids.h"
 
-#define BUTTON_PIN 2
+#define BUTTON_PIN SW1
 #include <Bounce2.h>
 Bounce2::Button button = Bounce2::Button();
 
@@ -89,8 +89,8 @@ void setup() {
   pinMode(23, OUTPUT);
   digitalWrite(23, HIGH);
 
-  pinMode(13, INPUT_PULLUP);
-  digitalWrite(13, LOW);
+  pinMode(13, INPUT);
+  //digitalWrite(13, LOW);
 
   pinMode(AIN0, INPUT);
   pinMode(AIN1, INPUT);
@@ -157,28 +157,28 @@ void loop1() {
   }
   // 0, 1 are AIN0, AIN1 for timbre/color cv control
   //if (!potlock[0]  ) { // change sample if pot has moved enough
-    uint16_t timbre = (uint16_t)(map(potvalue[0], POT_MIN, POT_MAX, 0, 32767));
-    timbre_in = timbre;
+  //  uint16_t timbre = (uint16_t)(map(potvalue[0], POT_MIN, POT_MAX, 0, 32767));
+  //  timbre_in = timbre;
   //}
   //if (!potlock[1]  ) { // change sample if pot has moved enough
-    uint16_t morph = (uint16_t)(map(potvalue[1], POT_MIN, POT_MAX, 0, 32767));
-    morph_in = morph;
+  //  uint16_t morph = (uint16_t)(map(potvalue[1], POT_MIN, POT_MAX, 0, 32767));
+  //  morph_in = morph;
   //}
 
   // fm / pitch updates
   // noteB = map(noteB, 0, 4095, 36, 96);
-  int16_t pitch = map(analogRead(AIN2), 0, 1023, 36, 96); // cv for pitch was midi note << 7
-  pitch_in = pitch;
+  //int16_t pitch = map(analogRead(AIN2), 0, 4096, 96, 36); // cv for pitch was midi note << 7
+  //pitch_in = pitch;
 
 
 
-  if (digitalRead(13) == HIGH) {
+ /* if (digitalRead(13) == LOW) {
     trigger_in = 1.0f;
     Serial.println("trigger high");
-      Serial.println(pitch);
+    //  Serial.println(pitch);
   } else {
     trigger_in = 0.0f;
-  }
+  }*/
 
   /* float trigger = randomDouble(0.0, 1.0); // Dust.kr( LFNoise2.kr(0.1).range(0.1, 7) );
     if (trigger > 0.2 ) {

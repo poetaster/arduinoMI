@@ -1,7 +1,7 @@
 // pots
-#define AIN0  26
-#define AIN1  27
-#define AIN2  28
+#define AIN0  CV1
+#define AIN1  CV2
+#define AIN2  CV3
 //#define AIN3  29 // not available on standard Pico board
 
 #define POT_SAMPLE_TIME 30 // delay time between pot reads
