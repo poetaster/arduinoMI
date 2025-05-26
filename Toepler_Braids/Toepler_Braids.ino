@@ -69,7 +69,7 @@ bool TimerHandler0(struct repeating_timer *t) {
   bool sync = true;
   if ( DAC.availableForWrite() ) {
     for (size_t i = 0; i < BLOCK_SIZE; i++) {
-      DAC.write( voices[0].pd.buffer[i] , sync );
+      DAC.write( voices[0].pd.buffer[i]);
     }
     counter =  1;
   }
@@ -154,31 +154,32 @@ void loop1() {
     readpot(0);
     readpot(1);
     pot_timer = now;
+    // 0, 1 are AIN0, AIN1 for timbre/color cv control
+    if (!potlock[0]  ) { // change sample if pot has moved enough
+      uint16_t timbre = (uint16_t)(map(potvalue[0], POT_MIN, POT_MAX, 0, 32767));
+      timbre_in = timbre;
+    }
+    if (!potlock[1]  ) { // change sample if pot has moved enough
+      uint16_t morph = (uint16_t)(map(potvalue[1], POT_MIN, POT_MAX, 0, 32767));
+      morph_in = morph;
+    }
+
+
   }
-  // 0, 1 are AIN0, AIN1 for timbre/color cv control
-  //if (!potlock[0]  ) { // change sample if pot has moved enough
-  //  uint16_t timbre = (uint16_t)(map(potvalue[0], POT_MIN, POT_MAX, 0, 32767));
-  //  timbre_in = timbre;
-  //}
-  //if (!potlock[1]  ) { // change sample if pot has moved enough
-  //  uint16_t morph = (uint16_t)(map(potvalue[1], POT_MIN, POT_MAX, 0, 32767));
-  //  morph_in = morph;
-  //}
 
-  // fm / pitch updates
-  // noteB = map(noteB, 0, 4095, 36, 96);
-  //int16_t pitch = map(analogRead(AIN2), 0, 4096, 96, 36); // cv for pitch was midi note << 7
-  //pitch_in = pitch;
+    // fm / pitch updates
+    int16_t pitch = map(analogRead(AIN2), 0, 1023, 127, 0); // cv for pitch was midi note << 7
+    pitch_in = pitch;
 
 
 
- /* if (digitalRead(13) == LOW) {
-    trigger_in = 1.0f;
-    Serial.println("trigger high");
-    //  Serial.println(pitch);
-  } else {
-    trigger_in = 0.0f;
-  }*/
+  /* if (digitalRead(13) == LOW) {
+     trigger_in = 1.0f;
+     Serial.println("trigger high");
+     //  Serial.println(pitch);
+    } else {
+     trigger_in = 0.0f;
+    }*/
 
   /* float trigger = randomDouble(0.0, 1.0); // Dust.kr( LFNoise2.kr(0.1).range(0.1, 7) );
     if (trigger > 0.2 ) {

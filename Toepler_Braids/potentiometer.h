@@ -31,12 +31,14 @@ uint16_t readpot(uint8_t potnum) {
   int input;
   if (potnum == 0) {
     input = AIN0;
-  } else {
+  } else if (potnum == 1 ){
     input = AIN1;
+  } else {
+    input = AIN2;
   }
   
   // note that Pikocore pots are wired "backwards" - max voltage is full ccw
-  for (int j = 0; j < POT_AVERAGING; ++j) val += (4095 - analogRead(input)); // read the A/D a few times and average for a more stable value
+  for (int j = 0; j < POT_AVERAGING; ++j) val += (analogRead(input)-4095); // read the A/D a few times and average for a more stable value
   val = val / POT_AVERAGING;
   
   if (potlock[potnum]) {
