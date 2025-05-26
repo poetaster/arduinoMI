@@ -24,7 +24,7 @@ bool debug = true;
 #include <hardware/pwm.h>
 #include <PWMAudio.h>
 
-#define SAMPLERATE 48000
+#define SAMPLERATE 96000
 #define PWMOUT OUT2
 
 #include "utility.h"
@@ -52,10 +52,10 @@ int engineInc = 0;
 
 //unsigned int SWPin = CLOCKIN;
 
-#define TIMER0_INTERVAL_MS  20.833333333333
+#define TIMER0_INTERVAL_MS 10.416666666667 
+
 //24.390243902439025 // 44.1
 // \20.833333333333running at 48Khz
-
 // 10.416666666667  96kHz
 
 #define DEBOUNCING_INTERVAL_MS   2// 80
@@ -121,7 +121,7 @@ void setup() {
   
 
   // set up Pico PWM audio output
-  DAC.setBuffers(4, 64); // plaits::kBlockSize); // DMA buffers
+  DAC.setBuffers(4, 128); // plaits::kBlockSize); // DMA buffers
   //DAC.onTransmit(cb);
   DAC.setFrequency(SAMPLERATE);
 
@@ -167,6 +167,7 @@ void loop1() {
     readpot(0);
     readpot(1);
     pot_timer = now;
+    
     // 0, 1 are AIN0, AIN1 for timbre/color cv control
     if (!potlock[0]  ) { // change sample if pot has moved enough
       uint16_t timbre = (uint16_t)(map(potvalue[0], POT_MIN, POT_MAX, 0, 32767));
@@ -176,12 +177,10 @@ void loop1() {
       uint16_t morph = (uint16_t)(map(potvalue[1], POT_MIN, POT_MAX, 0, 32767));
       morph_in = morph;
     }
-
-
   }
 
     // fm / pitch updates
-    int16_t pitch = map(analogRead(AIN2), 0, 1023, 127, 0); // cv for pitch was midi note << 7
+    int16_t pitch = map(analogRead(AIN2), 0, 1023, 127, 12); // cv for pitch was midi note << 7
     pitch_in = pitch;
 
 
@@ -213,6 +212,7 @@ void loop1() {
   */
   float harmonics = randomDouble(0.0, 1.0); // SinOsc.kr(0.03, 0, 0.5, 0.5).range(0.0, 1.0);
   harm_in = harmonics;
+  
   button.update();
   if ( button.pressed() ) {
     engineCount ++;

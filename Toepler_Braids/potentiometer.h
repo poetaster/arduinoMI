@@ -9,7 +9,7 @@
 #define MIN_COUNTS 8  // unlocked pot must change by this in order to register
 #define POT_AVERAGING 20 // analog sample averaging count 
 #define POT_MIN 2   // A/D may not read min value of 0 so use a bit larger value for map() function
-#define POT_MAX 4093 // A/D may not read max value of 1023 so use a bit smaller value for map() function
+#define POT_MAX 1023 // A/D may not read max value of 1023 so use a bit smaller value for map() function
 
 #define NPOTS 2 // number of pots
 
@@ -38,7 +38,7 @@ uint16_t readpot(uint8_t potnum) {
   }
   
   // note that Pikocore pots are wired "backwards" - max voltage is full ccw
-  for (int j = 0; j < POT_AVERAGING; ++j) val += (analogRead(input)-4095); // read the A/D a few times and average for a more stable value
+  for (int j = 0; j < POT_AVERAGING; ++j) val += (analogRead(input) - 1023); // read the A/D a few times and average for a more stable value
   val = val / POT_AVERAGING;
   
   if (potlock[potnum]) {
