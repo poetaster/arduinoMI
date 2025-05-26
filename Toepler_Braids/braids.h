@@ -66,7 +66,7 @@ float timb_mod = 0.0f; //IN(8);
 float morph_mod = 0.0f; //IN(9);
 float decay_in = 0.5f; // IN(10);
 float lpg_in = 0.1f ;// IN(11);
-int pitch_in = 60;
+int pitch_in = 48;
 
 
 // Braids vars
@@ -128,9 +128,10 @@ void updateBraidsAudio() {
 */
   // Check if the pitch has changed to cause an auto-retrigger
 
-  bool trigger_flag; // = (trigger && (!voices[0].last_trig));
+  bool trigger_flag; // = trigger_in > 0.1f; // = (trigger && (!voices[0].last_trig));
   
   int32_t pitch_delta = pitch_in - previous_pitch;
+  
   if ((pitch_delta >= 0x40 || -pitch_delta >= 0x40)) {
     trigger_flag = true;
   }
@@ -138,38 +139,30 @@ void updateBraidsAudio() {
   previous_pitch = pitch_in;
   
   voices[0].last_trig = trigger_flag;
-  
 
   osc->set_pitch(pitch_in << 7);
 
   if (trigger_flag) {
     osc->Strike();
-    //envelope->Trigger(braids::ENV_SEGMENT_ATTACK);
-    //ui.StepMarquee();
     trigger_flag = false;
   }
-
-
+  // render
   for (int count = 0; count < 32; count += size) {
-    // render
-    osc->Render(sync_buffer, buffer, size);
 
-    /*for (int i = 0; i < size; ++i) {
-      out[count + i] = buffer[i] * SAMP_SCALE;
-      }*/
+    osc->Render(sync_buffer, buffer, size);
   }
 }
 
 // initialize macro osc
 void initVoices() {
 
-  voices[0].ratio = 96000.f / MI_SAMPLERATE;
+  voices[0].ratio = 48000.f / MI_SAMPLERATE;
 
   // init some params
   voices[0].pd.osc = new braids::MacroOscillator;
   memset(voices[0].pd.osc, 0, sizeof(*voices[0].pd.osc));
 
-  voices[0].pd.osc->Init(96000.f);
+  voices[0].pd.osc->Init(48000.f);
   voices[0].pd.osc->set_pitch((48 << 7));
   voices[0].pd.osc->set_shape(braids::MACRO_OSC_SHAPE_VOWEL_FOF);
 

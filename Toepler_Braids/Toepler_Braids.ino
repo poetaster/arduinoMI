@@ -24,7 +24,7 @@ bool debug = true;
 #include <hardware/pwm.h>
 #include <PWMAudio.h>
 
-#define SAMPLERATE 96000
+#define SAMPLERATE 48000
 #define PWMOUT OUT2
 
 #include "utility.h"
@@ -52,10 +52,10 @@ int engineInc = 0;
 
 //unsigned int SWPin = CLOCKIN;
 
-#define TIMER0_INTERVAL_MS 10.416666666667 
+#define TIMER0_INTERVAL_MS 20.833333333333
 
 //24.390243902439025 // 44.1
-// \20.833333333333running at 48Khz
+// \20.833333333333 running at 48Khz
 // 10.416666666667  96kHz
 
 #define DEBOUNCING_INTERVAL_MS   2// 80
@@ -121,7 +121,7 @@ void setup() {
   
 
   // set up Pico PWM audio output
-  DAC.setBuffers(4, 128); // plaits::kBlockSize); // DMA buffers
+  DAC.setBuffers(4, 64); // plaits::kBlockSize); // DMA buffers
   //DAC.onTransmit(cb);
   DAC.setFrequency(SAMPLERATE);
 
