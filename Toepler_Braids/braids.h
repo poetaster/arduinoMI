@@ -54,12 +54,12 @@ static long src_input_callback(void *cb_data, float **audio);
 struct Unit voices[1];
 
 // Plaits modulation vars, reusing names
-float morph_in = 0.7f; // IN(4);
+float morph_in = 1000; // IN(4);
 float trigger_in; //IN(5);
 float level_in = 0.0f; //IN(6);
 float harm_in = 0.1f;
-float timbre_in = 0.1f;
-int engine_in;
+int16_t timbre_in = 1000;
+int engine_in = 11;
 
 float fm_mod = 0.0f ; //IN(7);
 float timb_mod = 0.0f; //IN(8);

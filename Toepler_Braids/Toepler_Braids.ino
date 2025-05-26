@@ -56,6 +56,8 @@ int engineInc = 0;
 //24.390243902439025 // 44.1
 // \20.833333333333running at 48Khz
 
+// 10.416666666667  96kHz
+
 #define DEBOUNCING_INTERVAL_MS   2// 80
 #define LOCAL_DEBUG              0
 
@@ -67,7 +69,7 @@ RPI_PICO_Timer ITimer0(0);
 bool TimerHandler0(struct repeating_timer *t) {
   (void) t;
   bool sync = true;
-  if ( DAC.availableForWrite() ) {
+  if ( DAC.availableForWrite()) {
     for (size_t i = 0; i < BLOCK_SIZE; i++) {
       DAC.write( voices[0].pd.buffer[i]);
     }
@@ -76,7 +78,15 @@ bool TimerHandler0(struct repeating_timer *t) {
   return true;
 }
 
-
+void cb() {
+    bool sync = true;
+  if (DAC.availableForWrite() >= BLOCK_SIZE) {
+    for (int i = 0; i <  BLOCK_SIZE; i++) {
+      // out = ;   // left channel called .aux
+      DAC.write( voices[0].pd.buffer[i]);
+    }
+  }
+}
 
 
 void setup() {
@@ -101,18 +111,20 @@ void setup() {
   button.setPressedState(LOW);
 
   // pwm timing setup, we're using a pseudo interrupt
+  
   if (ITimer0.attachInterruptInterval(TIMER0_INTERVAL_MS, TimerHandler0)) // that's 48kHz
   {
     if (debug) Serial.print(F("Starting  ITimer0 OK, millis() = ")); Serial.println(millis());
   }  else {
     if (debug) Serial.println(F("Can't set ITimer0. Select another freq. or timer"));
   }
+  
 
   // set up Pico PWM audio output
-  DAC.setBuffers(4, 32); // plaits::kBlockSize); // DMA buffers
+  DAC.setBuffers(4, 64); // plaits::kBlockSize); // DMA buffers
   //DAC.onTransmit(cb);
   DAC.setFrequency(SAMPLERATE);
-  DAC.begin();
+
 
 
   // init the braids voices
@@ -121,11 +133,12 @@ void setup() {
   // initial reading of the pots with debounce
   readpot(0);
   readpot(1);
-
+    DAC.begin();
 }
 
 
 void loop() {
+
   if ( counter > 0 ) {
     updateBraidsAudio();
     counter = 0; // increments on each pass of the timer after the timer writes samples
