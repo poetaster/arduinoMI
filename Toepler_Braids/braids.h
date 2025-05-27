@@ -66,7 +66,7 @@ float timb_mod = 0.0f; //IN(8);
 float morph_mod = 0.0f; //IN(9);
 float decay_in = 0.5f; // IN(10);
 float lpg_in = 0.1f ;// IN(11);
-int pitch_in = 48;
+int pitch_in = 12;
 
 
 // Braids vars
@@ -76,7 +76,7 @@ int pitch_in = 48;
 //    float   model_in = IN0(3);
 //    float   *trig_in = IN(4);
 
-int32_t previous_pitch;
+
 
 void updateBraidsAudio() {
 
@@ -137,10 +137,11 @@ void updateBraidsAudio() {
   }
 
   previous_pitch = pitch_in;
-  
+  osc->set_pitch(pitch_in << 7);
+    
   voices[0].last_trig = trigger_flag;
 
-  osc->set_pitch(pitch_in << 7);
+
 
   if (trigger_flag) {
     osc->Strike();

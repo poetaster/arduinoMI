@@ -13,7 +13,7 @@
   #define CV3 (28u)
 
 */
-bool debug = true;
+bool debug = false;
 
 #include <Arduino.h>
 #include "stdio.h"
@@ -21,22 +21,39 @@ bool debug = true;
 #include "hardware/sync.h"
 #include "potentiometer.h"
 
+#include <MIDI.h>
+#include <mozzi_midi.h>
+
+struct Serial1MIDISettings : public midi::DefaultSettings
+{
+  static const long BaudRate = 31250;
+  static const int8_t TxPin  = 12u;
+  static const int8_t RxPin  = 13u;
+};
+
+MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, Serial1, MIDI, Serial1MIDISettings);
+
 #include <hardware/pwm.h>
 #include <PWMAudio.h>
 
 #define SAMPLERATE 48000
-#define PWMOUT OUT2
+#define PWMOUT 0
+#define BUTTON_PIN 8
+#define LED 13
+// cheat. belongs in braids.h, but I need it forward
+int32_t previous_pitch;
 
 #include "utility.h"
 #include <STMLIB.h>
 #include <BRAIDS.h>
 #include "braids.h"
 
-#define BUTTON_PIN SW1
+
 #include <Bounce2.h>
 Bounce2::Button button = Bounce2::Button();
 
 PWMAudio DAC(PWMOUT);  // 16 bit PWM audio
+
 
 
 int engineCount = 0;
@@ -75,11 +92,12 @@ bool TimerHandler0(struct repeating_timer *t) {
     }
     counter =  1;
   }
+  
   return true;
 }
 
 void cb() {
-    bool sync = true;
+  bool sync = true;
   if (DAC.availableForWrite() >= BLOCK_SIZE) {
     for (int i = 0; i <  BLOCK_SIZE; i++) {
       // out = ;   // left channel called .aux
@@ -88,40 +106,60 @@ void cb() {
   }
 }
 
+void HandleNoteOn(byte channel, byte note, byte velocity) {
+  pitch_in = note;
+  trigger_in = velocity / 127.0;
+
+  //aSin.setFreq(mtof(float(note)));
+  //envelope.noteOn();
+  //digitalWrite(LED, HIGH);
+}
+void HandleNoteOff(byte channel, byte note, byte velocity) {
+
+  trigger_in = 0.0f;
+
+  //aSin.setFreq(mtof(float(note)));
+  //envelope.noteOn();
+  //digitalWrite(LED, LOW);
+}
 
 void setup() {
-  if (debug) {
-    Serial.begin(57600);
-    Serial.println(F("YUP"));
-  }
 
+  if (debug) {
+    //Serial.begin(57600);
+    //Serial.println(F("YUP"));
+  }
+  analogReadResolution(12);
   // thi is to switch to PWM for power to avoid ripple noise
   pinMode(23, OUTPUT);
   digitalWrite(23, HIGH);
 
-  pinMode(13, INPUT);
-  //digitalWrite(13, LOW);
-
   pinMode(AIN0, INPUT);
   pinMode(AIN1, INPUT);
   pinMode(AIN2, INPUT);
+
+  pinMode(LED, OUTPUT);
+  MIDI.setHandleNoteOn(HandleNoteOn);  // Put only the name of the function
+  MIDI.setHandleNoteOff(HandleNoteOff);  // Put only the name of the function
+  // Initiate MIDI communications, listen to all channels (not needed with Teensy usbMIDI)
+  MIDI.begin(MIDI_CHANNEL_OMNI);
 
   button.attach( BUTTON_PIN , INPUT);
   button.interval(5);
   button.setPressedState(LOW);
 
   // pwm timing setup, we're using a pseudo interrupt
-  
+
   if (ITimer0.attachInterruptInterval(TIMER0_INTERVAL_MS, TimerHandler0)) // that's 48kHz
   {
     if (debug) Serial.print(F("Starting  ITimer0 OK, millis() = ")); Serial.println(millis());
   }  else {
     if (debug) Serial.println(F("Can't set ITimer0. Select another freq. or timer"));
   }
-  
+
 
   // set up Pico PWM audio output
-  DAC.setBuffers(4, 64); // plaits::kBlockSize); // DMA buffers
+  DAC.setBuffers(4, 32); // plaits::kBlockSize); // DMA buffers
   //DAC.onTransmit(cb);
   DAC.setFrequency(SAMPLERATE);
 
@@ -133,7 +171,7 @@ void setup() {
   // initial reading of the pots with debounce
   readpot(0);
   readpot(1);
-    DAC.begin();
+  DAC.begin();
 }
 
 
@@ -166,8 +204,9 @@ void loop1() {
   if ((now - pot_timer) > POT_SAMPLE_TIME) {
     readpot(0);
     readpot(1);
+    readpot(2);
     pot_timer = now;
-    
+
     // 0, 1 are AIN0, AIN1 for timbre/color cv control
     if (!potlock[0]  ) { // change sample if pot has moved enough
       uint16_t timbre = (uint16_t)(map(potvalue[0], POT_MIN, POT_MAX, 0, 32767));
@@ -177,21 +216,26 @@ void loop1() {
       uint16_t morph = (uint16_t)(map(potvalue[1], POT_MIN, POT_MAX, 0, 32767));
       morph_in = morph;
     }
-  }
-
     // fm / pitch updates
-    int16_t pitch = map(analogRead(AIN2), 0, 1023, 127, 12); // cv for pitch was midi note << 7
-    pitch_in = pitch;
+    int16_t pitch = map(potvalue[2], 0, 4095, 12, 127); // cv for pitch was midi note << 7
+    pitch_in = pitch_in;
+    MIDI.read();
+    
+  }
+  
 
 
 
-  /* if (digitalRead(13) == LOW) {
-     trigger_in = 1.0f;
-     Serial.println("trigger high");
-     //  Serial.println(pitch);
-    } else {
-     trigger_in = 0.0f;
-    }*/
+
+  /*
+    if (digitalRead(13) == HIGH) {
+       trigger_in = 1.0f;
+       Serial.println("trigger high");
+       //  Serial.println(pitch);
+      } else {
+       trigger_in = 0.0f;
+      }
+  */
 
   /* float trigger = randomDouble(0.0, 1.0); // Dust.kr( LFNoise2.kr(0.1).range(0.1, 7) );
     if (trigger > 0.2 ) {
@@ -212,7 +256,7 @@ void loop1() {
   */
   float harmonics = randomDouble(0.0, 1.0); // SinOsc.kr(0.03, 0, 0.5, 0.5).range(0.0, 1.0);
   harm_in = harmonics;
-  
+
   button.update();
   if ( button.pressed() ) {
     engineCount ++;
