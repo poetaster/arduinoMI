@@ -64,15 +64,9 @@ void aNoteOff( float note, int velocity) {
 }
 
 void aNoteOn(float note, int velocity) {
-  if (velocity == 0) {
-    aNoteOff(note, velocity);
-    trigger_in = 0.0;
-    return;
-  };
-
   trigger_in = randomDouble(0.0, 1.0);
-  if (trigger_in < 0.3) {
-    trigger_in = 0.0;
+  if (trigger_in < 0.1) {
+    trigger_in = 0.0f;
   }
 
 

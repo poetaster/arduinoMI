@@ -13,7 +13,7 @@ bool debugging = true;
 
 #include <PWMAudio.h>
 #define SAMPLERATE 48000
-#define PWMOUT 22
+#define PWMOUT 0
 PWMAudio DAC(PWMOUT);  // 16 bit PWM audio
 
 // braids dsp
@@ -129,7 +129,7 @@ bool TimerHandler0(struct repeating_timer *t) {
   bool sync = true;
   if ( DAC.availableForWrite() ) {
     for (size_t i = 0; i < BLOCK_SIZE; i++) {
-      DAC.write( voices[0].pd.buffer[i] , sync );
+      DAC.write( voices[0].pd.buffer[i] );
     }
     counter =  1;
   }
