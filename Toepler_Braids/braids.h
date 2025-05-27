@@ -128,7 +128,7 @@ void updateBraidsAudio() {
 */
   // Check if the pitch has changed to cause an auto-retrigger
 
-  bool trigger_flag; // = trigger_in > 0.1f; // = (trigger && (!voices[0].last_trig));
+  bool trigger_flag = trigger_in > 0.0f; // = (trigger && (!voices[0].last_trig));
   
   int32_t pitch_delta = pitch_in - previous_pitch;
   
@@ -137,6 +137,7 @@ void updateBraidsAudio() {
   }
 
   previous_pitch = pitch_in;
+  
   osc->set_pitch(pitch_in << 7);
     
   voices[0].last_trig = trigger_flag;

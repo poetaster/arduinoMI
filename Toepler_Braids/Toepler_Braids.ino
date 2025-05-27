@@ -92,7 +92,7 @@ bool TimerHandler0(struct repeating_timer *t) {
     }
     counter =  1;
   }
-  
+
   return true;
 }
 
@@ -197,7 +197,7 @@ void setup1() {
 
 // second core deals with ui / control rate updates
 void loop1() {
-
+  MIDI.read();
   uint32_t now = millis();
   // pot updates
   // reading A/D seems to cause noise in the audio so don't do it too often
@@ -219,10 +219,8 @@ void loop1() {
     // fm / pitch updates
     int16_t pitch = map(potvalue[2], 0, 4095, 12, 127); // cv for pitch was midi note << 7
     pitch_in = pitch_in;
-    MIDI.read();
-    
   }
-  
+
 
 
 
