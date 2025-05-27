@@ -133,17 +133,16 @@ RPI_PICO_Timer ITimer0(0);
 bool TimerHandler0(struct repeating_timer *t) {
   (void) t;
   bool sync = true;
-  /*
-  if ( DAC.availableForWrite() ) {
+  
+    if ( DAC.availableForWrite()) {
     //DAC.write( (uint16_t)outputPlaits[counter].out)
-    
     for (size_t i = 0; i < plaits::kBlockSize; i++) {
       DAC.write( outputPlaits[i].out); // 244 is mozzi audio bias
     }
-    
+
     counter = 1;
-  }*/
-  
+    }
+
   return true;
 }
 
@@ -233,19 +232,21 @@ void setup() {
   // we're using a pseudo interrupt for the render callback since internal dac callbacks crash
   // Frequency in float Hz
   //ITimer0.attachInterrupt(TIMER_FREQ_HZ, TimerHandler0);
-  /*
-  if (ITimer0.attachInterruptInterval(TIMER0_INTERVAL_MS, TimerHandler0)) // that's 48kHz
-  {
+  
+    if (ITimer0.attachInterruptInterval(TIMER0_INTERVAL_MS, TimerHandler0)) // that's 48kHz
+    {
     if (debugging) Serial.print(F("Starting  ITimer0 OK, millis() = ")); Serial.println(millis());
-  }  else {
+    }  else {
     if (debugging) Serial.println(F("Can't set ITimer0. Select another freq. or timer"));
-  }
-  */
+    }
+  
 
   // set up Pico PWM audio output
-  DAC.setBuffers(6, 12); //plaits::kBlockSize * 4); // DMA buffers
-  DAC.onTransmit(cb);
+  DAC.setBuffers(4, 32); //plaits::kBlockSize * 4); // DMA buffers
+  //DAC.onTransmit(cb);
   DAC.setFrequency(SAMPLERATE);
+    // now start the dac
+  DAC.begin();
 
 
   // Additions
@@ -301,13 +302,12 @@ void setup() {
   makeScale( roots[scaleRoot], mode);
 
   initVoices();
-  
+
   // prefill buffer
   voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
 
-  // now start the dac
-  DAC.begin();
-  
+
+
   // Connect the HandleNoteOn function to the library, so it is called upon reception of a NoteOn.
   //MIDI.setHandleNoteOn(HandleNoteOn);  // Put only the name of the function
   //MIDI.setHandleNoteOff(HandleNoteOff);  // Put only the name of the function
@@ -359,31 +359,33 @@ void initVoices() {
 }
 void loop() {
   // updateAudio();
-  if ( counter > 0) {
+  if (counter == 1) {
     voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
     counter = 0; // increments on each pass of the timer when the timer writes
-    /*
-    voices[0].patch.decay = 0.5f;
-    voices[0].patch.lpg_colour = 0.2;
-    if (trigger_in > 0.2 ) {
-      voices[0].modulations.trigger = trigger_in;
-      voices[0].modulations.trigger_patched = true;
-    } else {
-      voices[0].modulations.trigger = 0.0f;
-      voices[0].modulations.trigger_patched = false;
-    }*/
-  } else {
+  }
+      
     //voices[0].octave_ = octave_in;
     voices[0].patch.note = pitch_in;
     voices[0].patch.harmonics = harm_in;
     voices[0].patch.morph = morph_in;
     voices[0].patch.timbre = timbre_in;
-  }
+    /*
+      if (trigger_in > 0.2 ) {
+      voices[0].modulations.trigger = trigger_in;
+      voices[0].modulations.trigger_patched = true;
+      } else {
+      voices[0].modulations.trigger = 0.0f;
+      voices[0].modulations.trigger_patched = false;
+      }
+  voices[0].patch.decay = 0.5f;
+  voices[0].patch.lpg_colour = 0.2;
+  */
 }
+
 
 void cb() {
   bool sync = true;
-  if ( DAC.availableForWrite() ) {    
+  if ( DAC.availableForWrite()>32) {
     for (size_t i = 0; i < plaits::kBlockSize; i++) {
       DAC.write( outputPlaits[i].out); // 244 is mozzi audio bias
     }
@@ -468,14 +470,14 @@ void updateControl() {
   //if (INRATE(5) == calc_FullRate) {
 
   if (trig_in > 0.9f) {
-    // trigger input is audio rate
-    // TODO: add vDSP vector summation
-    //for (int i = 0; i < inNumSamples; ++i)
-    //  sum += trig_in[i];
-    sum = trig_in;
+  // trigger input is audio rate
+  // TODO: add vDSP vector summation
+  //for (int i = 0; i < inNumSamples; ++i)
+  //  sum += trig_in[i];
+  sum = trig_in;
   }
   else {          // trigger input is control rate
-    sum = trig_in;
+  sum = trig_in;
   }
 
   voices[0].modulations.trigger = sum;
@@ -617,7 +619,7 @@ void loop1() {
 
   displayUpdate();
   // don't know why here :)
-    voices[0].patch.engine = engine_in;
+  voices[0].patch.engine = engine_in;
   //delay(3000);
 
 }

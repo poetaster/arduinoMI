@@ -534,6 +534,7 @@ void updateBraidsAudio() {
   uint8_t shape = (int)(engine_in);
   if (shape >= braids::MACRO_OSC_SHAPE_LAST)
     shape -= braids::MACRO_OSC_SHAPE_LAST;
+    
   osc->set_shape(static_cast<braids::MacroOscillatorShape>(shape));
 
   bool trigger = (trigger_in != 0.0);
