@@ -2,11 +2,11 @@
 Ports of mutable intstruments eurorack code to arduino.
 
 Current status, 15.05.2025:
-* braids works well
-* tides works well, or so I believe
-* rings is working well with a polyphony of 3
-* elements struggles a bit and I'm just favouring rings
-* plaits has voices that are not rendering properly but about 2/3s work fine.
+* braids works well on the RP2040/RP2350
+* tides works well, or so I believe on RP2040/RP2350
+* rings is working well with a polyphony of 4 on RP2350
+* elements RP2350 only
+* plaits works fine on the RP2350 only
 
 This port was possible because of the work of Volker Boehm to bring MI modules to supercollider: https://github.com/v7b1/mi-UGens Very cool.
 
@@ -94,4 +94,3 @@ struct Unit {
 
 See the included sketches.
 
-Curently, plaits is still a bit noisy but braids is really, really nice. 
