@@ -3,9 +3,9 @@
   GPLv3 the libraries are MIT as the originals for STM from MI were also MIT.
 
   Change the PWMOUT number to the pin you are doing pwm on.
-  Works fine 133mHz -O2
-  RP2350
+  Works fine 133mHz -O2 on an RP2350
 
+  BE CAREFULL, can be loud or high pitched. Or BOTH!
   
 */
 
@@ -106,7 +106,7 @@ RPI_PICO_Timer ITimer0(0);
 bool TimerHandler0(struct repeating_timer *t) {
   (void) t;
   bool sync = true;
-  if ( DAC.availableForWrite() > plaits::kBlockSize) {
+  if ( DAC.availableForWrite()) {
     for (size_t i = 0; i < plaits::kBlockSize; i++) {
       DAC.write( outputPlaits[i].out); // 244 is mozzi audio bias
     }
@@ -146,8 +146,7 @@ void setup() {
   }
   // pwm timing setup
   // we're using a pseudo interrupt for the render callback since internal dac callbacks crash
-  // Frequency in float Hz
-  //ITimer0.attachInterrupt(TIMER_FREQ_HZ, TimerHandler0);
+  // comment the following block out and uncomment the DAC.onTransmit(cb) line to use the DAC callback method
 
   if (ITimer0.attachInterruptInterval(TIMER0_INTERVAL_MS, TimerHandler0)) // that's 48kHz
   {
@@ -155,6 +154,7 @@ void setup() {
   }  else {
     if (debugging) Serial.println(F("Can't set ITimer0. Select another freq. or timer"));
   }
+  
 
 
 
@@ -231,6 +231,7 @@ void loop() {
     voices[0].patch.morph = morph_in;
     voices[0].patch.timbre = timbre_in;
     
+    // we're not using triggers, just for reference.
     if (trigger_in > 0.1 ) {
       voices[0].modulations.trigger = trigger_in;
       voices[0].modulations.trigger_patched = true;
@@ -238,8 +239,6 @@ void loop() {
       voices[0].modulations.trigger = 0.0f;
       voices[0].modulations.trigger_patched = false;
     }
-
-    
 
     counter = 0; // increments on each pass of the timer after the timer writes samples
   }
@@ -260,10 +259,10 @@ void setup1() {
 void loop1() {
 
   float trigger = randomDouble(0.0, 1.0); // Dust.kr( LFNoise2.kr(0.1).range(0.1, 7) );
-  float harmonics = randomDouble(0.0, 0.9); // SinOsc.kr(0.03, 0, 0.5, 0.5).range(0.0, 1.0);
-  float timbre = randomDouble(0.0, 0.9); //LFTri.kr(0.07, 0, 0.5, 0.5).range(0.0, 1.0);
-  float morph = randomDouble(0.1, 0.9) ; //LFTri.kr(0.11, 0, 0.5, 0.5).squared;
-  float pitch = randomDouble(42, 68); // TIRand.kr(24, 48, trigger);
+  float harmonics = randomDouble(0.0, 0.8); // SinOsc.kr(0.03, 0, 0.5, 0.5).range(0.0, 1.0);
+  float timbre = randomDouble(0.0, 0.8); //LFTri.kr(0.07, 0, 0.5, 0.5).range(0.0, 1.0);
+  float morph = randomDouble(0.1, 0.8) ; //LFTri.kr(0.11, 0, 0.5, 0.5).squared;
+  float pitch = randomDouble(42, 64); // TIRand.kr(24, 48, trigger);
   float octave = randomDouble(0.2, 0.4);
   float decay = randomDouble(0.1, 0.4);
 
@@ -278,7 +277,6 @@ void loop1() {
     engineCount ++; // don't switch engine so often :)
     engineInc = 0;
     voices[0].patch.engine = engineCount;
-    //trigger_in = trigger;
   }
   if (engineCount > 15) engineCount = 0;
 
