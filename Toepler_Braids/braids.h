@@ -66,7 +66,8 @@ float timb_mod = 0.0f; //IN(8);
 float morph_mod = 0.0f; //IN(9);
 float decay_in = 0.5f; // IN(10);
 float lpg_in = 0.1f ;// IN(11);
-int pitch_in = 12;
+int pitch_in = 48;
+int16_t pitch_fm = 0;
 
 
 // Braids vars
@@ -128,7 +129,7 @@ void updateBraidsAudio() {
 */
   // Check if the pitch has changed to cause an auto-retrigger
 
-  bool trigger_flag = trigger_in > 0.0f; // = (trigger && (!voices[0].last_trig));
+  bool trigger_flag ;//= trigger_in > 0.0f; // = (trigger && (!voices[0].last_trig));
   
   int32_t pitch_delta = pitch_in - previous_pitch;
   
@@ -141,8 +142,6 @@ void updateBraidsAudio() {
   osc->set_pitch(pitch_in << 7);
     
   voices[0].last_trig = trigger_flag;
-
-
 
   if (trigger_flag) {
     osc->Strike();
@@ -216,8 +215,8 @@ void initVoices() {
       }
   */
 }
-/*
-  const braids::SettingsData kInitSettings = {
+
+const braids::SettingsData kInitSettings = {
   braids::MACRO_OSC_SHAPE_CSAW,
 
   braids::RESOLUTION_16_BIT,
@@ -251,4 +250,3 @@ void initVoices() {
   { 32768, 32768 },
   "GREETINGS FROM MUTABLE INSTRUMENTS *EDIT ME*",
   };
-*/

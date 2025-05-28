@@ -171,6 +171,7 @@ void setup() {
   // initial reading of the pots with debounce
   readpot(0);
   readpot(1);
+  readpot(2);
   DAC.begin();
 }
 
@@ -218,7 +219,7 @@ void loop1() {
     }
     // fm / pitch updates
     int16_t pitch = map(potvalue[2], 0, 4095, 12, 127); // cv for pitch was midi note << 7
-    pitch_in = pitch_in;
+    pitch_fm = pitch;
   }
 
 
