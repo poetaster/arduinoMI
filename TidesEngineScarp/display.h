@@ -53,10 +53,10 @@ char pointsc[32] = {};
 char pointsd[32] = {};
 
 void displayGraph(float a, float b, float c, float d) {
-  int w = abs(a * (127));
-  int x = abs(b * (64));
-  int y = abs(c * (32));
-  int z = abs(d * (32));
+  int w = abs(a * (4));
+  int x = abs(b * (4));
+  int y = abs(c * (4));
+  int z = abs(d * (4));
   
   pointsa[graphcounter] = w;
   pointsb[graphcounter] = x;
@@ -66,15 +66,22 @@ void displayGraph(float a, float b, float c, float d) {
   if (graphcounter > 31) graphcounter = 0;
   
 }
+char pointsZ[128] = {};
+void displayAGraph(float a) {
+  int w = abs(a * (4));
+  pointsZ[graphcounter] = w;
+  graphcounter++;
+  if (graphcounter > 127) graphcounter = 0;
+}
 
 void displayUpdate() {
   display.clearDisplay();
   
-  for (int i= 0; i< 32; i++) {
-     display.drawPixel(i, pointsa[i]+25, SH110X_WHITE );
-     display.drawPixel(i+31, pointsb[i]+25, SH110X_WHITE );
-     display.drawPixel(i+63, pointsc[i]+25, SH110X_WHITE );    
-     display.drawPixel(i+95, pointsd[i]+25, SH110X_WHITE );    
+  for (int i= 0; i< 128; i++) {
+     display.drawPixel(i, pointsZ[i]+25, SH110X_WHITE );
+     //display.drawPixel(i+31, pointsb[i]+25, SH110X_WHITE );
+     //display.drawPixel(i+63, pointsc[i]+25, SH110X_WHITE );    
+     //display.drawPixel(i+95, pointsd[i]+25, SH110X_WHITE );    
   }
   //display.setFont(&myfont); don't need to call this every time!
   //display.setTextColor(WHITE, 0);
@@ -109,7 +116,7 @@ void displayUpdate() {
   // bpm
   display.setCursor(bpm_text_pos.x, bpm_text_pos.y);
   display.print("r: ");
-  display.print(oscnames[engine_in]);//SETTING_OSCILLATOR_SHAPE
+  display.print(shapeIn);//SETTING_OSCILLATOR_SHAPE
 
   // transpose
   display.setCursor(trans_text_pos.x, trans_text_pos.y);
@@ -124,11 +131,11 @@ void displayUpdate() {
   // name
  // display.setCursor(seq_info_pos.x, seq_info_pos.y);
  // display.print("P: ");
- // display.print(oscnames[engine_in]);
+ // display.print(engine_in);
   
   // color
   display.setCursor(trans_text_pos.x, play_text_pos.y);
-  display.print("c: ");
+  display.print("m: ");
   display.print(morph_in);
 
 
@@ -138,8 +145,8 @@ void displayUpdate() {
   
   // play/pause
   display.setCursor(play_text_pos.x, play_text_pos.y);
-  display.print("m: ");
-  display.print(display_mode);
+  display.print("d: ");
+  display.print(wChannel);
 
   display.display();
 }
