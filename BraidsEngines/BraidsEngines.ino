@@ -1,6 +1,13 @@
 /*
   (c) 2025 blueprint@poetaster.de
   GPLv3 the libraries are MIT as the originals for STM from MI were also MIT.
+
+  
+  Change the PWMOUT number to the pin you are doing pwm on.
+  Works fine 133mHz -O2 on an RP2350
+
+  BE CAREFULL, can be loud or high pitched. Or BOTH!
+  
 */
 
 bool debugging = true;
@@ -13,7 +20,7 @@ bool debugging = true;
 
 #include <PWMAudio.h>
 #define SAMPLERATE 48000
-#define PWMOUT 0
+#define PWMOUT 22
 PWMAudio DAC(PWMOUT);  // 16 bit PWM audio
 
 // braids dsp
@@ -157,8 +164,8 @@ void setup() {
   }
   // pwm timing setup
   // we're using a pseudo interrupt for the render callback since internal dac callbacks crash
-  // Frequency in float Hz
-  //ITimer0.attachInterrupt(TIMER_FREQ_HZ, TimerHandler0);
+  // comment the following block out and uncomment the DAC.onTransmit(cb) line to use the DAC callback method
+
   if (ITimer0.attachInterruptInterval(TIMER0_INTERVAL_MS, TimerHandler0)) // that's 48kHz
   {
     if (debugging) Serial.print(F("Starting  ITimer0 OK, millis() = ")); Serial.println(millis());
@@ -175,7 +182,7 @@ void setup() {
   // thi is to switch to PWM for power to avoid ripple noise
   pinMode(23, OUTPUT);
   digitalWrite(23, HIGH);
-  
+
   // init the braids voices
   initVoices();
 
@@ -210,14 +217,14 @@ void initVoices() {
 
   voices[0].last_trig = false;
 
-// get some samples initially
+  // get some samples initially
   updateBraidsAudio();
 
   /*
-  // Initialize the sample rate converter
-  int error;
-  int converter = SRC_SINC_FASTEST;       //SRC_SINC_MEDIUM_QUALITY;
-  
+    // Initialize the sample rate converter
+    int error;
+    int converter = SRC_SINC_FASTEST;       //SRC_SINC_MEDIUM_QUALITY;
+
 
          // check resample flag
       int resamp = (int)IN0(5);
@@ -278,15 +285,11 @@ void updateBraidsAudio() {
   if (trigger_flag)
     osc->Strike();
     
+  // render
   for (int count = 0; count < 32; count += size) {
-    // render
     osc->Render(sync_buffer, buffer, size);
-
-    /*for (int i = 0; i < size; ++i) {
-      out[count + i] = buffer[i] * SAMP_SCALE;
-    }*/
   }
-  
+
 }
 void loop() {
   if ( counter > 0 ) {
@@ -315,15 +318,6 @@ void loop1() {
   float morph = randomDouble(0.1, 0.8) ; //LFTri.kr(0.11, 0, 0.5, 0.5).squared;
   float pitch = randomDouble(38, 64); // TIRand.kr(24, 48, trigger);
   float decay = randomDouble(0.1, 0.4);
-  /*
-    var sub = SinOsc.ar(pitch.midicps, 0, 0.1);
-    var mi = MiPlaits.ar( pitch, engine, harmonics, timbre, morph,
-      trigger: trigger, decay: 0.8, lpg_colour: 0.2, mul: 0.5);
-    mi + sub
-  */
-
-  Serial.println(pitch);
-
 
   pitch_in = pitch;
   harm_in = harmonics;
@@ -333,12 +327,12 @@ void loop1() {
     trigger_in = trigger;
   }
   engineInc++ ;
-  if (engineInc > 3) {
+  if (engineInc > 5) {
     engineCount ++; // don't switch engine so often :)
     engineInc = 0;
   }
   if (engineCount > 46) engineCount = 0;
   engine_in = engineCount;
-  delay(3000);
+  delay(2000);
 
 }
