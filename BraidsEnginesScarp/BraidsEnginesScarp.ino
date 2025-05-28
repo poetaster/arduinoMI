@@ -282,6 +282,9 @@ void setup() {
   }
   displaySplash();
 
+  // let's get more resolution
+  analogReadResolution(12);
+  
   pinMode(BUTTON0, INPUT_PULLUP);
   pinMode(BUTTON1, INPUT_PULLUP);
   pinMode(BUTTON2, INPUT_PULLUP);

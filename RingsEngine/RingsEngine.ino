@@ -64,6 +64,7 @@ float level_in = 0.0f; //IN(6);
 float harm_in = 0.1f;
 float timbre_in = 0.1f;
 int engine_in;
+bool easterEgg;
 
 float fm_mod = 0.0f ; //IN(7);
 float timb_mod = 0.0f; //IN(8);
@@ -249,9 +250,9 @@ void updateRingsAudio() {
   float   pos_in = 0.25f ; //IN0(6);
 
   short   model = engine_in; // IN0(7);
-  short   polyphony = 3; // IN0(8);
-  bool    intern_exciter = false; // (IN0(9) > 0.f);
-  bool    easter_egg = false; // (IN0(10) > 0.f);
+  short   polyphony = 4; // IN0(8);
+  bool    intern_exciter = true; // (IN0(9) > 0.f);
+  bool    easter_egg = easterEgg; // (IN0(10) > 0.f);
   bool    bypass = false; // (IN0(11) > 0.f);
 
   //float *out1 = OUT(0);
@@ -425,8 +426,10 @@ void loop1() {
   float pitch = randomDouble(42, 64); // TIRand.kr(24, 48, trigger);
   float octave = randomDouble(0.2, 0.4);
   float decay = randomDouble(0.1, 0.4);
-
+  float egg = randomDouble(0, 10);
   //octave_in = octave;
+
+  if (egg < 2)  { easterEgg = true; } else {easterEgg = false; }
  
   pitch_in = pitch;
   harm_in = harmonics;
@@ -448,5 +451,5 @@ void loop1() {
   
   if (engineCount > 5) engineCount = 0;
 
-  delay(2000);
+  delay(1300);
 }

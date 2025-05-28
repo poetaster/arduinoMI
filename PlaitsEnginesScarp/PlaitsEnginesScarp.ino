@@ -135,7 +135,6 @@ bool TimerHandler0(struct repeating_timer *t) {
   bool sync = true;
   
     if ( DAC.availableForWrite()) {
-    //DAC.write( (uint16_t)outputPlaits[counter].out)
     for (size_t i = 0; i < plaits::kBlockSize; i++) {
       DAC.write( outputPlaits[i].out); // 244 is mozzi audio bias
     }

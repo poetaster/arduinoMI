@@ -65,7 +65,6 @@ float rings::Dsp::a3 = 440.0f / 48000.0f;
 
 
 struct Unit {
-
   rings::Part             part;
   rings::StringSynthPart  string_synth;
   rings::Strummer         strummer;
@@ -95,6 +94,7 @@ float level_in = 0.0f; //IN(6);
 float harm_in = 0.1f;
 float timbre_in = 0.1f;
 int engine_in;
+bool easterEgg = false;
 
 float fm_mod = 0.0f ; //IN(7);
 float timb_mod = 0.0f; //IN(8);
@@ -140,7 +140,6 @@ bool TimerHandler0(struct repeating_timer *t) {
     }
     counter =  1;
   }
-
   return true;
 }
 
@@ -240,11 +239,14 @@ void setup() {
   }
 
   // set up Pico PWM audio output
-  DAC.setBuffers(4, 32); // DMA buffers
+  DAC.setBuffers(4, 64); // DMA buffers
   //DAC.onTransmit(cb);
   DAC.setFrequency(SAMPLERATE);
   DAC.begin();
 
+  // let's get more resolution
+  analogReadResolution(12);
+  
   // Additions
   // ENCODER
   pinMode(encoderA_pin, INPUT_PULLUP);
@@ -395,8 +397,8 @@ void updateControl() {
   int p2 = potvalue[1]; // analogRead(INTS_PIN); // value is 0-4065
 
 
-  morph_in = (float)p1 / 1000.0f; //map(p1, 0, 4065, 0.0, 1.0); // IN(2);
-  timbre_in = (float)p2 / 1000.0f; //map(p2, 0, 4065, 0.0, 1.0); //IN(3);
+  morph_in = (float)p1 / 4095.0f; //map(p1, 0, 4065, 0.0, 1.0); // IN(2);
+  timbre_in = (float)p2 / 4095.0f; //map(p2, 0, 4065, 0.0, 1.0); //IN(3);
   CONSTRAIN(morph_in, 0.0f, 1.0f);
   CONSTRAIN(timbre_in, 0.0f, 1.0f);
   scanbuttons();
@@ -474,7 +476,7 @@ void updateRingsAudio() {
   short   model = engine_in; // IN0(7);
   short   polyphony = 3; // IN0(8);
   bool    intern_exciter = false; // (IN0(9) > 0.f);
-  bool    easter_egg = false; // (IN0(10) > 0.f);
+  bool    easter_egg = easterEgg; // (IN0(10) > 0.f);
   bool    bypass = false; // (IN0(11) > 0.f);
 
   //float *out1 = OUT(0);
@@ -690,18 +692,23 @@ void loop1() {
 
       if ( i == 8) {
         engineCount = engineCount + encoder_delta;
-        CONSTRAIN(engineCount, 0, 47);
+        CONSTRAIN(engineCount, 0, 5);
         engine_in = engineCount; // ( engine +) % voices[0].voice_.GetNumEngines();
 
       }
 
       if ( (encoder_pos != encoder_pos_last ) && i == 1  ) {
         engineCount = engineCount + encoder_delta;
-        CONSTRAIN(engineCount, 0, 47);
+        CONSTRAIN(engineCount, 0, 5);
         engine_in = engineCount;
 
       }
-
+      if (button[0] && button[7] ) {
+        easterEgg = true;
+      } else {
+        easterEgg = false;
+      }
+      
       // change pitch on pot 0
       if (display_mode == 0 ) { // change sample if pot has moved enough
         //noteA = (map(mozziAnalogRead(MODR_PIN), POT_MIN, POT_MAX, 200, 10000));
@@ -732,11 +739,10 @@ void loop1() {
   }
 
   // now, after buttons check if only encoder moved and no buttons
-  // this is broken by mozzi, sigh.
+  
   if (! anybuttonpressed && encoder_delta) {
     float turn = encoder_delta * 0.01f;
     harm_in = harm_in + turn;
-
     //display_value(RATE_value - 50); // this is wrong, bro :)
   }
 
@@ -766,51 +772,6 @@ void loop1() {
 
   displayUpdate();
 
-  //delay(3000);
 
 
-}
-
-
-
-void automatic() {
-  if (engineCount > 16) engineCount = 0;
-
-  /*
-    float trigger = randomDouble(0.0, 2.0); // Dust.kr( LFNoise2.kr(0.1).range(0.1, 7) );
-    float harmonics = randomDouble(0.2, .7); // SinOsc.kr(0.03, 0, 0.5, 0.5).range(0.0, 1.0);
-    float timbre = randomDouble(0.1, .6); //LFTri.kr(0.07, 0, 0.5, 0.5).range(0.0, 1.0);
-    float morph = randomDouble(0.2, 0.6) ; //LFTri.kr(0.11, 0, 0.5, 0.5).squared;
-    float pitch = abs(randomDouble(34, 60)); // TIRand.kr(24, 48, trigger);
-    float octave = randomDouble(0.3, 0.5);
-    float decay = randomDouble(0.05, 0.2);
-    float fm_mod = randomDouble(0.05, 0.2);
-    float lpg = randomDouble(0.05, 0.2);
-
-    //voices[0].patch.frequency_modulation_amount = fm_mod;
-    voices[0].patch.engine = engineCount;
-    //voices[0].transposition_ = 0.;
-    voices[0].octave_ = 0.3;
-    //voices[0].patch.note = pitch;
-    //voices[0].patch.harmonics = harmonics;
-    //voices[0].patch.morph = morph;
-    //voices[0].patch.timbre = timbre;
-    voices[0].patch.decay = decay; //0.5f;
-    voices[0].patch.lpg_colour = lpg;
-
-    if (trigger > 0.2 ) {
-    voices[0].modulations.trigger = trigger;
-    voices[0].modulations.trigger_patched = true;
-    } else {
-    voices[0].modulations.trigger = 0.0f;
-    voices[0].modulations.trigger_patched = false;
-    }
-
-    engineInc++ ;
-    if (engineInc > 5) {
-    engineCount ++; // don't switch engine so often :)
-    engineInc = 0;
-    }
-
-  */
 }

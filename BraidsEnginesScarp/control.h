@@ -14,7 +14,7 @@ uint32_t pot_timer; // reading pots too often causes noise
 #define MIN_COUNTS 8  // unlocked pot must change by this in order to register
 #define POT_AVERAGING 20 // analog sample averaging count 
 #define POT_MIN 4   // A/D may not read min value of 0 so use a bit larger value for map() function
-#define POT_MAX 1019 // A/D may not read max value of 1023 so use a bit smaller value for map() function
+#define POT_MAX 4090 // A/D may not read max value of 1023 so use a bit smaller value for map() function
 
 
 #define NUM_BUTTONS 9 // 8 buttons plus USR button on VCC-GND board
@@ -48,7 +48,7 @@ uint16_t readpot(uint8_t potnum) {
       break;
   }
   // note that Pikocore pots are wired "backwards" - max voltage is full ccw
-  for (int j = 0; j < POT_AVERAGING; ++j) val += (1024 - analogRead(input)); // read the A/D a few times and average for a more stable value
+  for (int j = 0; j < POT_AVERAGING; ++j) val += (4095 - analogRead(input)); // read the A/D a few times and average for a more stable value
   val = val / POT_AVERAGING;
   if (potlock[potnum]) {
     int delta = lastpotvalue[potnum] - val; // this needs to be done outside of the abs() function - see arduino abs() docs
