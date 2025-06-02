@@ -127,20 +127,30 @@ void updateBraidsAudio() {
                     braids::settings.adc_to_pitch(pitch_in),
                     (60 + 0 ) << 7); // settings.quantizer_root() where zero
 */
+
   // Check if the pitch has changed to cause an auto-retrigger
 
   bool trigger_flag ;//= trigger_in > 0.0f; // = (trigger && (!voices[0].last_trig));
-  
+
   int32_t pitch_delta = pitch_in - previous_pitch;
-  
+
   if ((pitch_delta >= 0x40 || -pitch_delta >= 0x40)) {
     trigger_flag = true;
   }
 
   previous_pitch = pitch_in;
   
-  osc->set_pitch(pitch_in << 7);
-    
+  osc->set_pitch(pitch_in) ; // << 7);
+  /*
+  pitch += internal_adc.value() >> 8;
+  pitch += ad_value * settings.GetValue(SETTING_AD_FM) >> 7;
+  if (braids::settings.vco_flatten()) {
+    pitch = stmlib::Interpolate88(braids::lut_vco_detune, pitch << 2);
+  }
+  osc->set_pitch(pitch + braids::settings.pitch_transposition());
+*/
+
+
   voices[0].last_trig = trigger_flag;
 
   if (trigger_flag) {
@@ -229,7 +239,7 @@ const braids::SettingsData kInitSettings = {
 
   braids::PITCH_RANGE_EXTERNAL,
   2,
-  0,  // Quantizer is off
+  0,  // Quantizer is on
   false,
   false,
   false,
@@ -249,4 +259,4 @@ const braids::SettingsData kInitSettings = {
   { 0, 0 },
   { 32768, 32768 },
   "GREETINGS FROM MUTABLE INSTRUMENTS *EDIT ME*",
-  };
+};

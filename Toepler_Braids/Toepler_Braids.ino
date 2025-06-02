@@ -24,6 +24,17 @@ bool debug = false;
 #include <MIDI.h>
 #include <mozzi_midi.h>
 
+long midiTimer;
+
+float pitch_offset = 36; 
+float max_voltage_of_adc = 3.3; 
+float voltage_division_ratio = 0.3333333333333;  
+float notes_per_octave = 12;
+float volts_per_octave = 1; 
+
+float mapping_upper_limit = (max_voltage_of_adc / voltage_division_ratio) * notes_per_octave * volts_per_octave;
+
+
 struct Serial1MIDISettings : public midi::DefaultSettings
 {
   static const long BaudRate = 31250;
@@ -173,6 +184,10 @@ void setup() {
   readpot(1);
   readpot(2);
   DAC.begin();
+
+  // used to switch between FM and note on cv3
+  midiTimer = millis();
+
 }
 
 
@@ -198,6 +213,7 @@ void setup1() {
 
 // second core deals with ui / control rate updates
 void loop1() {
+
   MIDI.read();
   uint32_t now = millis();
   // pot updates
@@ -209,8 +225,8 @@ void loop1() {
     pot_timer = now;
 
     // 0, 1 are AIN0, AIN1 for timbre/color cv control
-    if (!potlock[0]  ) { // change sample if pot has moved enough
-      uint16_t timbre = (uint16_t)(map(potvalue[0], POT_MIN, POT_MAX, 0, 32767));
+    if (!potlock[2]  ) { // change sample if pot has moved enough
+      uint16_t timbre = (uint16_t)(map(potvalue[2], POT_MIN, POT_MAX, 32767, 0));
       timbre_in = timbre;
     }
     if (!potlock[1]  ) { // change sample if pot has moved enough
@@ -218,8 +234,12 @@ void loop1() {
       morph_in = morph;
     }
     // fm / pitch updates
-    int16_t pitch = map(potvalue[2], 0, 4095, 12, 127); // cv for pitch was midi note << 7
-    pitch_fm = pitch;
+    
+    //int16_t pitch = map(potvalue[0], 0, 4090, 127, 0); // cv for pitch was midi note << 7
+    int16_t  pitch = map(potvalue[0], POT_MIN, POT_MAX,  0, 16383); // convert pitch CV data value to a MIDI note number
+    if (pitch != previous_pitch) {  
+      pitch_in = pitch;
+    }
   }
 
 
