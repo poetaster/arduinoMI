@@ -13,8 +13,8 @@ uint32_t pot_timer; // reading pots too often causes noise
 #define MIN_POT_CHANGE 25 // locked pot reading must change by this in order to register
 #define MIN_COUNTS 8  // unlocked pot must change by this in order to register
 #define POT_AVERAGING 20 // analog sample averaging count 
-#define POT_MIN 4   // A/D may not read min value of 0 so use a bit larger value for map() function
-#define POT_MAX 4090 // A/D may not read max value of 1023 so use a bit smaller value for map() function
+#define POT_MIN 0   // A/D may not read min value of 0 so use a bit larger value for map() function
+#define POT_MAX 4095 // A/D may not read max value of 1023 so use a bit smaller value for map() function
 
 
 #define NUM_BUTTONS 9 // 8 buttons plus USR button on VCC-GND board

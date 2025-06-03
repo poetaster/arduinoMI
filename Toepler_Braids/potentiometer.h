@@ -1,17 +1,20 @@
 // pots
-#define AIN0  CV1
-#define AIN1  CV2
-#define AIN2  CV3
+#define AIN0  26
+//CV1
+#define AIN1  27
+//CV2
+#define AIN2  28
+//CV3
 //#define AIN3  29 // not available on standard Pico board
 
-#define POT_SAMPLE_TIME 60 // delay time between pot reads
-#define MIN_POT_CHANGE 25 // locked pot reading must change by this in order to register
+#define POT_SAMPLE_TIME 50 // delay time between pot reads
+#define MIN_POT_CHANGE 15 // locked pot reading must change by this in order to register
 #define MIN_COUNTS 8  // unlocked pot must change by this in order to register
 #define POT_AVERAGING 8 // analog sample averaging count 
-#define POT_MIN 5   // A/D may not read min value of 0 so use a bit larger value for map() function
-#define POT_MAX 4090 // A/D may not read max value of 1023 so use a bit smaller value for map() function
+#define POT_MIN 3   // A/D may not read min value of 0 so use a bit larger value for map() function
+#define POT_MAX 4095 // A/D may not read max value of 1023 so use a bit smaller value for map() function
 
-#define NPOTS 2 // number of pots
+#define NPOTS 3 // number of pots
 
 uint16_t potvalue[NPOTS]; // pot readings
 uint16_t lastpotvalue[NPOTS]; // old pot readings

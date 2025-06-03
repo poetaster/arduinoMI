@@ -26,11 +26,11 @@ bool debug = false;
 
 long midiTimer;
 
-float pitch_offset = 36; 
-float max_voltage_of_adc = 3.3; 
-float voltage_division_ratio = 0.3333333333333;  
+float pitch_offset = 36;
+float max_voltage_of_adc = 3.3;
+float voltage_division_ratio = 0.3333333333333;
 float notes_per_octave = 12;
-float volts_per_octave = 1; 
+float volts_per_octave = 1;
 
 float mapping_upper_limit = (max_voltage_of_adc / voltage_division_ratio) * notes_per_octave * volts_per_octave;
 
@@ -51,8 +51,6 @@ MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, Serial1, MIDI, Serial1MIDISettings);
 #define PWMOUT 0
 #define BUTTON_PIN 8
 #define LED 13
-// cheat. belongs in braids.h, but I need it forward
-int32_t previous_pitch;
 
 #include "utility.h"
 #include <STMLIB.h>
@@ -99,7 +97,7 @@ bool TimerHandler0(struct repeating_timer *t) {
   bool sync = true;
   if ( DAC.availableForWrite()) {
     for (size_t i = 0; i < BLOCK_SIZE; i++) {
-      DAC.write( voices[0].pd.buffer[i]);
+      DAC.write( voices[0].pd.buffer[i], sync);
     }
     counter =  1;
   }
@@ -173,7 +171,7 @@ void setup() {
   DAC.setBuffers(4, 32); // plaits::kBlockSize); // DMA buffers
   //DAC.onTransmit(cb);
   DAC.setFrequency(SAMPLERATE);
-
+  DAC.begin();
 
 
   // init the braids voices
@@ -183,9 +181,19 @@ void setup() {
   readpot(0);
   readpot(1);
   readpot(2);
-  DAC.begin();
 
+
+  int16_t timbre = (map(potvalue[0], POT_MIN, POT_MAX, 0, 32767));
+  timbre_in = timbre;
+
+  int16_t morph = (map(potvalue[1], POT_MIN, POT_MAX, 0, 32767));
+  morph_in = morph;
+
+  // fm / pitch updates
+  int16_t  pitch = map(potvalue[2], POT_MIN, POT_MAX, 16383, 0); // convert pitch CV data value to valid range
+  pitch_in = pitch - 1638;
   // used to switch between FM and note on cv3
+
   midiTimer = millis();
 
 }
@@ -197,8 +205,6 @@ void loop() {
     updateBraidsAudio();
     counter = 0; // increments on each pass of the timer after the timer writes samples
   }
-
-
 
 }
 
@@ -218,63 +224,26 @@ void loop1() {
   uint32_t now = millis();
   // pot updates
   // reading A/D seems to cause noise in the audio so don't do it too often
-  if ((now - pot_timer) > POT_SAMPLE_TIME) {
-    readpot(0);
-    readpot(1);
-    readpot(2);
-    pot_timer = now;
 
-    // 0, 1 are AIN0, AIN1 for timbre/color cv control
-    if (!potlock[2]  ) { // change sample if pot has moved enough
-      uint16_t timbre = (uint16_t)(map(potvalue[2], POT_MIN, POT_MAX, 32767, 0));
-      timbre_in = timbre;
-    }
-    if (!potlock[1]  ) { // change sample if pot has moved enough
-      uint16_t morph = (uint16_t)(map(potvalue[1], POT_MIN, POT_MAX, 0, 32767));
-      morph_in = morph;
-    }
-    // fm / pitch updates
-    
-    //int16_t pitch = map(potvalue[0], 0, 4090, 127, 0); // cv for pitch was midi note << 7
-    int16_t  pitch = map(potvalue[0], POT_MIN, POT_MAX,  0, 16383); // convert pitch CV data value to a MIDI note number
-    if (pitch != previous_pitch) {  
-      pitch_in = pitch;
-    }
+  readpot(0);
+  readpot(1);
+  readpot(2);
+  pot_timer = now;
+
+
+  int16_t timbre = (map(potvalue[0], POT_MIN, POT_MAX, 0, 32767));
+  timbre_in = timbre;
+  int16_t morph = (map(potvalue[1], POT_MIN, POT_MAX, 0, 32767));
+  morph_in = morph;
+
+  // fm / pitch updates
+  int16_t  pitch = map(potvalue[2], POT_MIN, POT_MAX, 16383, 0); // convert pitch CV data value to valid range
+
+  if (pitch != previous_pitch) {
+    pitch_in = pitch;
+    trigger_in = 1.0f;
+    previous_pitch = pitch;
   }
-
-
-
-
-
-  /*
-    if (digitalRead(13) == HIGH) {
-       trigger_in = 1.0f;
-       Serial.println("trigger high");
-       //  Serial.println(pitch);
-      } else {
-       trigger_in = 0.0f;
-      }
-  */
-
-  /* float trigger = randomDouble(0.0, 1.0); // Dust.kr( LFNoise2.kr(0.1).range(0.1, 7) );
-    if (trigger > 0.2 ) {
-    trigger_in = trigger;
-    }
-    float timbre = randomDouble(0.0, 1.0); //LFTri.kr(0.07, 0, 0.5, 0.5).range(0.0, 1.0);
-    float morph = randomDouble(0.1, 0.8) ; //LFTri.kr(0.11, 0, 0.5, 0.5).squared;
-    float pitch = randomDouble(38, 64); // TIRand.kr(24, 48, trigger);
-    float decay = randomDouble(0.1, 0.4);
-
-  */
-
-  /* VB
-    var sub = SinOsc.ar(pitch.midicps, 0, 0.1);
-    var mi = MiPlaits.ar( pitch, engine, harmonics, timbre, morph,
-     trigger: trigger, decay: 0.8, lpg_colour: 0.2, mul: 0.5);
-    mi + sub
-  */
-  float harmonics = randomDouble(0.0, 1.0); // SinOsc.kr(0.03, 0, 0.5, 0.5).range(0.0, 1.0);
-  harm_in = harmonics;
 
   button.update();
   if ( button.pressed() ) {
@@ -284,15 +253,16 @@ void loop1() {
     }
     engine_in = engineCount;
   }
-  /*
-    engineInc++ ;
-    if (engineInc > 3) {
-      engineCount ++; // don't switch engine so often :)
-      engineInc = 0;
-    }
-    if (engineCount > 46) engineCount = 0;
-    engine_in = engineCount;
-    delay(3000);
-  */
+
+  // reading A/D seems to cause noise in the audio so don't do it too often
+  if ((now - pot_timer) > POT_SAMPLE_TIME) {
+    readpot(0);
+    readpot(1);
+    readpot(2);
+    pot_timer = now;
+  }
+
+
+
 
 }

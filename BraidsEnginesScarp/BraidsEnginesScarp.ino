@@ -451,8 +451,8 @@ void updateControl() {
   int p2 = potvalue[1]; // analogRead(INTS_PIN); // value is 0-4065
 
 
-  morph_in = (float)p1 / 1000.0f; //map(p1, 0, 4065, 0.0, 1.0); // IN(2);
-  timbre_in = (float)p2 / 1000.0f; //map(p2, 0, 4065, 0.0, 1.0); //IN(3);
+  morph_in = (float)p1 / 4095.0f; //map(p1, 0, 4065, 0.0, 1.0); // IN(2);
+  timbre_in = (float)p2 / 4095.0f; //map(p2, 0, 4065, 0.0, 1.0); //IN(3);
   CONSTRAIN(morph_in, 0.0f, 1.0f);
   CONSTRAIN(timbre_in, 0.0f, 1.0f);
   scanbuttons();
