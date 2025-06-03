@@ -58,8 +58,6 @@ uint16_t readpot(uint8_t potnum) {
     else val = lastpotvalue[potnum];
     potvalue[potnum] = val; // pot is unlocked so save the reading
   }
-  //Serial.println(potvalue[0]);
-  //Serial.println(potvalue[1]);
   
   return val;
 }
