@@ -116,7 +116,7 @@ void cb() {
 }
 
 void HandleNoteOn(byte channel, byte note, byte velocity) {
-  pitch_in = note;
+  pitch_in = note << 7;
   trigger_in = velocity / 127.0;
 
   //aSin.setFreq(mtof(float(note)));
@@ -190,8 +190,8 @@ void setup() {
   morph_in = morph;
 
   // fm / pitch updates
- // int16_t  pitch = map(potvalue[2], POT_MIN, POT_MAX, 16383, 0); // convert pitch CV data value to valid range
- // pitch_in = pitch - 1638;
+  // int16_t  pitch = map(potvalue[2], POT_MIN, POT_MAX, 16383, 0); // convert pitch CV data value to valid range
+  // pitch_in = pitch - 1638;
   // used to switch between FM and note on cv3
 
   midiTimer = millis();
@@ -224,12 +224,12 @@ void loop1() {
   uint32_t now = millis();
   // pot updates
   // reading A/D seems to cause noise in the audio so don't do it too often
-/*
-  readpot(0);
-  readpot(1);
-  readpot(2);
-  pot_timer = now;
-*/
+  /*
+    readpot(0);
+    readpot(1);
+    readpot(2);
+    pot_timer = now;
+  */
 
   int16_t timbre = (map(potvalue[0], POT_MIN, POT_MAX, 0, 32767));
   timbre_in = timbre;
@@ -237,14 +237,18 @@ void loop1() {
   morph_in = morph;
 
   // fm / pitch updates
-  int16_t  pitch = map(potvalue[2], POT_MIN, POT_MAX, 16383, 0); // convert pitch CV data value to valid range
-  pitch = pitch - 1638;
-  
-  if (pitch != previous_pitch) {
-    pitch_in = pitch;
-    trigger_in = 1.0f;
-    previous_pitch = pitch;
-  }
+  int16_t  pitch = map(potvalue[2], POT_MIN, POT_MAX, 170, 0); // convert pitch CV data value to valid range
+  pitch_fm = pitch;
+  //pitch = pitch - 6144; // 1638;
+  /*
+    int16_t pavg = pitch_in + pitch /2;
+
+    if (pavg != previous_pitch) {
+    pitch_in = pitch_in + pitch;
+    //trigger_in = 1.0f;
+    previous_pitch = pitch_in;
+    }
+  */
 
   button.update();
   if ( button.pressed() ) {
