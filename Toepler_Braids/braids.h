@@ -63,6 +63,7 @@ int engine_in;
 int32_t previous_pitch;
 int32_t pitch_in = 60 << 7;
 int16_t pitch_fm;
+int16_t pitch_adj = 100;
 
 float fm_mod = 0.0f ; //IN(7);
 float timb_mod = 0.0f; //IN(8);
@@ -80,8 +81,8 @@ void updateBraidsAudio() {
   size_t  size = BLOCK_SIZE;
 
   braids::MacroOscillator *osc = voices[0].pd.osc;
-
-  osc->set_pitch(pitch_in + pitch_fm); // << 7);
+  
+  osc->set_pitch( ( pitch_in - pitch_adj)  + pitch_fm ); // << 7);
 
   osc->set_parameters(timbre_in, morph_in);
 
