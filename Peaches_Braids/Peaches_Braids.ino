@@ -13,7 +13,7 @@
   #define CV3 (28u)
 
 */
-bool debug = false;
+bool debug = true;
 
 #include <Arduino.h>
 #include "stdio.h"
@@ -21,8 +21,8 @@ bool debug = false;
 #include "hardware/sync.h"
 #include "potentiometer.h"
 
-#include <MIDI.h>
-#include <mozzi_midi.h>
+//#include <MIDI.h>
+//#include <mozzi_midi.h>
 
 long midiTimer;
 
@@ -33,16 +33,17 @@ float notes_per_octave = 12;
 float volts_per_octave = 1;
 
 float mapping_upper_limit = (max_voltage_of_adc / voltage_division_ratio) * notes_per_octave * volts_per_octave;
+/*
 
-
-struct Serial1MIDISettings : public midi::DefaultSettings
-{
+  struct Serial1MIDISettings : public midi::DefaultSettings
+  {
   static const long BaudRate = 31250;
   static const int8_t TxPin  = 12u;
   static const int8_t RxPin  = 13u;
-};
+  };
 
-MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, Serial1, MIDI, Serial1MIDISettings);
+  MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, Serial1, MIDI, Serial1MIDISettings);
+*/
 
 #include <hardware/pwm.h>
 #include <PWMAudio.h>
@@ -50,6 +51,7 @@ MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, Serial1, MIDI, Serial1MIDISettings);
 #define SAMPLERATE 48000
 #define PWMOUT A0
 #define BUTTON_PIN D6 // D8 on the seeed board
+#define TRIG_PIN D5
 #define LED 13
 
 #include "utility.h"
@@ -136,8 +138,8 @@ void HandleNoteOff(byte channel, byte note, byte velocity) {
 void setup() {
 
   if (debug) {
-    //Serial.begin(57600);
-    //Serial.println(F("YUP"));
+    Serial.begin(57600);
+    Serial.println(F("YUP"));
   }
   analogReadResolution(12);
   // thi is to switch to PWM for power to avoid ripple noise
@@ -150,18 +152,18 @@ void setup() {
 
 
   pinMode(LED, OUTPUT);
-  MIDI.setHandleNoteOn(HandleNoteOn);  // Put only the name of the function
-  MIDI.setHandleNoteOff(HandleNoteOff);  // Put only the name of the function
+  //MIDI.setHandleNoteOn(HandleNoteOn);  // Put only the name of the function
+  //MIDI.setHandleNoteOff(HandleNoteOff);  // Put only the name of the function
   // Initiate MIDI communications, listen to all channels (not needed with Teensy usbMIDI)
   //MIDI.begin(MIDI_CHANNEL_OMNI);
 
   button.attach( BUTTON_PIN , INPUT_PULLUP);
   button.interval(5);
   button.setPressedState(LOW);
-  
-  trigger.attach(25 , INPUT);
-  trigger.interval(5);
-  trigger.setPressedState(HIGH);
+
+  //trigger.attach(5 , INPUT);
+  //trigger.interval(1);
+  //trigger.setPressedState(HIGH);
 
   // pwm timing setup, we're using a pseudo interrupt
 
@@ -243,7 +245,9 @@ void loop1() {
   int16_t pitch = map(potvalue[2], POT_MIN, POT_MAX, 3072, 8192); // convert pitch CV data value to valid range
   if (pitch != previous_pitch) {
     pitch_in = pitch;
-  }
+    previous_pitch = pitch;
+    trigger_in = 1.0f;
+  } 
 
   /*
     int16_t pavg = pitch_in + pitch /2;
@@ -254,7 +258,13 @@ void loop1() {
     previous_pitch = pitch_in;
     }
   */
-
+  /*
+    if (digitalRead(D5) == HIGH) {
+    Serial.println("HIGH");
+    } else if (digitalRead(D5) == LOW ) {
+    //Serial.println("LOW");
+    }
+  */
   button.update();
   if ( button.pressed() ) {
     engineCount ++;
@@ -263,12 +273,13 @@ void loop1() {
     }
     engine_in = engineCount;
   }
-  trigger.update();
-  if (trigger.pressed()) {
-    trigger_in = 0.9f;
-  } else {
-    trigger_in = 0.0f;
-  }
+  /*
+    trigger.update();
+    if (trigger.pressed()) {
+      trigger_in = 0.9f;
+    } else {
+      trigger_in = 0.0f;
+    }*/
 
 
   // reading A/D seems to cause noise in the audio so don't do it too often

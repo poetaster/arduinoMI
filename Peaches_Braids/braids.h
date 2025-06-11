@@ -92,18 +92,21 @@ void updateBraidsAudio() {
     shape -= braids::MACRO_OSC_SHAPE_LAST;
   osc->set_shape(static_cast<braids::MacroOscillatorShape>(shape));
 
-  //bool trigger = (trigger_in != 0.0f);
-  //bool trigger_flag = (trigger && (!voices[0].last_trig)); 
-  //voices[0].last_trig = trigger;
+  bool trigger = (trigger_in != 0.0f);
+  bool trigger_flag = trigger; // (trigger && (!voices[0].last_trig));
+  voices[0].last_trig = trigger;
 
-  if (trigger_in > 0.0f) {
+  if (trigger_flag) {
     osc->Strike();
+    trigger_in = 0.0f;
+
   }
-  
+
   // render
   //for (int count = 0; count < 32; count += size) {
-  osc->Render(sync_buffer, buffer, size);
+    osc->Render(sync_buffer, buffer, size);
   //}
+
 
 }
 
@@ -168,7 +171,7 @@ void initVoices() {
       }
   */
 }
-
+/*
 const braids::SettingsData kInitSettings = {
   braids::MACRO_OSC_SHAPE_CSAW,
 
@@ -203,3 +206,4 @@ const braids::SettingsData kInitSettings = {
   { 32768, 32768 },
   "GREETINGS FROM MUTABLE INSTRUMENTS *EDIT ME*",
 };
+*/
