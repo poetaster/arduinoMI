@@ -7,7 +7,7 @@
 //CV3
 //#define AIN3  A4 // not available on standard Pico board
 
-#define POT_SAMPLE_TIME 80 // delay time between pot reads
+#define POT_SAMPLE_TIME 50 // delay time between pot reads
 #define MIN_POT_CHANGE 15 // locked pot reading must change by this in order to register
 #define MIN_COUNTS 8  // unlocked pot must change by this in order to register
 #define POT_AVERAGING 8 // analog sample averaging count 

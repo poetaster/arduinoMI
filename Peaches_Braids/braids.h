@@ -93,13 +93,11 @@ void updateBraidsAudio() {
   osc->set_shape(static_cast<braids::MacroOscillatorShape>(shape));
 
   bool trigger = (trigger_in != 0.0f);
-  bool trigger_flag = trigger; // (trigger && (!voices[0].last_trig));
+  bool trigger_flag = (trigger && (!voices[0].last_trig));
   voices[0].last_trig = trigger;
 
   if (trigger_flag) {
     osc->Strike();
-    trigger_in = 0.0f;
-
   }
 
   // render

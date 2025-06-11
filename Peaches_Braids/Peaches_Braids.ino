@@ -62,7 +62,6 @@ float mapping_upper_limit = (max_voltage_of_adc / voltage_division_ratio) * note
 
 #include <Bounce2.h>
 Bounce2::Button button = Bounce2::Button();
-Bounce2::Button trigger = Bounce2::Button();
 
 PWMAudio DAC(PWMOUT);  // 16 bit PWM audio
 
@@ -149,9 +148,9 @@ void setup() {
   pinMode(AIN0, INPUT);
   pinMode(AIN1, INPUT);
   pinMode(AIN2, INPUT);
+  pinMode(SCL, INPUT_PULLDOWN);
 
-
-  pinMode(LED, OUTPUT);
+  //pinMode(LED, OUTPUT);
   //MIDI.setHandleNoteOn(HandleNoteOn);  // Put only the name of the function
   //MIDI.setHandleNoteOff(HandleNoteOff);  // Put only the name of the function
   // Initiate MIDI communications, listen to all channels (not needed with Teensy usbMIDI)
@@ -160,10 +159,6 @@ void setup() {
   button.attach( BUTTON_PIN , INPUT_PULLUP);
   button.interval(5);
   button.setPressedState(LOW);
-
-  //trigger.attach(5 , INPUT);
-  //trigger.interval(1);
-  //trigger.setPressedState(HIGH);
 
   // pwm timing setup, we're using a pseudo interrupt
 
@@ -243,28 +238,13 @@ void loop1() {
   // pitch_fm = pitch;
 
   int16_t pitch = map(potvalue[2], POT_MIN, POT_MAX, 3072, 8192); // convert pitch CV data value to valid range
-  if (pitch != previous_pitch) {
+  int16_t pitch_delta = abs(previous_pitch - pitch);
+  if (pitch_delta > 10) {
     pitch_in = pitch;
     previous_pitch = pitch;
-    trigger_in = 1.0f;
-  } 
+    //trigger_in = 1.0f; //retain for cv only input?
+  }
 
-  /*
-    int16_t pavg = pitch_in + pitch /2;
-
-    if (pavg != previous_pitch) {
-    pitch_in = pitch_in + pitch;
-    //trigger_in = 1.0f;
-    previous_pitch = pitch_in;
-    }
-  */
-  /*
-    if (digitalRead(D5) == HIGH) {
-    Serial.println("HIGH");
-    } else if (digitalRead(D5) == LOW ) {
-    //Serial.println("LOW");
-    }
-  */
   button.update();
   if ( button.pressed() ) {
     engineCount ++;
@@ -273,22 +253,23 @@ void loop1() {
     }
     engine_in = engineCount;
   }
-  /*
-    trigger.update();
-    if (trigger.pressed()) {
-      trigger_in = 0.9f;
-    } else {
-      trigger_in = 0.0f;
-    }*/
-
 
   // reading A/D seems to cause noise in the audio so don't do it too often
+
+
   if ((now - pot_timer) > POT_SAMPLE_TIME) {
     readpot(0);
     readpot(1);
     readpot(2);
+    if (digitalRead(SCL) ) {
+      trigger_in = 1.0f;
+    } else {
+      trigger_in = 0.0f;
+    }
     pot_timer = now;
   }
+
+
 
 
 
