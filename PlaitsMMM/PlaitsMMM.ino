@@ -43,14 +43,21 @@ PioEncoder enc1(18);
 PioEncoder enc2(2);
 PioEncoder enc3(8);
 
+
+// cv input
+#define CV1 (A0)
+  
 // button inputs
+
 
 #define SW1 6
 #define SW2 17
-
 #include <Bounce2.h>
-//Bounce2::Button button = Bounce2::Button();
-//Bounce2::Button sw2 = Bounce2::Button();
+Bounce2::Button btn_one = Bounce2::Button();
+Bounce2::Button btn_two = Bounce2::Button();
+
+// Generic pin state variable
+byte pinState;
 
 #define LED0 1 // LED1 output on schematic
 #define LED1 3
@@ -233,6 +240,7 @@ int update_interval = 30;
 int engineCount = 0;
 bool button_state = true;
 
+int32_t previous_pitch = 4000;
 
 void setup() {
   if (debug) {
@@ -263,10 +271,13 @@ void setup() {
   enc1.begin();
   enc2.begin();
   enc3.begin();
-  //enc3.flip();
-  //enc2.flip();
-  //enc1.flip();
+  enc3.flip();
+  enc2.flip();
+  enc1.flip();
 
+  // lets seee
+  analogReadResolution(12);
+  
   pinMode(23, OUTPUT); // thi is to switch to PWM for power to avoid ripple noise
   digitalWrite(23, HIGH);
 
@@ -281,6 +292,9 @@ void setup() {
   // prefill buffer
   voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
 
+  // CV
+  pinMode(CV1, INPUT);
+  
   // DISPLAY
 
   Wire.setSDA(oled_sda_pin);
@@ -300,15 +314,17 @@ void setup() {
 
   // buttons
 
-  //button.attach( SW1 , INPUT_PULLUP);
-  //button.interval(10);
-  //button.setPressedState(LOW);
+  btn_one.attach( SW1 , INPUT_PULLUP);
+  btn_one.interval(5);
+  btn_one.setPressedState(LOW);
   /*
       //sw2.attach( SW2 , INPUT);
       //sw2.interval(5);
       //sw2.setPressedState(LOW);
   */
-  pinMode(SW1, INPUT_PULLUP);
+  // Initialize wave switch states
+
+
   update_timer = millis();
 
 }
@@ -458,29 +474,37 @@ void loop() {
   }
 
 
-  //button.update();
-  if ( !digitalRead(SW1)) { // button.pressed()) {
-   button_state = false;
-    if (debug) Serial.println("button");
-    engineCount ++;
-    if (engineCount > 16) {
-      engineCount = 0;
-    }
-    engine_in = engineCount;
-    
 
-  } else {
-    
-  }
-
-  if ( (now - update_timer) > 250 ) {
-    if (debug) Serial.println(now-update_timer);
-    displayUpdate();
-    pitch_in = currentMode[random(6)];
-    update_timer = now; 
-  }
-
+  btn_one.update();
   
+  if (btn_one.pressed()) {
+      if (debug) Serial.println("button");
+      engineCount ++;
+      if (engineCount > 16) {
+        engineCount = 0;
+      }
+      engine_in = engineCount;
+  }
+  
+  int intervals = random(500);
+  constrain(intervals,250,500);
+  
+  if ( (now - update_timer) > (250 + random(100)) ) {
+    
+    displayUpdate();
+    //pitch_in = currentMode[random(6)];
+    update_timer = now;
+  }
+
+  // CV updates
+  int16_t pitch = map(analogRead(CV1), 0, 4096, 0, 127); // convert pitch CV data value to valid range
+  int16_t pitch_delta = abs(previous_pitch - pitch);
+  
+  if (pitch_delta > 1) {
+    pitch_in = (float)pitch;
+    previous_pitch = pitch;
+    trigger_in = 1.0f; //retain for cv only input?
+  }
 
 
 }
