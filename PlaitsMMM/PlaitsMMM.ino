@@ -7,7 +7,7 @@
       Copyright (c)  2020 (emilie.o.gillet@gmail.com)
 */
 
-bool debug = true;
+bool debug = false;
 
 #include <Arduino.h>
 #include "stdio.h"
@@ -235,7 +235,7 @@ float freqs[12] = { 42.0f, 44.0f, 46.0f, 48.0f, 50.0f, 52.0f, 54.0f, 56.0f, 58.0
 int carrier_freq;
 
 int current_track;
-int32_t update_timer = 0;
+int32_t update_timer;
 int update_interval = 30;
 int engineCount = 0;
 bool button_state = true;
@@ -370,23 +370,53 @@ void initVoices() {
 
 }
 
+void loop() {
+  // updateAudio();
+  if (counter == 1) {
 
+    voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
+    counter = 0; // increments on each pass of the timer when the timer writes
+
+  }
+    voices[0].patch.note = pitch_in;
+    voices[0].patch.harmonics = harm_in;
+    voices[0].patch.morph = morph_in;
+    voices[0].patch.timbre = timbre_in;
+    
+  /*
+   * voices[0].octave_ = octave_in;
+    if (trigger_in > 0.2 ) {
+    voices[0].modulations.trigger = trigger_in;
+    voices[0].modulations.trigger_patched = true;
+    } else {
+    voices[0].modulations.trigger = 0.0f;
+    voices[0].modulations.trigger_patched = false;
+    }
+    voices[0].patch.decay = 0.5f;
+    voices[0].patch.lpg_colour = 0.2;
+  */
+}
+
+
+
+void setup1() {
+  delay (1000); // wait for main core to start up perhipherals
+}
 
 // second core deals with ui / control rate updates
 void loop1() {
-
-  //int32_t now = millis();
-  //if ( (now - update_timer) > 250 ) {
-  //  if (debug) Serial.println(now - update_timer);
   
+    btn_one.update();
+    read_buttons();
+    
+  int32_t now = millis();
+  if ( now - update_timer > 20 ) {
+    if (debug) Serial.println(now - update_timer);
     read_cv();
     read_encoders();
     displayUpdate();
-    btn_one.update();
-    read_buttons;
-    
- //   update_timer = now;
- // }
+    update_timer = now;
+  }
 
 }
 
@@ -398,20 +428,21 @@ void read_buttons() {
       engineCount = 0;
     }
     engine_in = engineCount;
+    voices[0].patch.engine = engine_in;
 
   }
 }
 
 void read_cv() {
   // CV updates
-  int16_t pitch = map(analogRead(CV1), 0, 4096, 16384, 0); // convert pitch CV data value to valid range
+  int16_t pitch = map(analogRead(CV1), 0, 4096, 16384, 60); // convert pitch CV data value to valid range
   int16_t pitch_delta = abs(previous_pitch - pitch);
 
   if (pitch_delta > 20) {
     pitch_in = pitch >> 7;
     previous_pitch = pitch;
     trigger_in = 1.0f; //retain for cv only input?
-    if (debug) Serial.println(pitch_in);
+    if (debug) Serial.println(pitch);
   }
 
 }
@@ -470,36 +501,4 @@ void read_encoders() {
   enc3_pos_last = enc3_pos;
   enc3_delta = 0;
 
-}
-
-// second core dedicated to audio foo
-
-void setup1() {
-  delay (3000); // wait for main core to start up perhipherals
-}
-void loop() {
-  // updateAudio();
-  if (counter == 1) {
-
-    voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
-    counter = 0; // increments on each pass of the timer when the timer writes
-
-  }
-    voices[0].patch.note = pitch_in;
-    voices[0].patch.harmonics = harm_in;
-    voices[0].patch.morph = morph_in;
-    voices[0].patch.timbre = timbre_in;
-    voices[0].patch.engine = engine_in;
-  /*
-   * voices[0].octave_ = octave_in;
-    if (trigger_in > 0.2 ) {
-    voices[0].modulations.trigger = trigger_in;
-    voices[0].modulations.trigger_patched = true;
-    } else {
-    voices[0].modulations.trigger = 0.0f;
-    voices[0].modulations.trigger_patched = false;
-    }
-    voices[0].patch.decay = 0.5f;
-    voices[0].patch.lpg_colour = 0.2;
-  */
 }
