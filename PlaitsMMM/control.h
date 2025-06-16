@@ -24,6 +24,8 @@ bool button[NUM_BUTTONS] = {0, 0, 0, 0, 0, 0, 0, 0, 0}; // key active flags
 
 int buttons[NUM_BUTTONS] = {BUTTON0, BUTTON1, BUTTON2, BUTTON3, BUTTON4, BUTTON5, BUTTON6, BUTTON7, SHIFT};
 
+int cvs[4] = {CV1, CV2, CV3, CV4};
+
 // flag all pot values as locked ie they have to change more than MIN_POT_CHANGE to register
 void lockpots(void) {
   for (int i = 0; i < NPOTS; ++i) potlock[i] = 1;

@@ -7,7 +7,7 @@
       Copyright (c)  2020 (emilie.o.gillet@gmail.com)
 */
 
-bool debug = false;
+bool debug = true;
 
 #include <Arduino.h>
 #include "stdio.h"
@@ -46,6 +46,11 @@ PioEncoder enc3(8);
 
 // cv input
 #define CV1 (A0)
+#define CV2 (A1)
+#define CV3 (A2)
+#define CV4 (A3)
+int cvs_ins[4] = {CV1, CV2, CV3, CV4};
+int cv_avg = 8;
 
 // button inputs
 
@@ -378,13 +383,13 @@ void loop() {
     counter = 0; // increments on each pass of the timer when the timer writes
 
   }
-    voices[0].patch.note = pitch_in;
-    voices[0].patch.harmonics = harm_in;
-    voices[0].patch.morph = morph_in;
-    voices[0].patch.timbre = timbre_in;
-    
+  voices[0].patch.note = pitch_in;
+  voices[0].patch.harmonics = harm_in;
+  voices[0].patch.morph = morph_in;
+  voices[0].patch.timbre = timbre_in;
+
   /*
-   * voices[0].octave_ = octave_in;
+     voices[0].octave_ = octave_in;
     if (trigger_in > 0.2 ) {
     voices[0].modulations.trigger = trigger_in;
     voices[0].modulations.trigger_patched = true;
@@ -405,13 +410,13 @@ void setup1() {
 
 // second core deals with ui / control rate updates
 void loop1() {
-  
-    btn_one.update();
-    read_buttons();
-    
+
+  btn_one.update();
+  read_buttons();
+
   int32_t now = millis();
-  if ( now - update_timer > 20 ) {
-    if (debug) Serial.println(now - update_timer);
+  if ( now - update_timer > 8 ) {
+    //if (debug) Serial.println(now - update_timer);
     read_cv();
     read_encoders();
     displayUpdate();
@@ -435,17 +440,43 @@ void read_buttons() {
 
 void read_cv() {
   // CV updates
-  int16_t pitch = map(analogRead(CV1), 0, 4096, 16384, 60); // convert pitch CV data value to valid range
+  int16_t pitch = map(avg_cv(CV1), 0, 4095, 16383, 0); // convert pitch CV data value to valid range
   int16_t pitch_delta = abs(previous_pitch - pitch);
 
-  if (pitch_delta > 20) {
-    pitch_in = pitch >> 7;
+  if (pitch_delta > 50) {
+    
+    if (pitch < 5510) { 
+      pitch_in = (180 + pitch) >> 7;
+      
+    } else if (pitch > 5510 && pitch < 6874) { 
+      pitch_in = (120 + pitch) >> 7;
+      
+    } else if (pitch < 7686 && pitch > 6874) {
+      pitch_in = (60 + pitch ) >> 7;
+      
+    } else if (pitch > 9722 && pitch < 10678) {
+      pitch_in = (pitch - 60 ) >> 7;
+      
+    } else {
+      pitch_in = pitch >>7;
+    }
+
+
     previous_pitch = pitch;
     trigger_in = 1.0f; //retain for cv only input?
     if (debug) Serial.println(pitch);
   }
 
 }
+
+int16_t avg_cv(int cv_in) {
+  
+  int16_t val = 0;
+  for (int j = 0; j < cv_avg; ++j) val += analogRead(cv_in); // read the A/D a few times and average for a more stable value
+  val = val / cv_avg;
+  return val;
+}
+
 
 void read_encoders() {
 
