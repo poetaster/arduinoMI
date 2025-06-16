@@ -46,12 +46,6 @@ PioEncoder enc3(8);
 
 // cv input
 #define CV1 (A0)
-#define CV2 (A1)
-#define CV3 (A2)
-#define CV4 (A3)
-#define CV5 (A4)
-#define CV6 (A5)
-#define CV7 (A6)
 
 // button inputs
 
@@ -273,6 +267,9 @@ void setup() {
   // now start the dac
   DAC.begin();
 
+  // lets seee
+  analogReadResolution(12);
+
   // ENCODER
   enc1.begin();
   enc2.begin();
@@ -281,26 +278,13 @@ void setup() {
   enc2.flip();
   enc1.flip();
 
-  // lets seee
-  analogReadResolution(12);
-  
   pinMode(23, OUTPUT); // thi is to switch to PWM for power to avoid ripple noise
   digitalWrite(23, HIGH);
 
-  // init the plaits voices
-
-  // initialize a mode to play
-  mode = midier::Mode::Ionian;
-  makeScale( roots[scaleRoot], mode);
-
-  initVoices();
-
-  // prefill buffer
-  voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
 
   // CV
   pinMode(CV1, INPUT);
-  
+
   // DISPLAY
 
   Wire.setSDA(oled_sda_pin);
@@ -316,8 +300,6 @@ void setup() {
 
   displaySplash();
 
-
-
   // buttons
 
   btn_one.attach( SW1 , INPUT_PULLUP);
@@ -328,9 +310,20 @@ void setup() {
       //sw2.interval(5);
       //sw2.setPressedState(LOW);
   */
+
+
+  // initialize a mode to play
+  //mode = midier::Mode::Ionian;
+  //makeScale( roots[scaleRoot], mode);
+
+  // init the plaits voices
+
+  initVoices();
+
+  // prefill buffer
+  voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
+
   // Initialize wave switch states
-
-
   update_timer = millis();
 
 }
@@ -377,20 +370,128 @@ void initVoices() {
 
 }
 
+
+
+// second core deals with ui / control rate updates
 void loop1() {
+
+  //int32_t now = millis();
+  //if ( (now - update_timer) > 250 ) {
+  //  if (debug) Serial.println(now - update_timer);
+  
+    read_cv();
+    read_encoders();
+    displayUpdate();
+    btn_one.update();
+    read_buttons;
+    
+ //   update_timer = now;
+ // }
+
+}
+
+void read_buttons() {
+  if (btn_one.pressed()) {
+    if (debug) Serial.println("button");
+    engineCount ++;
+    if (engineCount > 16) {
+      engineCount = 0;
+    }
+    engine_in = engineCount;
+
+  }
+}
+
+void read_cv() {
+  // CV updates
+  int16_t pitch = map(analogRead(CV1), 0, 4096, 16384, 0); // convert pitch CV data value to valid range
+  int16_t pitch_delta = abs(previous_pitch - pitch);
+
+  if (pitch_delta > 20) {
+    pitch_in = pitch >> 7;
+    previous_pitch = pitch;
+    trigger_in = 1.0f; //retain for cv only input?
+    if (debug) Serial.println(pitch_in);
+  }
+
+}
+
+void read_encoders() {
+
+  // first encoder
+  int enc1_pos = enc1.getCount() / 4;
+
+  if ( enc1_pos != enc1_pos_last ) {
+    enc1_delta = (enc1_pos - enc1_pos_last) ;
+  }
+
+  if (enc1_delta) {
+    float turn = ( enc1_delta * 0.01f ) + timbre_in;
+    CONSTRAIN(turn, 0.f, 1.0f)
+    if (debug) Serial.println(turn);
+    timbre_in = turn;
+  }
+
+  /// only set new pos last after buttons have had a chance to use the delta
+  enc1_delta = 0;
+  enc1_pos_last = enc1_pos;
+
+
+  // second encoder
+  int enc2_pos = enc2.getCount() / 4;
+  if ( enc2_pos != enc2_pos_last ) {
+    enc2_delta = (enc2_pos - enc2_pos_last) ;
+  }
+
+  if (enc2_delta) {
+    float turn = ( enc2_delta * 0.01f ) + morph_in;
+    CONSTRAIN(turn, 0.f, 1.0f)
+    if (debug) Serial.println(turn);
+    morph_in = turn;
+  }
+  enc2_pos_last = enc2_pos;
+  enc2_delta = 0;
+
+  // third encoder
+
+  int enc3_pos = enc3.getCount() / 4;
+
+  if ( enc3_pos != enc3_pos_last ) {
+    enc3_delta = (enc3_pos - enc3_pos_last);
+
+  }
+
+  if (enc3_delta) {
+    float turn = ( enc3_delta * 0.01f ) + harm_in;
+    CONSTRAIN(turn, 0.f, 1.0f)
+    if (debug) Serial.println(turn);
+    harm_in = turn;
+  }
+  enc3_pos_last = enc3_pos;
+  enc3_delta = 0;
+
+}
+
+// second core dedicated to audio foo
+
+void setup1() {
+  delay (3000); // wait for main core to start up perhipherals
+}
+void loop() {
   // updateAudio();
   if (counter == 1) {
+
     voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
     counter = 0; // increments on each pass of the timer when the timer writes
+
   }
-  //voices[0].octave_ = octave_in;
-  voices[0].patch.note = pitch_in;
-  voices[0].patch.harmonics = harm_in;
-  voices[0].patch.morph = morph_in;
-  voices[0].patch.timbre = timbre_in;
-
-
+    voices[0].patch.note = pitch_in;
+    voices[0].patch.harmonics = harm_in;
+    voices[0].patch.morph = morph_in;
+    voices[0].patch.timbre = timbre_in;
+    voices[0].patch.engine = engine_in;
   /*
+   * voices[0].octave_ = octave_in;
     if (trigger_in > 0.2 ) {
     voices[0].modulations.trigger = trigger_in;
     voices[0].modulations.trigger_patched = true;
@@ -401,117 +502,4 @@ void loop1() {
     voices[0].patch.decay = 0.5f;
     voices[0].patch.lpg_colour = 0.2;
   */
-}
-
-
-
-// second core dedicated to display foo
-
-void setup1() {
-  delay (100); // wait for main core to start up perhipherals
-}
-
-
-// second core deals with ui / control rate updates
-void loop() {
-
-  //updateControl(); //pots values on this loop since the other delays
-  // slow it down
-  uint32_t now = millis();
-
-  if ((now - update_timer) > update_interval) {
-
-
-    // first encoder
-    int enc1_pos = enc1.getCount() / 4;
-
-    if ( enc1_pos != enc1_pos_last ) {
-      enc1_delta = (enc1_pos - enc1_pos_last) ;
-    }
-
-    if (enc1_delta) {
-      float turn = ( enc1_delta * 0.01f ) + timbre_in;
-      CONSTRAIN(turn, 0.f, 1.0f)
-      if (debug) Serial.println(turn);
-      timbre_in = turn;
-    }
-
-    /// only set new pos last after buttons have had a chance to use the delta
-    enc1_delta = 0;
-    enc1_pos_last = enc1_pos;
-
-
-    // second encoder
-    int enc2_pos = enc2.getCount() / 4;
-    if ( enc2_pos != enc2_pos_last ) {
-      enc2_delta = (enc2_pos - enc2_pos_last) ;
-    }
-
-    if (enc2_delta) {
-      float turn = ( enc2_delta * 0.01f ) + morph_in;
-      CONSTRAIN(turn, 0.f, 1.0f)
-      if (debug) Serial.println(turn);
-      morph_in = turn;
-    }
-    enc2_pos_last = enc2_pos;
-    enc2_delta = 0;
-
-    // third encoder
-
-    int enc3_pos = enc3.getCount() / 4;
-
-    if ( enc3_pos != enc3_pos_last ) {
-      enc3_delta = (enc3_pos - enc3_pos_last);
-
-    }
-
-    if (enc3_delta) {
-      float turn = ( enc3_delta * 0.01f ) + harm_in;
-      CONSTRAIN(turn, 0.f, 1.0f)
-      if (debug) Serial.println(turn);
-      harm_in = turn;
-    }
-    enc3_pos_last = enc3_pos;
-    enc3_delta = 0;
-
-
-
-  }
-
-
-
-  btn_one.update();
-  
-  if (btn_one.pressed()) {
-      if (debug) Serial.println("button");
-      engineCount ++;
-      if (engineCount > 16) {
-        engineCount = 0;
-      }
-      engine_in = engineCount;
-      voices[0].patch.engine = engine_in;
-  }
-  
-  int intervals = random(500);
-  constrain(intervals,250,500);
-  
-  if ( (now - update_timer) > 250  ) {
-    
-    displayUpdate();
-    //pitch_in = currentMode[random(6)];
-    update_timer = now;
-    Serial.println(pitch_in);
-  }
-
-  // CV updates
-  int16_t pitch = map(analogRead(CV1), 0, 4096, 16384, 0); // convert pitch CV data value to valid range
-  int16_t pitch_delta = abs(previous_pitch - pitch);
-  
-  if (pitch_delta > 1) {
-    pitch_in = pitch >> 7;
-    previous_pitch = pitch;
-    trigger_in = 1.0f; //retain for cv only input?
-  }
-
-
 }
