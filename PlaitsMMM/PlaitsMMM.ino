@@ -46,7 +46,13 @@ PioEncoder enc3(8);
 
 // cv input
 #define CV1 (A0)
-  
+#define CV2 (A1)
+#define CV3 (A2)
+#define CV4 (A3)
+#define CV5 (A4)
+#define CV6 (A5)
+#define CV7 (A6)
+
 // button inputs
 
 
@@ -374,7 +380,6 @@ void initVoices() {
 void loop1() {
   // updateAudio();
   if (counter == 1) {
-    voices[0].patch.engine = engine_in;
     voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
     counter = 0; // increments on each pass of the timer when the timer writes
   }
@@ -484,24 +489,26 @@ void loop() {
         engineCount = 0;
       }
       engine_in = engineCount;
+      voices[0].patch.engine = engine_in;
   }
   
   int intervals = random(500);
   constrain(intervals,250,500);
   
-  if ( (now - update_timer) > (250 + random(100)) ) {
+  if ( (now - update_timer) > 250  ) {
     
     displayUpdate();
     //pitch_in = currentMode[random(6)];
     update_timer = now;
+    Serial.println(pitch_in);
   }
 
   // CV updates
-  int16_t pitch = map(analogRead(CV1), 0, 4096, 0, 127); // convert pitch CV data value to valid range
+  int16_t pitch = map(analogRead(CV1), 0, 4096, 16384, 0); // convert pitch CV data value to valid range
   int16_t pitch_delta = abs(previous_pitch - pitch);
   
   if (pitch_delta > 1) {
-    pitch_in = (float)pitch;
+    pitch_in = pitch >> 7;
     previous_pitch = pitch;
     trigger_in = 1.0f; //retain for cv only input?
   }

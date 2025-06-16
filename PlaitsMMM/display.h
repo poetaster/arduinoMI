@@ -37,9 +37,9 @@ const int step_text_pos[] = { 0, 15, 16, 15, 32, 15, 48, 15, 64, 15, 80, 15, 96,
 const pos_t bpm_text_pos    = {.x = 0,  .y = 5, .str = "bpm:%3d" };
 const pos_t trans_text_pos  = {.x = 46, .y = 5, .str = "trs:%+2d" };
 const pos_t seqno_text_pos  = {.x = 90, .y = 5, .str = "seq:%d" };
-const pos_t seq_info_pos    = {.x = 0, .y = 15, .str = "" };
-const pos_t mode_text_pos   = {.x = 46, .y = 15, .str = "" };
-const pos_t play_text_pos   = {.x = 90, .y = 15, .str = "" };
+const pos_t seq_info_pos    = {.x = 0, .y = 20, .str = "" };
+const pos_t mode_text_pos   = {.x = 46, .y = 20, .str = "" };
+const pos_t play_text_pos   = {.x = 120, .y = 32, .str = "" };
 
 const pos_t oct_text_offset = { .x = 3, .y = 10,  .str = "" };
 const pos_t gate_bar_offset = { .x = 0, .y = -15, .str = "" };
