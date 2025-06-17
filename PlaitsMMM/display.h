@@ -34,12 +34,12 @@ typedef struct {
 //// {x,y} locations of play screen items
 const int step_text_pos[] = { 0, 15, 16, 15, 32, 15, 48, 15, 64, 15, 80, 15, 96, 15, 112, 15 };
 
-const pos_t bpm_text_pos    = {.x = 0,  .y = 5, .str = "bpm:%3d" };
-const pos_t trans_text_pos  = {.x = 46, .y = 5, .str = "trs:%+2d" };
-const pos_t seqno_text_pos  = {.x = 90, .y = 5, .str = "seq:%d" };
-const pos_t seq_info_pos    = {.x = 0, .y = 20, .str = "" };
+const pos_t bpm_text_pos    = {.x = 0,  .y = 8, .str = "bpm:%3d" };
+const pos_t trans_text_pos  = {.x = 46, .y = 8, .str = "trs:%+2d" };
+const pos_t seqno_text_pos  = {.x = 90, .y = 8, .str = "seq:%d" };
+const pos_t seq_info_pos    = {.x = 0,  .y = 20, .str = "" };
 const pos_t mode_text_pos   = {.x = 46, .y = 20, .str = "" };
-const pos_t play_text_pos   = {.x = 120, .y = 32, .str = "" };
+const pos_t play_text_pos   = {.x = 90, .y = 20, .str = "" };
 
 const pos_t oct_text_offset = { .x = 3, .y = 10,  .str = "" };
 const pos_t gate_bar_offset = { .x = 0, .y = -15, .str = "" };
@@ -51,13 +51,10 @@ void displayUpdate() {
   display.clearDisplay();
   //display.setFont(&myfont); don't need to call this every time!
   //display.setTextColor(WHITE, 0);
-
-
   // display.setFont(&myfont2);
 
   // bpm
   display.setCursor(bpm_text_pos.x, bpm_text_pos.y);
-  display.print(voices[0].patch.engine);
   display.print(" ");
   display.print(oscnames[engine_in]); 
   
@@ -65,24 +62,25 @@ void displayUpdate() {
   //display.setCursor(trans_text_pos.x, trans_text_pos.y);
   //display.print(oscnames[engine_in]); 
   
-  // harmonics
-  display.setCursor(seqno_text_pos.x, seqno_text_pos.y);
-  display.print("h: ");
-  display.print(voices[0].patch.harmonics);  // user sees 1-8
-
-  // seq info / meta
+    // morph
   display.setCursor(seq_info_pos.x, seq_info_pos.y);
-  display.print("m: ");
+  display.print("M: ");
   display.print(morph_in);
   
-  display.setCursor(trans_text_pos.x, seq_info_pos.y);
-  display.print("p:");
-  display.print(voices[0].patch.note);
-
-  display.setCursor(mode_text_pos.x, play_text_pos.y);
-  display.print("t: ");
+    // harmonics
+  display.setCursor(mode_text_pos.x, mode_text_pos.y);
+  display.print("H: ");
+  display.print(voices[0].patch.harmonics);  // user sees 1-8
+  
+  // timber
+  display.setCursor(play_text_pos.x, play_text_pos.y);
+  display.print("T: ");
   display.print(voices[0].patch.timbre);
   
+  //display.setCursor(trans_text_pos.x, seq_info_pos.y);
+  //display.print("P:");
+  //display.print(voices[0].patch.note);
+
   // play/pause
   //display.setCursor(play_text_pos.x, play_text_pos.y);
   //display.print("m: ");

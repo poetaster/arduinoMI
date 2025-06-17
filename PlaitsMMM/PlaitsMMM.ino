@@ -318,6 +318,8 @@ void setup() {
   // CV
   pinMode(CV1, INPUT);
   pinMode(CV2, INPUT);
+  pinMode(CV1, INPUT);
+  pinMode(CV2, INPUT);
 
   // DISPLAY
 
@@ -416,7 +418,8 @@ void loop() {
   voices[0].patch.harmonics = harm_in;
   voices[0].patch.morph = morph_in;
   voices[0].patch.timbre = timbre_in;
-
+  voices[0].patch.timbre_modulation_amount = timb_mod;
+  voices[0].patch.morph_modulation_amount = morph_mod;
   /*
      voices[0].octave_ = octave_in;
        voices[0].patch.decay = 0.5f;
@@ -429,6 +432,7 @@ void loop() {
   } else {
     voices[0].modulations.trigger = 0.0f;
     voices[0].modulations.trigger_patched = false;
+
   }
 
 
@@ -449,10 +453,11 @@ void loop1() {
   int32_t now = millis();
   if ( now - update_timer > 10 ) {
     //if (debug) Serial.println(now - update_timer);
-    //read_cv();
+
     voct_midi(CV1);
-    read_encoders();
     read_trigger();
+    read_cv();
+    read_encoders();
     displayUpdate();
     update_timer = now;
   }
@@ -505,39 +510,31 @@ void voct_midi(int cv_in) {
 
 void read_cv() {
   // CV updates
-  int16_t pitch = map(avg_cv(CV1), 0, 4095, 4095, 0); // 16383, 0); // convert pitch CV data value to valid range
-  //int16_t pitch = map(analogOne.getValue(), 0, 4095, 16383, 0);
+  // braids wants 0 - 32767, plaits 0-1
+  
+  int16_t timbre = analogRead(CV3);
+  timb_mod = (float)timbre / 16384.f;
 
-  int16_t pitch_delta = abs(previous_pitch - pitch);
+  if (timb_mod > 0.1f) {
+    if (debug) Serial.println(timb_mod);
+    voices[0].modulations.timbre_patched = true;
 
-  /*
-    if (pitch_delta > 20 ) {
-
-    if (pitch < 5510) {
-      pitch_in = (180 + pitch) >> 7;
-
-    } else if (pitch > 5510 && pitch < 6874) {
-      pitch_in = (120 + pitch) >> 7;
-
-    } else if (pitch < 7686 && pitch > 6874) {
-      pitch_in = (60 + pitch ) >> 7;
-
-    } else if (pitch > 9722 && pitch < 10678) {
-      pitch_in = (pitch - 60 ) >> 7;
-
-    } else {
-      pitch_in = pitch >>7;
-    }
-  */
-  if (pitch_delta > 30 ) {
-    pitch_in = pitch >> 5;
-    previous_pitch = pitch;
-    trigger_in = 1.0f; //retain for cv only input?
-    if (debug) Serial.println(pitch);
+  } else {
+    voices[0].modulations.timbre_patched = false;
   }
 
+  int16_t morph = analogRead(CV4) ;//, 0, 4095, 4095, 0));
+  morph_mod = (float) morph / 16384.f;
+  
+  if (morph_mod > 0.1f ) {
+    if (debug) Serial.print(morph);
+    if (debug) Serial.print(" : ");
+    if (debug) Serial.println(morph_mod);
+    voices[0].modulations.morph_patched = true;
+  } else {
+    voices[0].modulations.morph_patched = false;
+  }
 
-  //}
 
 }
 
@@ -589,6 +586,7 @@ void read_encoders() {
     CONSTRAIN(turn, 0.f, 1.0f)
     if (debug) Serial.println(turn);
     morph_in = turn;
+
   }
   enc2_pos_last = enc2_pos;
   enc2_delta = 0;
