@@ -60,6 +60,7 @@ void displayUpdate() {
   display.print(voices[0].patch.engine);
   display.print(" ");
   display.print(oscnames[engine_in]); 
+  
   // name
   //display.setCursor(trans_text_pos.x, trans_text_pos.y);
   //display.print(oscnames[engine_in]); 

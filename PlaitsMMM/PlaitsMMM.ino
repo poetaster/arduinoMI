@@ -10,11 +10,16 @@
 bool debug = true;
 
 #include <Arduino.h>
+#include <math.h>
 #include "stdio.h"
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
 #include "hardware/sync.h"
 #include <hardware/pwm.h>
+
+#include <iostream>
+#include <vector>
+#include <algorithm>
 
 #include <PWMAudio.h>
 #define SAMPLERATE 48000
@@ -26,6 +31,27 @@ double randomDouble(double minf, double maxf)
 {
   return minf + random(1UL << 31) * (maxf - minf) / (1UL << 31);  // use 1ULL<<63 for max double values)
 }
+
+double median(std::vector<int>& numbers) {
+  std::sort(numbers.begin(), numbers.end());
+  int n = numbers.size();
+  return n % 2 == 0 ? (numbers[n / 2 - 1] + numbers[n / 2]) / 2.0 : numbers[n / 2];
+}
+
+
+// volts to octave for 3.3 volts
+// based onhttps://little-scale.blogspot.com/2018/05/pitch-cv-to-frequency-conversion-via.html
+float data;
+float pitch;
+float pitch_offset = 12;
+float freq;
+
+float max_voltage_of_adc = 3.3;
+float voltage_division_ratio = 0.3333333333333;
+float notes_per_octave = 12;
+float volts_per_octave = 1;
+float mapping_upper_limit = (max_voltage_of_adc / voltage_division_ratio) * notes_per_octave * volts_per_octave;
+
 
 // encoder related // 2,3 8,9
 #include "pio_encoder.h"
@@ -50,7 +76,7 @@ PioEncoder enc3(8);
 #define CV3 (A2)
 #define CV4 (A3)
 int cvs_ins[4] = {CV1, CV2, CV3, CV4};
-int cv_avg = 8;
+int cv_avg = 30;
 
 // button inputs
 
@@ -247,6 +273,7 @@ bool button_state = true;
 
 int32_t previous_pitch = 4000;
 
+
 void setup() {
   if (debug) {
     Serial.begin(57600);
@@ -283,12 +310,14 @@ void setup() {
   enc2.flip();
   enc1.flip();
 
-  pinMode(23, OUTPUT); // thi is to switch to PWM for power to avoid ripple noise
-  digitalWrite(23, HIGH);
+  // this is only rp2040 relevant
+  //pinMode(23, OUTPUT); // thi is to switch to PWM for power to avoid ripple noise
+  //digitalWrite(23, HIGH);
 
 
   // CV
   pinMode(CV1, INPUT);
+  pinMode(CV2, INPUT);
 
   // DISPLAY
 
@@ -390,16 +419,19 @@ void loop() {
 
   /*
      voices[0].octave_ = octave_in;
-    if (trigger_in > 0.2 ) {
-    voices[0].modulations.trigger = trigger_in;
-    voices[0].modulations.trigger_patched = true;
-    } else {
-    voices[0].modulations.trigger = 0.0f;
-    voices[0].modulations.trigger_patched = false;
-    }
-    voices[0].patch.decay = 0.5f;
+       voices[0].patch.decay = 0.5f;
     voices[0].patch.lpg_colour = 0.2;
   */
+
+  if (trigger_in > 0.2 ) {
+    voices[0].modulations.trigger = trigger_in;
+    voices[0].modulations.trigger_patched = true;
+  } else {
+    voices[0].modulations.trigger = 0.0f;
+    voices[0].modulations.trigger_patched = false;
+  }
+
+
 }
 
 
@@ -415,14 +447,26 @@ void loop1() {
   read_buttons();
 
   int32_t now = millis();
-  if ( now - update_timer > 8 ) {
+  if ( now - update_timer > 10 ) {
     //if (debug) Serial.println(now - update_timer);
-    read_cv();
+    //read_cv();
+    voct_midi(CV1);
     read_encoders();
+    read_trigger();
     displayUpdate();
     update_timer = now;
   }
 
+}
+
+void read_trigger() {
+  int16_t trig = analogRead(CV2);
+  if (trig > 2048) {
+    if (debug) Serial.println("trigger");
+    trigger_in = 1.0f;
+  } else {
+    trigger_in = 0.0f;
+  }
 }
 
 void read_buttons() {
@@ -438,42 +482,77 @@ void read_buttons() {
   }
 }
 
+void voct_midi(int cv_in) {
+  int val = 0;
+  for (int j = 0; j < cv_avg; ++j) val += analogRead(cv_in); // read the A/D a few times and average for a more stable value
+  val = val / cv_avg;
+  data = (float) val * 1.0f;
+  pitch = pitch_offset + map(data, 0.0, 4095.0, mapping_upper_limit, 0.0); // convert pitch CV data value to a MIDI note number
+
+  // well, it sucks :)
+  if (pitch > 82) {
+    pitch_in = pitch - 7;
+  } else if (pitch < 38) {
+    pitch_in = pitch - 9;
+  } else {
+    pitch_in = pitch - 8;
+  }
+  previous_pitch = pitch;
+  //trigger_in = 1.0f; //retain for cv only input?
+  //if (debug) Serial.println(pitch);
+
+}
+
 void read_cv() {
   // CV updates
-  int16_t pitch = map(avg_cv(CV1), 0, 4095, 16383, 0); // convert pitch CV data value to valid range
+  int16_t pitch = map(avg_cv(CV1), 0, 4095, 4095, 0); // 16383, 0); // convert pitch CV data value to valid range
+  //int16_t pitch = map(analogOne.getValue(), 0, 4095, 16383, 0);
+
   int16_t pitch_delta = abs(previous_pitch - pitch);
 
-  if (pitch_delta > 50) {
-    
-    if (pitch < 5510) { 
+  /*
+    if (pitch_delta > 20 ) {
+
+    if (pitch < 5510) {
       pitch_in = (180 + pitch) >> 7;
-      
-    } else if (pitch > 5510 && pitch < 6874) { 
+
+    } else if (pitch > 5510 && pitch < 6874) {
       pitch_in = (120 + pitch) >> 7;
-      
+
     } else if (pitch < 7686 && pitch > 6874) {
       pitch_in = (60 + pitch ) >> 7;
-      
+
     } else if (pitch > 9722 && pitch < 10678) {
       pitch_in = (pitch - 60 ) >> 7;
-      
+
     } else {
       pitch_in = pitch >>7;
     }
-
-
+  */
+  if (pitch_delta > 30 ) {
+    pitch_in = pitch >> 5;
     previous_pitch = pitch;
     trigger_in = 1.0f; //retain for cv only input?
     if (debug) Serial.println(pitch);
   }
 
+
+  //}
+
 }
 
+
+// either avg or median, both suck :)
 int16_t avg_cv(int cv_in) {
-  
+
+  //std::vector<int> data;
   int16_t val = 0;
+
+  //for (int j = 0; j < cv_avg; ++j) data.push_back(analogRead(cv_in)); // val += analogRead(cv_in); // read the A/D a few times and average for a more stable value
   for (int j = 0; j < cv_avg; ++j) val += analogRead(cv_in); // read the A/D a few times and average for a more stable value
   val = val / cv_avg;
+
+  //return median(data);
   return val;
 }
 
