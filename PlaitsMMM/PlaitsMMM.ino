@@ -411,29 +411,36 @@ void loop() {
   if (counter == 1) {
 
     voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
+
+
+    voices[0].patch.note = pitch_in;
+    voices[0].patch.harmonics = harm_in;
+    voices[0].patch.morph = morph_in;
+    voices[0].patch.timbre = timbre_in;
+    voices[0].patch.timbre_modulation_amount = timb_mod;
+    voices[0].patch.morph_modulation_amount = morph_mod;
+    /*
+       voices[0].octave_ = octave_in;
+         voices[0].patch.decay = 0.5f;
+      voices[0].patch.lpg_colour = 0.2;
+    */
+
+
     counter = 0; // increments on each pass of the timer when the timer writes
 
   }
-  voices[0].patch.note = pitch_in;
-  voices[0].patch.harmonics = harm_in;
-  voices[0].patch.morph = morph_in;
-  voices[0].patch.timbre = timbre_in;
-  voices[0].patch.timbre_modulation_amount = timb_mod;
-  voices[0].patch.morph_modulation_amount = morph_mod;
-  /*
-     voices[0].octave_ = octave_in;
-       voices[0].patch.decay = 0.5f;
-    voices[0].patch.lpg_colour = 0.2;
-  */
 
-  if (trigger_in > 0.2 ) {
-    voices[0].modulations.trigger = trigger_in;
+  bool trigger = (trigger_in == 1.0f);
+  bool trigger_flag = (trigger && (!voices[0].last_trig));
+
+  voices[0].last_trig = trigger;
+
+  if (trigger_flag) {
     voices[0].modulations.trigger_patched = true;
   } else {
-    voices[0].modulations.trigger = 0.0f;
     voices[0].modulations.trigger_patched = false;
-
   }
+
 
 
 }
@@ -466,14 +473,14 @@ void loop1() {
 
 void read_trigger() {
   int16_t trig = analogRead(CV2);
-  if (trig > 2048) {
-    if (debug) Serial.println("trigger");
-    trigger_in = 1.0f;
-  } else {
-    trigger_in = 0.0f;
-  }
-}
+  if (trig > 2048 ) {
+    trigger_in = 1.0f; //randomDouble(1.0, 8);
 
+  } else  {
+    trigger_in = 0.0f ;//randomDouble(0.0, 0.2); // 0.0f;
+  }
+
+}
 void read_buttons() {
   if (btn_one.pressed()) {
     if (debug) Serial.println("button");
@@ -483,7 +490,6 @@ void read_buttons() {
     }
     engine_in = engineCount;
     voices[0].patch.engine = engine_in;
-
   }
 }
 
@@ -511,9 +517,9 @@ void voct_midi(int cv_in) {
 void read_cv() {
   // CV updates
   // braids wants 0 - 32767, plaits 0-1
-  
+
   int16_t timbre = analogRead(CV3);
-  timb_mod = (float)timbre / 16384.f;
+  timb_mod = (float)timbre / 4095.0f;
 
   if (timb_mod > 0.1f) {
     if (debug) Serial.println(timb_mod);
@@ -524,8 +530,8 @@ void read_cv() {
   }
 
   int16_t morph = analogRead(CV4) ;//, 0, 4095, 4095, 0));
-  morph_mod = (float) morph / 16384.f;
-  
+  morph_mod = (float) morph / 4095.0f;
+
   if (morph_mod > 0.1f ) {
     if (debug) Serial.print(morph);
     if (debug) Serial.print(" : ");
