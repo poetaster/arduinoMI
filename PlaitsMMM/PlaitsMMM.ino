@@ -101,66 +101,11 @@ byte pinState;
 #define LED 15 // shows if MIDI is being recieved
 // analog freq pins
 
-#include <MIDI.h>
+
 #include <Wire.h>
 
-//MIDI_CREATE_DEFAULT_INSTANCE();
+#include "plaits.h"
 
-// plaits dsp
-#include <STMLIB.h>
-#include <PLAITS.h>
-
-plaits::Modulations modulations;
-plaits::Patch patch;
-plaits::Voice voice;
-
-//Settings settings;
-//Ui ui;
-//UserData user_data;
-//UserDataReceiver user_data_receiver;
-
-stmlib::BufferAllocator allocator;
-
-//float a0 = (440.0 / 8.0) / kSampleRate; //48000.00;
-const size_t   kBlockSize = plaits::kBlockSize;
-
-plaits::Voice::Frame outputPlaits[plaits::kBlockSize];
-//plaits::Voice::out_buffer renderBuffer;
-
-struct Unit {
-  plaits::Voice       *voice_;
-  plaits::Modulations modulations;
-  plaits::Patch       patch;
-  float               transposition_;
-  float               octave_;
-  short               trigger_connected;
-  short               trigger_toggle;
-  bool                last_trig; // from braids
-
-  char                *shared_buffer;
-  void                *info_out;
-  bool                prev_trig;
-  float               sr;
-  int                 sigvs;
-};
-
-struct Unit voices[1];
-
-
-// Plaits modulation vars
-float morph_in = 0.7f; // IN(4);
-float trigger_in = 0.0f; //IN(5);
-float level_in = 0.0f; //IN(6);
-float harm_in = 0.5f;
-float timbre_in = 0.1f;
-int engine_in;
-
-float fm_mod = 0.0f ; //IN(7);
-float timb_mod = 0.0f; //IN(8);
-float morph_mod = 0.0f; //IN(9);
-float decay_in = 0.5f; // IN(10);
-float lpg_in = 0.2f ;// IN(11);
-float pitch_in = 60.0f;
 
 #include "Midier.h"
 // midi related functions
@@ -219,8 +164,6 @@ void cb() {
 }
 
 
-
-
 // variables for UI state management
 int enc1_pos_last = 0;
 int enc1_delta = 0;
@@ -254,9 +197,6 @@ Adafruit_SSD1306 display(dw, dh, &Wire, OLED_RESET);
 
 // buttons & knobs defines/functions
 //#include "control.h"
-
-
-
 
 
 // audio related defines
@@ -354,7 +294,7 @@ void setup() {
 
   // init the plaits voices
 
-  initVoices();
+  initPlaits();
 
   // prefill buffer
   voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
@@ -364,85 +304,14 @@ void setup() {
 
 }
 
-// initialize voice parameters
-void initVoices() {
 
-  // init some params
-  //voices[0] = {};
-  //voices[0].modulations = modulations;
-  voices[0].modulations.engine = 0;
-  voices[0].patch = patch;
-  voices[0].patch.engine = 0;
-  voices[0].transposition_ = 0.;
-  voices[0].patch.decay = decay_in; //0.5f;
-  voices[0].patch.lpg_colour = lpg_in;
-
-  voices[0].patch.note = 48.0;
-  voices[0].patch.harmonics = 0.5;
-  voices[0].patch.morph = 0.3;
-  voices[0].patch.timbre = 0.3;
-  voices[0].last_trig = false;
-
-  voices[0].shared_buffer = (char*)malloc(32756);
-  // init with zeros
-  memset(voices[0].shared_buffer, 0, 32756);
-
-  stmlib::BufferAllocator allocator(voices[0].shared_buffer, 32756);
-
-  voices[0].voice_ = new plaits::Voice;
-  voices[0].voice_->Init(&allocator);
-
-  memset(&voices[0].patch, 0, sizeof(voices[0].patch));
-  memset(&voices[0].modulations, 0, sizeof(voices[0].modulations));
-
-  // start with no CV input
-  voices[0].prev_trig = false;
-  voices[0].modulations.timbre_patched = false;  //(INRATE(3) != calc_ScalarRate);
-  voices[0].modulations.morph_patched = false;   // (INRATE(4) != calc_ScalarRate);
-  voices[0].modulations.trigger_patched = false; //(INRATE(5) != calc_ScalarRate);
-  voices[0].modulations.level_patched = false;   // (INRATE(6) != calc_ScalarRate);
-  // TODO: we don't have an fm input yet.
-  voices[0].modulations.frequency_patched = false;
-
-}
 
 void loop() {
-  // updateAudio();
+
   if (counter == 1) {
-
-    voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
-
-
-    voices[0].patch.note = pitch_in;
-    voices[0].patch.harmonics = harm_in;
-    voices[0].patch.morph = morph_in;
-    voices[0].patch.timbre = timbre_in;
-    voices[0].patch.timbre_modulation_amount = timb_mod;
-    voices[0].patch.morph_modulation_amount = morph_mod;
-    /*
-       voices[0].octave_ = octave_in;
-         voices[0].patch.decay = 0.5f;
-      voices[0].patch.lpg_colour = 0.2;
-    */
-
-
+    updatePlaitsAudio();
     counter = 0; // increments on each pass of the timer when the timer writes
-
   }
-
-  bool trigger = (trigger_in == 1.0f);
-  bool trigger_flag = (trigger && (!voices[0].last_trig));
-
-  voices[0].last_trig = trigger;
-
-  if (trigger_flag) {
-    voices[0].modulations.trigger_patched = true;
-  } else {
-    voices[0].modulations.trigger_patched = false;
-  }
-
-
-
 }
 
 
@@ -474,11 +343,12 @@ void loop1() {
 void read_trigger() {
   int16_t trig = analogRead(CV2);
   if (trig > 2048 ) {
-    trigger_in = 1.0f; //randomDouble(1.0, 8);
+    trigger_in = 1.0f;
 
   } else  {
-    trigger_in = 0.0f ;//randomDouble(0.0, 0.2); // 0.0f;
+    trigger_in = 0.0f;
   }
+  
 
 }
 void read_buttons() {
@@ -489,7 +359,6 @@ void read_buttons() {
       engineCount = 0;
     }
     engine_in = engineCount;
-    voices[0].patch.engine = engine_in;
   }
 }
 
@@ -500,6 +369,7 @@ void voct_midi(int cv_in) {
   data = (float) val * 1.0f;
   pitch = pitch_offset + map(data, 0.0, 4095.0, mapping_upper_limit, 0.0); // convert pitch CV data value to a MIDI note number
 
+
   // well, it sucks :)
   if (pitch > 82) {
     pitch_in = pitch - 7;
@@ -508,9 +378,12 @@ void voct_midi(int cv_in) {
   } else {
     pitch_in = pitch - 8;
   }
+
+  // this is a temporary move to get around clicking on trigger + note cv in
   previous_pitch = pitch;
-  //trigger_in = 1.0f; //retain for cv only input?
-  //if (debug) Serial.println(pitch);
+  trigger_in = 1.0f;
+  updateVoicetrigger();
+  trigger_in = 0.0f;
 
 }
 
