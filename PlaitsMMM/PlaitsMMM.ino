@@ -98,12 +98,34 @@ byte pinState;
 #define LED5 11
 #define LED6 13
 #define LED7 15
-#define LED 15 // shows if MIDI is being recieved
 // analog freq pins
 
+// common output buffers
+int16_t out_bufferL[32];
+int16_t out_bufferR[32];
 
 #include <Wire.h>
+// we are reusing the plaits nomenclature for all modules
+// Plaits modulation vars
+float morph_in = 0.7f; // IN(4);
+float trigger_in = 0.0f; //IN(5);
+float level_in = 0.0f; //IN(6);
+float harm_in = 0.5f;
+float timbre_in = 0.1f;
+int engine_in;
 
+float fm_mod = 0.0f ; //IN(7);
+float timb_mod = 0.0f; //IN(8);
+float morph_mod = 0.0f; //IN(9);
+float decay_in = 0.5f; // IN(10);
+float lpg_in = 0.2f ;// IN(11);
+float pitch_in = 60.0f;
+
+int max_engines = 16; // varies per backend
+
+#include <STMLIB.h>
+
+#include <PLAITS.h>
 #include "plaits.h"
 
 
@@ -134,6 +156,7 @@ byte pinState;
 
 volatile int counter = 0;
 
+
 // Init RPI_PICO_Timer, can use any from 0-15 pseudo-hardware timers
 RPI_PICO_Timer ITimer0(0);
 
@@ -143,7 +166,7 @@ bool TimerHandler0(struct repeating_timer *t) {
 
   if ( DAC.availableForWrite()) {
     for (size_t i = 0; i < plaits::kBlockSize; i++) {
-      DAC.write( outputPlaits[i].out); // 244 is mozzi audio bias
+      DAC.write( out_bufferL[i]); // 244 is mozzi audio bias
     }
 
     counter = 1;
@@ -258,8 +281,8 @@ void setup() {
   // CV
   pinMode(CV1, INPUT);
   pinMode(CV2, INPUT);
-  pinMode(CV1, INPUT);
-  pinMode(CV2, INPUT);
+  pinMode(CV3, INPUT);
+  pinMode(CV4, INPUT);
 
   // DISPLAY
 
@@ -281,6 +304,10 @@ void setup() {
   btn_one.attach( SW1 , INPUT_PULLUP);
   btn_one.interval(5);
   btn_one.setPressedState(LOW);
+  
+  btn_two.attach( SW2 , INPUT_PULLUP);
+  btn_two.interval(5);
+  btn_two.setPressedState(LOW);
   /*
       //sw2.attach( SW2 , INPUT);
       //sw2.interval(5);
@@ -292,6 +319,14 @@ void setup() {
   //mode = midier::Mode::Ionian;
   //makeScale( roots[scaleRoot], mode);
 
+
+// setup common output buffers
+  //out_bufferL = (int16_t*)malloc(32768 * sizeof(int16_t));
+  //memset(out_bufferL, 0, 32768 * sizeof(int16_t));
+  //out_bufferR = (int16_t*)malloc(32768 * sizeof(int16_t));
+  //memset(out_bufferR, 0, 32768 * sizeof(int16_t));
+
+  
   // init the plaits voices
 
   initPlaits();
@@ -336,6 +371,8 @@ void loop1() {
     read_encoders();
     displayUpdate();
     update_timer = now;
+    
+    updatePlaitsControl();
   }
 
 }
@@ -359,7 +396,9 @@ void read_buttons() {
       engineCount = 0;
     }
     engine_in = engineCount;
+
   }
+  
 }
 
 void voct_midi(int cv_in) {
