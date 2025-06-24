@@ -7,7 +7,7 @@
       Copyright (c)  2020 (emilie.o.gillet@gmail.com)
 */
 
-bool debug = true;
+bool debug = false;
 
 #include <Arduino.h>
 #include <math.h>
@@ -304,7 +304,7 @@ void setup() {
   btn_one.attach( SW1 , INPUT_PULLUP);
   btn_one.interval(5);
   btn_one.setPressedState(LOW);
-  
+
   btn_two.attach( SW2 , INPUT_PULLUP);
   btn_two.interval(5);
   btn_two.setPressedState(LOW);
@@ -320,13 +320,13 @@ void setup() {
   //makeScale( roots[scaleRoot], mode);
 
 
-// setup common output buffers
+  // setup common output buffers
   //out_bufferL = (int16_t*)malloc(32768 * sizeof(int16_t));
   //memset(out_bufferL, 0, 32768 * sizeof(int16_t));
   //out_bufferR = (int16_t*)malloc(32768 * sizeof(int16_t));
   //memset(out_bufferR, 0, 32768 * sizeof(int16_t));
 
-  
+
   // init the plaits voices
 
   initPlaits();
@@ -371,7 +371,7 @@ void loop1() {
     read_encoders();
     displayUpdate();
     update_timer = now;
-    
+
     updatePlaitsControl();
   }
 
@@ -381,11 +381,11 @@ void read_trigger() {
   int16_t trig = analogRead(CV2);
   if (trig > 2048 ) {
     trigger_in = 1.0f;
-
   } else  {
     trigger_in = 0.0f;
   }
-  
+
+  //updateVoicetrigger();
 
 }
 void read_buttons() {
@@ -398,7 +398,7 @@ void read_buttons() {
     engine_in = engineCount;
 
   }
-  
+
 }
 
 void voct_midi(int cv_in) {
@@ -419,11 +419,12 @@ void voct_midi(int cv_in) {
   }
 
   // this is a temporary move to get around clicking on trigger + note cv in
-  previous_pitch = pitch;
-  trigger_in = 1.0f;
-  updateVoicetrigger();
-  trigger_in = 0.0f;
-
+  if (pitch != previous_pitch) {
+    previous_pitch = pitch;
+    trigger_in = 1.0f;
+    updateVoicetrigger();
+    trigger_in = 0.0f;
+  }
 }
 
 void read_cv() {
