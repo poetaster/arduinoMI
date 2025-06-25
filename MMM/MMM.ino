@@ -123,7 +123,7 @@ float decay_in = 0.5f; // IN(10);
 float lpg_in = 0.2f ;// IN(11);
 float pitch_in = 60.0f;
 
-int max_engines = 16; // varies per backend
+int max_engines = 15; // varies per backend
 
 #include <STMLIB.h>
 
@@ -333,12 +333,12 @@ void setup() {
   // init the plaits voices
 
   initPlaits();
-
+  delay(100);
   // prefill buffer
   voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
-
+  delay(100);
   initRings();
-
+  delay(100);
   // Initialize wave switch states
   update_timer = millis();
 
@@ -381,8 +381,11 @@ void loop1() {
     read_encoders();
     displayUpdate();
     update_timer = now;
-
-    updatePlaitsControl();
+    if (voice_number == 0) {
+      updatePlaitsControl();
+    } else if (voice_number == 1) {
+      updateRingsControl();
+    }
   }
 
 }
@@ -402,7 +405,7 @@ void read_buttons() {
   if (btn_one.pressed()) {
     if (debug) Serial.println("button");
     engineCount ++;
-    if (engineCount > 16) {
+    if (engineCount > max_engines) {
       engineCount = 0;
     }
     engine_in = engineCount;
@@ -415,7 +418,7 @@ void read_buttons() {
     if (voice_number > 1) voice_number = 0;
 
     if (voice_number == 0) {
-      max_engines = 16;
+      max_engines = 15;
     } else if (voice_number == 1) {
       max_engines == 5;
     }
