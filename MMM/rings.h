@@ -2,8 +2,8 @@
 
 //const size_t kBlockSize = rings::kMaxBlockSize;
 
-float rings::Dsp::sr = 48000.0f;
-float rings::Dsp::a3 = 440.0f / 48000.0f;
+//float rings::Dsp::sr = 48000.0f;
+//float rings::Dsp::a3 = 440.0f / 48000.0f;
 
 
 struct Ring {
@@ -13,7 +13,7 @@ struct Ring {
   rings::PerformanceState performance_state;
   rings::Patch            patch;
 
-  uint16_t                *reverb_buffer;
+  uint16_t                reverb_buffer[32768];
 
   float                   *silence;
   float                   *out, *aux;     // output buffers
@@ -32,21 +32,61 @@ struct Ring instance[1];
 bool easterEgg;
 
 void updateRingsAudio() {
-  
-  // our output buffers, post rendering
-  int16_t *obuff = instance[0].obuff;
-  int16_t *abuff = instance[0].abuff;
 
+  rings::Patch *patch = &instance[0].patch;
+  rings::PerformanceState *ps = &instance[0].performance_state;
+
+  //float   *in = instance[0].input;
+  //float   *out = instance[0].out;
+  //float   *aux = instance[0].aux;
+  
+  size_t  size = rings::kMaxBlockSize;
+
+  if (easterEgg) {
+    // vbs
+    /*for(int count=0; count<inNumSamples; count+=size) {
+
+        instance[0].strummer.Process(NULL, size, ps);
+        instance[0].string_synth.Process(*ps, *patch,
+                               input+count, out1+count, out2+count, size);
+      }*/
+    /* ignore input
+        for (size_t i = 0; i < size; ++i) {
+       in[i] = static_cast<float>(input[i].r) / 32768.0f;
+      }
+    */
+    instance[0].strummer.Process(NULL, size, ps);
+    instance[0].string_synth.Process(*ps, *patch, instance[0].input, instance[0].out, instance[0].aux, size);
+  }
+  else {
+
+    /* vbs
+      for (int count = 0; count < inNumSamples; count += size) {
+      instance[0].strummer.Process(input + count, size, ps);
+      instance[0].part.Process(*ps, *patch,
+                         input + count, out1 + count, out2 + count, size);
+      }*/
+    instance[0].strummer.Process(instance[0].input, size, ps);
+    instance[0].part.Process(*ps, *patch, instance[0].input, instance[0].out, instance[0].aux, size);
+  }
+
+  for (size_t i = 0; i < size; ++i) {
+    //out_bufferL[i] = (int16_t) (out[i] * 32768.0f); // was obuff
+    out_bufferL[i] = stmlib::Clip16(static_cast<int32_t>(instance[0].out[i] * 32768.0f)); // was obuff
+    //abuff[i] = stmlib::Clip16(static_cast<int16_t>(aux[i] * 32768.0f));
+  }
+
+
+}
+
+void updateRingsControl() {
   float   *trig_in; // = IN(1);
-
   float   voct_in = pitch_in * 1.0f; // IN0(2);
-
-  
   float   struct_in = harm_in; // IN0(3);
   float   bright_in = timbre_in; // IN0(4);
 
   float   damp_in = morph_in; // IN0(5);
-  float   pos_in = 0.25f ; //IN0(6);
+  float   pos_in = 0.5f ; //IN0(6); was .25
 
   short   model = engine_in; // IN0(7);
   short   polyphony = 4; // IN0(8);
@@ -60,9 +100,7 @@ void updateRingsAudio() {
   rings::Patch *patch = &instance[0].patch;
   rings::PerformanceState *ps = &instance[0].performance_state;
 
-  float   *in = instance[0].input;
-  float   *out = instance[0].out;
-  float   *aux = instance[0].aux;
+ // float   *in = instance[0].input;
   size_t  size = rings::kMaxBlockSize;
 
 
@@ -80,7 +118,19 @@ void updateRingsAudio() {
     ps->internal_exciter = true;
     }
   */
-  in = instance[0].silence;
+  /* ignore input
+    for (size_t i = 0; i < size; ++i) {
+    float in_sample = static_cast<float>(input[i].r) / 32768.0f;
+    float error, gain;
+    error = in_sample * in_sample - in_level;
+    in_level += error * (error > 0.0f ? 0.1f : 0.0001f);
+    gain = in_level <= kNoiseGateThreshold
+         ? (1.0f / kNoiseGateThreshold) * in_level : 1.0f;
+    in[i] = gain * in_sample;
+    }*/
+
+  
+  instance[0].input = instance[0].silence;
 
   // ... and use internal exciter!
   ps->internal_exciter = true;
@@ -150,59 +200,16 @@ void updateRingsAudio() {
 
   instance[0].part.set_bypass(bypass);
 
-  if (easter_egg) {
-    // vbs
-    /*for(int count=0; count<inNumSamples; count+=size) {
-
-        instance[0].strummer.Process(NULL, size, ps);
-        instance[0].string_synth.Process(*ps, *patch,
-                               input+count, out1+count, out2+count, size);
-      }*/
-    /* ignore input
-        for (size_t i = 0; i < size; ++i) {
-       in[i] = static_cast<float>(input[i].r) / 32768.0f;
-      }
-    */
-    instance[0].strummer.Process(NULL, size, ps);
-    instance[0].string_synth.Process(*ps, *patch, in, out, aux, size);
-  }
-  else {
-
-    /* vbs
-      for (int count = 0; count < inNumSamples; count += size) {
-      instance[0].strummer.Process(input + count, size, ps);
-      instance[0].part.Process(*ps, *patch,
-                         input + count, out1 + count, out2 + count, size);
-      }*/
-    /* ignore input
-      for (size_t i = 0; i < size; ++i) {
-      float in_sample = static_cast<float>(input[i].r) / 32768.0f;
-      float error, gain;
-      error = in_sample * in_sample - in_level;
-      in_level += error * (error > 0.0f ? 0.1f : 0.0001f);
-      gain = in_level <= kNoiseGateThreshold
-             ? (1.0f / kNoiseGateThreshold) * in_level : 1.0f;
-      in[i] = gain * in_sample;
-      }*/
-    instance[0].strummer.Process(in, size, ps);
-    instance[0].part.Process(*ps, *patch, in, out, aux, size);
-  }
-  
-  for (size_t i = 0; i < size; ++i) {
-     out_bufferL[i] = stmlib::Clip16(static_cast<int16_t>(out[i] * 32768.0f)); // was obuff
-    //abuff[i] = stmlib::Clip16(static_cast<int16_t>(aux[i] * 32768.0f));
-  }
-  
-  
 }
 
 // initialize voice parameters
 void initRings() {
 
-  rings::Dsp::setSr(SAMPLERATE);
+  //rings::Dsp::setSr(SAMPLERATE); // we removed this
+
   // allocate memory + init with zeros
-  instance[0].reverb_buffer = (uint16_t*)malloc(32768 * sizeof(uint16_t));
-  memset(instance[0].reverb_buffer, 0, 32768 * sizeof(uint16_t));
+  //instance[0].reverb_buffer = (uint16_t*)malloc(32768 * sizeof(uint16_t));
+  //memset(instance[0].reverb_buffer, 0, 32768 * sizeof(uint16_t));
 
   instance[0].silence = (float*)malloc(rings::kMaxBlockSize * sizeof(float));
   memset(instance[0].silence, 0, rings::kMaxBlockSize * sizeof(float));
