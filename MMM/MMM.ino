@@ -79,6 +79,8 @@ PioEncoder enc3(8);
 int cvs_ins[4] = {CV1, CV2, CV3, CV4};
 int cv_avg = 30;
 
+float CV1_buffer[32];
+
 // button inputs
 
 
@@ -458,14 +460,27 @@ void read_cv() {
 
   int16_t timbre = analogRead(CV3);
   timb_mod = (float)timbre / 4095.0f;
+  if (voice_number == 0) {
 
-  if (timb_mod > 0.1f) {
-    if (debug) Serial.println(timb_mod);
-    voices[0].modulations.timbre_patched = true;
 
-  } else {
-    voices[0].modulations.timbre_patched = false;
+
+    if (timb_mod > 0.1f) {
+      if (debug) Serial.println(timb_mod);
+      voices[0].modulations.timbre_patched = true;
+
+    } else {
+      voices[0].modulations.timbre_patched = false;
+    }
   }
+  if (voice_number == 1 && timb_mod > 0.1f) {
+    for (size_t i = 0; i < 32; ++i) {
+      CV1_buffer[i] = (float)analogRead(CV3) / 4095.0f;
+    }
+  }
+
+
+
+
 
   int16_t morph = analogRead(CV4) ;//, 0, 4095, 4095, 0));
   morph_mod = (float) morph / 4095.0f;

@@ -39,7 +39,7 @@ void updateRingsAudio() {
   //float   *in = instance[0].input;
   //float   *out = instance[0].out;
   //float   *aux = instance[0].aux;
-  
+
   size_t  size = rings::kMaxBlockSize;
 
   if (easterEgg) {
@@ -90,7 +90,7 @@ void updateRingsControl() {
 
   short   model = engine_in; // IN0(7);
   short   polyphony = 4; // IN0(8);
-  bool    intern_exciter = true; // (IN0(9) > 0.f);
+  bool    intern_exciter = false; // (IN0(9) > 0.f);
   bool    easter_egg = easterEgg; // (IN0(10) > 0.f);
   bool    bypass = false; // (IN0(11) > 0.f);
 
@@ -100,24 +100,33 @@ void updateRingsControl() {
   rings::Patch *patch = &instance[0].patch;
   rings::PerformanceState *ps = &instance[0].performance_state;
 
- // float   *in = instance[0].input;
+  // float   *in = instance[0].input;
   size_t  size = rings::kMaxBlockSize;
 
 
   // check input rates for excitation input
-  /* we'll get to this later
-    if ((INRATE(0) == calc_FullRate) {
-    std::copy(&in[0], &in[inNumSamples], &input[0]);
+
+  if ( timb_mod > 0.0f ) { // input on CV3
+    //std::copy(&in[0], &in[inNumSamples], &input[0]);
+    //std::copy(CV1_buffer[0], CV1_buffer[32], instance[0].input[0]);
     // intern_exciter should be off, but user can override
+    instance[0].input = CV1_buffer;
     ps->internal_exciter = intern_exciter;
-    }
-    else {
+  }
+  else {
     // if there's no audio input, set input to zero...
-    input = instance[0].silence;
+    instance[0].input = instance[0].silence;
     // ... and use internal exciter!
     ps->internal_exciter = true;
-    }
+  }
+
+  /*
+    instance[0].input = instance[0].silence;
+
+    // ... and use internal exciter!
+    ps->internal_exciter = true;
   */
+
   /* ignore input
     for (size_t i = 0; i < size; ++i) {
     float in_sample = static_cast<float>(input[i].r) / 32768.0f;
@@ -129,11 +138,8 @@ void updateRingsControl() {
     in[i] = gain * in_sample;
     }*/
 
-  
-  instance[0].input = instance[0].silence;
 
-  // ... and use internal exciter!
-  ps->internal_exciter = true;
+
 
   // set resonator model
   CONSTRAIN(model, 0, 5);
@@ -171,32 +177,19 @@ void updateRingsControl() {
   patch->position = pos_in;
 
   // check trigger input
-  if (!ps->internal_strum) {
 
-    bool trig = false;
-    bool prev_trig = instance[0].prev_trig;
-    float sum = 0.f;
-    /*
-      if (INRATE(1) == calc_FullRate) {   // trigger input is audio rate
-      // TODO: use vDSP for the summation
-      for (int i = 0; i < inNumSamples; ++i)
-        sum += trig_in[i];
-      trig = (sum > 0.f);
-      }
-      else {          // trigger input is control or scalar rate
-      trig = (trig_in[0] > 0.f);
-      }*/
-    trig = (trigger_in > 0.f);
-
-    if (trig) {
-      if (!prev_trig)
-        ps->strum = true;
-      else
-        ps->strum = false;
+  bool trig = false;
+  bool prev_trig = instance[0].prev_trig;
+  trig = (trigger_in > 0.f);
+  if (trig) {
+    if (!prev_trig) {
+      ps->strum = true;
+      instance[0].performance_state.internal_strum = false;
+    }    else {
+      ps->strum = false;
     }
-    instance[0].prev_trig = trig;
-
   }
+  instance[0].prev_trig = trig;
 
   instance[0].part.set_bypass(bypass);
 
