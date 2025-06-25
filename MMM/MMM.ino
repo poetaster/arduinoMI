@@ -20,6 +20,7 @@ bool debug = false;
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <Wire.h>
 
 #include <PWMAudio.h>
 #define SAMPLERATE 48000
@@ -78,6 +79,14 @@ PioEncoder enc3(8);
 int cvs_ins[4] = {CV1, CV2, CV3, CV4};
 int cv_avg = 30;
 
+// button inputs
+
+
+#define SW1 6
+#define SW2 17
+#include <Bounce2.h>
+Bounce2::Button btn_one = Bounce2::Button();
+Bounce2::Button btn_two = Bounce2::Button();
 
 // Generic pin state variable
 byte pinState;
@@ -90,11 +99,13 @@ byte pinState;
 #define LED5 11
 #define LED6 13
 #define LED7 15
-#define LED 15 // shows if MIDI is being recieved
 // analog freq pins
 
+// common output buffers
+int16_t out_bufferL[32];
+int16_t out_bufferR[32];
 
-#include <Wire.h>
+int voice_number = 0; // for switching  between modules
 
 // we are reusing the plaits nomenclature for all modules
 // Plaits modulation vars
@@ -112,32 +123,20 @@ float decay_in = 0.5f; // IN(10);
 float lpg_in = 0.2f ;// IN(11);
 float pitch_in = 60.0f;
 
-int max_engines = 5; // varies per backend
-int voice_number = 1;
-
-// for the timer writing audio. need to be known to the engines.
-volatile int counter = 0;
-
-
-// common output buffers
-int16_t out_bufferL[32];
-int16_t out_bufferR[32];
+int max_engines = 16; // varies per backend
 
 #include <STMLIB.h>
-//#include <PLAITS.h>
-//#include "plaits.h"
+
+#include <PLAITS.h>
+#include "plaits.h"
 #include <RINGS.h>
 #include "rings.h"
 
-// names of voices
-#include "names.h"
-
-
+#include "Midier.h"
 // midi related functions
-//#include "Midier.h"
-//#include "midi.h"
+#include "midi.h"
 
-
+#include "names.h"
 
 
 // clock timer  stuff
@@ -158,6 +157,7 @@ int16_t out_bufferR[32];
 #define DEBOUNCING_INTERVAL_MS   u2// 80
 #define LOCAL_DEBUG              0
 
+volatile int counter = 0;
 
 
 // Init RPI_PICO_Timer, can use any from 0-15 pseudo-hardware timers
@@ -165,12 +165,16 @@ RPI_PICO_Timer ITimer0(0);
 
 bool TimerHandler0(struct repeating_timer *t) {
   (void) t;
+  bool sync = true;
+
   if ( DAC.availableForWrite()) {
-    for (size_t i = 0; i < 32; i++) {
-      DAC.write( out_bufferL[i]); // still without 'aux' right buffer
+    for (size_t i = 0; i < plaits::kBlockSize; i++) {
+      DAC.write( out_bufferL[i]);
     }
+
+    counter = 1;
   }
-  counter = 1;
+
   return true;
 }
 
@@ -178,18 +182,12 @@ bool TimerHandler0(struct repeating_timer *t) {
 void cb() {
   bool sync = true;
   if ( DAC.availableForWrite() > 32) {
-    for (size_t i = 0; i < 32; i++) {
-      DAC.write( out_bufferL[i]); // 244 is mozzi audio bias
+    for (size_t i = 0; i < plaits::kBlockSize; i++) {
+      DAC.write( outputPlaits[i].out); // 244 is mozzi audio bias
     }
     counter = 1;
   }
 }
-// button inputs
-#define SW1 6
-#define SW2 17
-#include <Bounce2.h>
-Bounce2::Button btn_one = Bounce2::Button();
-Bounce2::Button btn_two = Bounce2::Button();
 
 
 // variables for UI state management
@@ -248,11 +246,6 @@ void setup() {
     Serial.println(F("YUP"));
   }
   // pwm timing setup
-
-//  out_bufferL = (int16_t)malloc(32756);
-  // init with zeros
-  memset(out_bufferL, 0, 32756);
-  
   // we're using a pseudo interrupt for the render callback since internal dac callbacks crash
   // Frequency in float Hz
   //ITimer0.attachInterrupt(TIMER_FREQ_HZ, TimerHandler0);
@@ -314,6 +307,7 @@ void setup() {
   btn_one.attach( SW1 , INPUT_PULLUP);
   btn_one.interval(5);
   btn_one.setPressedState(LOW);
+
   btn_two.attach( SW2 , INPUT_PULLUP);
   btn_two.interval(5);
   btn_two.setPressedState(LOW);
@@ -328,14 +322,21 @@ void setup() {
   //mode = midier::Mode::Ionian;
   //makeScale( roots[scaleRoot], mode);
 
+
+  // setup common output buffers
+  //out_bufferL = (int16_t*)malloc(32768 * sizeof(int16_t));
+  //memset(out_bufferL, 0, 32768 * sizeof(int16_t));
+  //out_bufferR = (int16_t*)malloc(32768 * sizeof(int16_t));
+  //memset(out_bufferR, 0, 32768 * sizeof(int16_t));
+
+
   // init the plaits voices
 
-  //initPlaits();
+  initPlaits();
 
   // prefill buffer
-  //voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
+  voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
 
-  // init rings
   initRings();
 
   // Initialize wave switch states
@@ -348,17 +349,12 @@ void setup() {
 void loop() {
 
   if (counter == 1) {
-
     if (voice_number == 0) {
-      // only called in the tight loop
-      //updatePlaitsAudio();
-
+      updatePlaitsAudio();
     } else if (voice_number == 1) {
       updateRingsAudio();
-      counter = 0;
     }
-
-
+    counter = 0; // increments on each pass of the timer when the timer writes
   }
 }
 
@@ -373,22 +369,20 @@ void loop1() {
 
   btn_one.update();
   btn_two.update();
-
   read_buttons();
 
   int32_t now = millis();
   if ( now - update_timer > 10 ) {
+    //if (debug) Serial.println(now - update_timer);
 
     voct_midi(CV1);
     read_trigger();
-
     read_cv();
-
     read_encoders();
     displayUpdate();
     update_timer = now;
-    // updatePlaitsControl();
 
+    updatePlaitsControl();
   }
 
 }
@@ -397,19 +391,18 @@ void read_trigger() {
   int16_t trig = analogRead(CV2);
   if (trig > 2048 ) {
     trigger_in = 1.0f;
-
-
   } else  {
     trigger_in = 0.0f;
-    //updateVoicetrigger();
   }
-}
 
+  //updateVoicetrigger();
+
+}
 void read_buttons() {
   if (btn_one.pressed()) {
     if (debug) Serial.println("button");
     engineCount ++;
-    if (engineCount > max_engines) {
+    if (engineCount > 16) {
       engineCount = 0;
     }
     engine_in = engineCount;
@@ -437,22 +430,22 @@ void voct_midi(int cv_in) {
   data = (float) val * 1.0f;
   pitch = pitch_offset + map(data, 0.0, 4095.0, mapping_upper_limit, 0.0); // convert pitch CV data value to a MIDI note number
 
-  if (pitch != previous_pitch) {
-    // well, it sucks :)
-    if (pitch > 82) {
-      pitch_in = pitch - 7;
-    } else if (pitch < 38) {
-      pitch_in = pitch - 9;
-    } else {
-      pitch_in = pitch - 8;
-    }
 
-    // this is a temporary move to get around clicking on trigger + note cv in
-    
+  // well, it sucks :)
+  if (pitch > 82) {
+    pitch_in = pitch - 7;
+  } else if (pitch < 38) {
+    pitch_in = pitch - 9;
+  } else {
+    pitch_in = pitch - 8;
+  }
+
+  // this is a temporary move to get around clicking on trigger + note cv in
+  if (pitch != previous_pitch) {
     previous_pitch = pitch;
     trigger_in = 1.0f;
-    //updateVoicetrigger();
-    //trigger_in = 0.0f;
+    updateVoicetrigger();
+    trigger_in = 0.0f;
   }
 }
 
@@ -464,23 +457,23 @@ void read_cv() {
   timb_mod = (float)timbre / 4095.0f;
 
   if (timb_mod > 0.1f) {
-    //if (debug) Serial.println(timb_mod);
-    //voices[0].modulations.timbre_patched = true;
+    if (debug) Serial.println(timb_mod);
+    voices[0].modulations.timbre_patched = true;
 
   } else {
-    //voices[0].modulations.timbre_patched = false;
+    voices[0].modulations.timbre_patched = false;
   }
 
   int16_t morph = analogRead(CV4) ;//, 0, 4095, 4095, 0));
   morph_mod = (float) morph / 4095.0f;
 
   if (morph_mod > 0.1f ) {
-    /*if (debug) Serial.print(morph);
-      if (debug) Serial.print(" : ");
-      if (debug) Serial.println(morph_mod);*/
-    //voices[0].modulations.morph_patched = true;
+    if (debug) Serial.print(morph);
+    if (debug) Serial.print(" : ");
+    if (debug) Serial.println(morph_mod);
+    voices[0].modulations.morph_patched = true;
   } else {
-    //voices[0].modulations.morph_patched = false;
+    voices[0].modulations.morph_patched = false;
   }
 
 
