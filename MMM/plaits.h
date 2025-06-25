@@ -1,8 +1,6 @@
 
 // plaits dsp
 
-#include <PLAITS.h>
-
 plaits::Modulations modulations;
 plaits::Patch patch;
 plaits::Voice voice;
@@ -83,27 +81,34 @@ void initPlaits() {
 }
 
 void updatePlaitsAudio() {
-  voices[0].patch.engine = engine_in;
   voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
+  for (size_t i = 0; i < plaits::kBlockSize; i++) {
+    out_bufferL[i] = outputPlaits[i].out ;
+  }
+}
+
+void updatePlaitsControl() {
+  voices[0].patch.engine = engine_in;
   voices[0].patch.note = pitch_in;
   voices[0].patch.harmonics = harm_in;
   voices[0].patch.morph = morph_in;
   voices[0].patch.timbre = timbre_in;
-  
+
   voices[0].patch.timbre_modulation_amount = timb_mod;
   voices[0].patch.morph_modulation_amount = morph_mod;
 
   /*
-     voices[0].octave_ = octave_in;
-       voices[0].patch.decay = 0.5f;
+    voices[0].octave_ = octave_in;
+     voices[0].patch.decay = 0.5f;
     voices[0].patch.lpg_colour = 0.2;
   */
 }
+
 void updateVoicetrigger() {
-  
-    //trigger_in = 1.0f; //retain for cv only input? 
+
+  //trigger_in = 1.0f; //retain for cv only input?
   //if (debug) Serial.println(pitch);
-  
+
   bool trigger = (trigger_in == 1.0f);
   bool trigger_flag = (trigger && (!voices[0].last_trig));
   voices[0].last_trig = trigger;

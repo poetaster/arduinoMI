@@ -1,4 +1,4 @@
-#include <RINGS.h>
+
 
 //const size_t kBlockSize = rings::kMaxBlockSize;
 
@@ -30,6 +30,7 @@ struct Ring {
 struct Ring instance[1];
 
 bool easterEgg;
+
 void updateRingsAudio() {
   
   // our output buffers, post rendering
@@ -185,14 +186,14 @@ void updateRingsAudio() {
       }*/
     instance[0].strummer.Process(in, size, ps);
     instance[0].part.Process(*ps, *patch, in, out, aux, size);
-
-
   }
+  
   for (size_t i = 0; i < size; ++i) {
-    obuff[i] = stmlib::Clip16(static_cast<int16_t>(out[i] * 32768.0f));
+     out_bufferL[i] = stmlib::Clip16(static_cast<int16_t>(out[i] * 32768.0f)); // was obuff
     //abuff[i] = stmlib::Clip16(static_cast<int16_t>(aux[i] * 32768.0f));
-
   }
+  
+  
 }
 
 // initialize voice parameters

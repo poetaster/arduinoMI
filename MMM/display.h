@@ -70,12 +70,12 @@ void displayUpdate() {
     // harmonics
   display.setCursor(mode_text_pos.x, mode_text_pos.y);
   display.print("H: ");
-  display.print(voices[0].patch.harmonics);  // user sees 1-8
+  display.print(harm_in);  // user sees 1-8
   
   // timber
   display.setCursor(play_text_pos.x, play_text_pos.y);
   display.print("T: ");
-  display.print(voices[0].patch.timbre);
+  display.print(timbre_in);
   
   //display.setCursor(trans_text_pos.x, seq_info_pos.y);
   //display.print("P:");
