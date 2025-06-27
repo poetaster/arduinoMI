@@ -104,7 +104,6 @@ void StringSynthPart::ComputeRegistration(
   }
 }
 
-
 void StringSynthPart::ProcessEnvelopes(
     float shape,
     uint8_t* flags,

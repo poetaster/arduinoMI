@@ -30,8 +30,8 @@ PWMAudio DAC(PWMOUT);  // 16 bit PWM audio
 
 const size_t kBlockSize = rings::kMaxBlockSize;
 
-float rings::Dsp::sr = 48000.0f;
-float rings::Dsp::a3 = 440.0f / 48000.0f;
+//float rings::Dsp::sr = 48000.0f;
+//float rings::Dsp::a3 = 440.0f / 48000.0f;
 
 
 struct Unit {
@@ -160,7 +160,7 @@ void setup() {
 // initialize voice parameters
 void initVoices() {
 
-  rings::Dsp::setSr(SAMPLERATE);
+  //rings::Dsp::setSr(SAMPLERATE);
   // allocate memory + init with zeros
 
   voices[0].reverb_buffer = (uint16_t*)malloc(32768 * sizeof(uint16_t));

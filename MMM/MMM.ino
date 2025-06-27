@@ -160,7 +160,7 @@ int max_engines = 15; // varies per backend
 #define LOCAL_DEBUG              0
 
 volatile int counter = 0;
-
+volatile int repeat = 32;
 
 // Init RPI_PICO_Timer, can use any from 0-15 pseudo-hardware timers
 RPI_PICO_Timer ITimer0(0);
@@ -170,7 +170,7 @@ bool TimerHandler0(struct repeating_timer *t) {
   bool sync = true;
 
   if ( DAC.availableForWrite()) {
-    for (size_t i = 0; i < plaits::kBlockSize; i++) {
+    for (size_t i = 0; i < 32; i++) {
       DAC.write( out_bufferL[i]);
     }
 
@@ -420,8 +420,10 @@ void read_buttons() {
     if (voice_number > 1) voice_number = 0;
 
     if (voice_number == 0) {
+      repeat = 32;
       max_engines = 15;
     } else if (voice_number == 1) {
+      repeat = 24;
       max_engines == 5;
     }
   }

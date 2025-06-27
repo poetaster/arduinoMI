@@ -57,7 +57,7 @@ void Part::Init(uint16_t* reverb_buffer) {
     excitation_filter_[i].Init();
     plucker_[i].Init();
     dc_blocker_[i].Init(1.0f - 10.0f / sr_);
-      resonator_[i].Init();     // vb, init resonators
+    resonator_[i].Init();     // vb, init resonators
   }
   
   reverb_.Init(reverb_buffer);
@@ -438,7 +438,7 @@ void Part::RenderStringVoice(
     if (string > 0 && performance_state.internal_exciter) {
       brightness *= (2.0f - brightness);
       brightness *= (2.0f - brightness);
-      damping = 0.7f + patch.damping * 0.27f;
+      damping = 0.7f + patch.damping * 0.27f; // vb .7
       float amount = (0.5f - fabs(0.5f - patch.position)) * 0.9f;
       position = patch.position + lfo_value * amount;
       glide = SemitonesToRatio((brightness - 1.0f) * 36.0f);
@@ -505,6 +505,7 @@ void Part::Process(
     // polyphony stops working...
   fill(&out[0], &out[size], 0.0f);
   fill(&aux[0], &aux[size], 0.0f);
+  
   for (int32_t voice = 0; voice < polyphony_; ++voice) {
     // Compute MIDI note value, frequency, and cutoff frequency for excitation
     // filter.

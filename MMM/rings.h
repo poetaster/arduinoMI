@@ -68,7 +68,7 @@ void updateRingsAudio() {
   }
 
   for (size_t i = 0; i < size; ++i) {
-    out_bufferL[i] = static_cast<int32_t>(instance[0].out[i] * 32768.0f); // was obuff
+    out_bufferL[i] = (int16_t)(instance[0].out[i] * 32768.0f); // was obuff
     //out_bufferL[i] = stmlib::Clip16(static_cast<int32_t>(instance[0].out[i] * 32768.0f)); // was obuff
     //abuff[i] = stmlib::Clip16(static_cast<int16_t>(aux[i] * 32768.0f));
   }
@@ -84,11 +84,11 @@ void updateRingsControl() {
 
   float   damp_in = morph_in; // IN0(5);
   
-  float   pos_in = 0.5f ; //IN0(6); was .25
+  float   pos_in = 0.2f ; //IN0(6); was .25
 
   short   model = engine_in; // IN0(7);
-  short   polyphony = 2; // IN0(8);
-  bool    intern_exciter = false; // (IN0(9) > 0.f);
+  short   polyphony = 3; // IN0(8);
+  bool    intern_exciter = true; // (IN0(9) > 0.f);
   bool    easter_egg = easterEgg; // (IN0(10) > 0.f);
   bool    bypass = false; // (IN0(11) > 0.f);
 
@@ -100,7 +100,6 @@ void updateRingsControl() {
 
   // float   *in = instance[0].input;
   size_t  size = rings::kMaxBlockSize;
-
 
   // check input rates for excitation input
 
@@ -125,7 +124,7 @@ void updateRingsControl() {
     ps->internal_exciter = true;
   */
 
-  /* ignore input
+  /* ignore input // from the original
     for (size_t i = 0; i < size; ++i) {
     float in_sample = static_cast<float>(input[i].r) / 32768.0f;
     float error, gain;
@@ -179,10 +178,10 @@ void updateRingsControl() {
   bool trig = false;
   bool prev_trig = instance[0].prev_trig;
   trig = (trigger_in > 0.f);
+  
   if (trig) {
     if (!prev_trig) {
       ps->strum = true;
-      instance[0].performance_state.internal_strum = false;
     }    else {
       ps->strum = false;
     }
