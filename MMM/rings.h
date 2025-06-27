@@ -1,9 +1,9 @@
 
 
-//const size_t kBlockSize = rings::kMaxBlockSize;
+const size_t aBlockSize = rings::kMaxBlockSize;
 
-//float rings::Dsp::sr = 48000.0f;
-//float rings::Dsp::a3 = 440.0f / 48000.0f;
+float rings::Dsp::sr = 48000.0f;
+float rings::Dsp::a3 = 440.0f / 48000.0f;
 
 
 struct Ring {
@@ -22,9 +22,6 @@ struct Ring {
   bool                    prev_trig;
   int                     prev_poly;
 
-  // we're using the original rendering, not vbs
-  int16_t                 obuff[rings::kMaxBlockSize]; // from float[]s below in update routine
-  int16_t                 abuff[rings::kMaxBlockSize]; // ditto
 };
 
 struct Ring instance[1];
@@ -71,8 +68,8 @@ void updateRingsAudio() {
   }
 
   for (size_t i = 0; i < size; ++i) {
-    //out_bufferL[i] = (int16_t) (out[i] * 32768.0f); // was obuff
-    out_bufferL[i] = stmlib::Clip16(static_cast<int32_t>(instance[0].out[i] * 32768.0f)); // was obuff
+    out_bufferL[i] = static_cast<int32_t>(instance[0].out[i] * 32768.0f); // was obuff
+    //out_bufferL[i] = stmlib::Clip16(static_cast<int32_t>(instance[0].out[i] * 32768.0f)); // was obuff
     //abuff[i] = stmlib::Clip16(static_cast<int16_t>(aux[i] * 32768.0f));
   }
 
@@ -86,10 +83,11 @@ void updateRingsControl() {
   float   bright_in = timbre_in; // IN0(4);
 
   float   damp_in = morph_in; // IN0(5);
+  
   float   pos_in = 0.5f ; //IN0(6); was .25
 
   short   model = engine_in; // IN0(7);
-  short   polyphony = 4; // IN0(8);
+  short   polyphony = 2; // IN0(8);
   bool    intern_exciter = false; // (IN0(9) > 0.f);
   bool    easter_egg = easterEgg; // (IN0(10) > 0.f);
   bool    bypass = false; // (IN0(11) > 0.f);
