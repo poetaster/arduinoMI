@@ -105,8 +105,8 @@ void updatePlaitsControl() {
 }
 
 void updateVoicetrigger() {
-
-  //trigger_in = 1.0f; //retain for cv only input?
+  // this is a bit of a hack
+  trigger_in = 1.0f; //retain for cv only input?
   //if (debug) Serial.println(pitch);
 
   bool trigger = (trigger_in == 1.0f);
@@ -118,5 +118,5 @@ void updateVoicetrigger() {
   } else {
     voices[0].modulations.trigger_patched = false;
   }
-  //trigger_in = 0.0f;
+  trigger_in = 0.0f;
 }

@@ -88,7 +88,7 @@ void updateRingsControl() {
 
   short   model = engine_in; // IN0(7);
   short   polyphony = 3; // IN0(8);
-  bool    intern_exciter = true; // (IN0(9) > 0.f);
+  bool    intern_exciter = false; // (IN0(9) > 0.f);
   bool    easter_egg = easterEgg; // (IN0(10) > 0.f);
   bool    bypass = false; // (IN0(11) > 0.f);
 
@@ -192,6 +192,9 @@ void updateRingsControl() {
 
 }
 
+
+
+
 // initialize voice parameters
 void initRings() {
 
@@ -230,10 +233,10 @@ void initRings() {
   instance[0].prev_trig = false;
 
   // we're fixing this for the moment until we can test with input
-  instance[0].performance_state.internal_exciter = true;
+  instance[0].performance_state.internal_exciter = false;
 
   // let's see
-  instance[0].performance_state.internal_strum = true;
+  instance[0].performance_state.internal_strum = false;
   updateRingsAudio() ;
 
   // check input rates
