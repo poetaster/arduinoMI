@@ -53,7 +53,7 @@ void updateRingsAudio() {
       }
     */
     instance[0].strummer.Process(NULL, size, ps);
-    instance[0].string_synth.Process(*ps, *patch, instance[0].input, instance[0].out, instance[0].aux, size);
+    instance[0].string_synth.Process(*ps, *patch, instance[0].silence, instance[0].out, instance[0].aux, size);
   }
   else {
 

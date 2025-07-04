@@ -40,6 +40,7 @@ double median(std::vector<int>& numbers) {
 }
 
 
+
 // volts to octave for 3.3 volts
 // based onhttps://little-scale.blogspot.com/2018/05/pitch-cv-to-frequency-conversion-via.html
 float data;
@@ -76,14 +77,18 @@ PioEncoder enc3(8);
 #define CV2 (A1)
 #define CV3 (A2)
 #define CV4 (A3)
-int cvs_ins[4] = {CV1, CV2, CV3, CV4};
+#define CV5 (44u)
+#define CV6 (45u)
+#define CV7 (46u)
+#define CV8 (47u)
+
+int cv_ins[8] = {CV1, CV2, CV3, CV4, CV5, CV6, CV7, CV8};
 int cv_avg = 30;
 
+// buffer for input to rings exciter
 float CV1_buffer[32];
 
 // button inputs
-
-
 #define SW1 6
 #define SW2 17
 #include <Bounce2.h>
@@ -117,6 +122,7 @@ float level_in = 0.0f; //IN(6);
 float harm_in = 0.5f;
 float timbre_in = 0.1f;
 int engine_in;
+char engine_name;
 
 float fm_mod = 0.0f ; //IN(7);
 float timb_mod = 0.0f; //IN(8);
@@ -127,8 +133,11 @@ float pitch_in = 60.0f;
 
 int max_engines = 15; // varies per backend
 
-#include <STMLIB.h>
+// Rings modulation
+float pos_mod = 0.25f; // position
 
+
+#include <STMLIB.h>
 #include <PLAITS.h>
 #include "plaits.h"
 #include <RINGS.h>
@@ -288,6 +297,7 @@ void setup() {
   pinMode(CV2, INPUT);
   pinMode(CV3, INPUT);
   pinMode(CV4, INPUT);
+  pinMode(CV5, INPUT);
 
   // DISPLAY
 
@@ -371,64 +381,56 @@ void loop1() {
 
   btn_one.update();
   btn_two.update();
-  read_buttons();
+
 
   int32_t now = millis();
-  if ( now - update_timer > 10 ) {
-    //if (debug) Serial.println(now - update_timer);
+  if ( now - update_timer > 6 ) {
 
     voct_midi(CV1);
     read_trigger();
     read_cv();
     read_encoders();
     displayUpdate();
+    read_buttons();
     update_timer = now;
-    if (voice_number == 0) {
-      updatePlaitsControl();
-    } else if (voice_number == 1) {
-      updateRingsControl();
-    }
   }
 
-}
-
-void read_trigger() {
-  int16_t trig = analogRead(CV2);
-  if (trig > 2048 ) {
-    trigger_in = 1.0f;
-  } else  {
-    //don't turn off here?
-    trigger_in = 0.0f;
+  if (voice_number == 0) {
+    updatePlaitsControl();
+  } else if (voice_number == 1) {
+    updateRingsControl();
   }
-
-  //updateVoicetrigger();
-
 }
+
+
+
 void read_buttons() {
-  if (btn_one.pressed()) {
-    if (debug) Serial.println("button");
+
+  if (btn_one.pressed() && btn_two.pressed()) {
+    // rings easter egg mode/ fm engine.
+    easterEgg = !easterEgg;
+
+  } 
+  if (btn_one.pressed() && ! btn_two.pressed()) {
     engineCount ++;
     if (engineCount > max_engines) {
       engineCount = 0;
     }
     engine_in = engineCount;
-  }
 
-  if (btn_two.pressed() ) {
-    if (debug) Serial.println("button");
+  } 
+  if (btn_two.pressed() && ! btn_one.pressed() ) {
     voice_number++;
-
     if (voice_number > 1) voice_number = 0;
-
+    
     if (voice_number == 0) {
-      repeat = 32;
-      max_engines = 15;
+      max_engines = 16;
     } else if (voice_number == 1) {
-      repeat = 24;
-      max_engines == 5;
+      max_engines = 5;
+      engineCount = 0; // reset for rings
     }
+    
   }
-
 }
 
 void voct_midi(int cv_in) {
@@ -452,48 +454,63 @@ void voct_midi(int cv_in) {
   if (pitch != previous_pitch) {
     previous_pitch = pitch;
     // this is the plaits version
-    if (voice_number ==0) updateVoicetrigger();
+    if (voice_number == 0) updateVoicetrigger();
   }
 }
 
+void read_trigger() {
+  int16_t trig = analogRead(CV2);
+  if (trig > 2048 ) {
+    trigger_in = 1.0f;
+  } else  {
+    //don't turn off here?
+    trigger_in = 0.0f;
+  }
+
+  //updateVoicetrigger();
+
+}
 void read_cv() {
   // CV updates
   // braids wants 0 - 32767, plaits 0-1
 
+  // this should be worked out into calls for the engines instead of conditionals ....
+
   int16_t timbre = analogRead(CV3);
   timb_mod = (float)timbre / 4095.0f;
-  if (voice_number == 0) {
 
-    if (timb_mod > 0.1f) {
+  int16_t morph = analogRead(CV4) ;
+  morph_mod = (float) morph / 4095.0f;
+
+  int16_t pos = analogRead(CV5) ; // f&d noise floor
+  if (pos > 100) pos_mod = (float) pos / 4095.0f;
+
+  if (voice_number == 0) {
+    // plaits
+    if (timb_mod > 0.02f) {
       if (debug) Serial.println(timb_mod);
       voices[0].modulations.timbre_patched = true;
 
     } else {
       voices[0].modulations.timbre_patched = false;
     }
+    if (morph_mod > 0.02f ) {
+      if (debug) Serial.println(morph_mod);
+      voices[0].modulations.morph_patched = true;
+    } else {
+      voices[0].modulations.morph_patched = false;
+    }
+
   }
-  if (voice_number == 1 && timb_mod > 0.1f) {
+
+  if (voice_number == 1 && timb_mod > 0.15f) {
+    //rings
     for (size_t i = 0; i < 32; ++i) {
-      CV1_buffer[i] = (float)analogRead(CV3) / 4095.0f + 1.0f;
+      CV1_buffer[i] = (float) ( analogRead(CV3) / 4095.0f) + 1.0f; // arbitrary +1 gain
     }
   }
 
-  int16_t morph = analogRead(CV4) ;//, 0, 4095, 4095, 0));
-  morph_mod = (float) morph / 4095.0f;
-
-  if (morph_mod > 0.1f ) {
-    if (debug) Serial.print(morph);
-    if (debug) Serial.print(" : ");
-    if (debug) Serial.println(morph_mod);
-    voices[0].modulations.morph_patched = true;
-  } else {
-    voices[0].modulations.morph_patched = false;
-  }
-
-
 }
-
-
 // either avg or median, both suck :)
 int16_t avg_cv(int cv_in) {
 
@@ -507,7 +524,6 @@ int16_t avg_cv(int cv_in) {
   //return median(data);
   return val;
 }
-
 
 void read_encoders() {
 
