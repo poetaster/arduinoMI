@@ -78,22 +78,19 @@ void updateRingsAudio() {
 
 void updateRingsControl() {
   float   *trig_in; // = IN(1);
-  float   voct_in = pitch_in * 1.0f; // IN0(2);
-  float   struct_in = harm_in; // IN0(3);
-  float   bright_in = timbre_in; // IN0(4);
+  float   voct_in = pitch_in * 1.0f;
+  float   struct_in = harm_in;
+  float   bright_in = timbre_in;
 
-  float   damp_in = morph_in; // IN0(5);
-  
-  float   pos_in = 0.2f ; //IN0(6); was .25
+  float   damp_in = morph_in;
 
-  short   model = engine_in; // IN0(7);
-  short   polyphony = 3; // IN0(8);
-  bool    intern_exciter = false; // (IN0(9) > 0.f);
-  bool    easter_egg = easterEgg; // (IN0(10) > 0.f);
-  bool    bypass = false; // (IN0(11) > 0.f);
+  float   pos_in = pos_mod;
 
-  //float *out1 = OUT(0);
-  //float *out2 = OUT(1);
+  short   model = engine_in;
+  short   polyphony = 3;
+  bool    intern_exciter = false;
+  bool    easter_egg = easterEgg;
+  bool    bypass = false;
 
   rings::Patch *patch = &instance[0].patch;
   rings::PerformanceState *ps = &instance[0].performance_state;
@@ -103,28 +100,20 @@ void updateRingsControl() {
 
   // check input rates for excitation input
 
-  if ( timb_mod > 0.0f ) { // input on CV3
-    //std::copy(&in[0], &in[inNumSamples], &input[0]);
-    //std::copy(CV1_buffer[0], CV1_buffer[32], instance[0].input[0]);
+  if ( timb_mod > 0.15f ) {
+    // input on CV3
     // intern_exciter should be off, but user can override
     instance[0].input = CV1_buffer;
     ps->internal_exciter = intern_exciter;
-  }
-  else {
+  } else {
     // if there's no audio input, set input to zero...
     instance[0].input = instance[0].silence;
     // ... and use internal exciter!
     ps->internal_exciter = true;
   }
 
-  /*
-    instance[0].input = instance[0].silence;
 
-    // ... and use internal exciter!
-    ps->internal_exciter = true;
-  */
-
-  /* ignore input // from the original
+  /* from the original with gain foo
     for (size_t i = 0; i < size; ++i) {
     float in_sample = static_cast<float>(input[i].r) / 32768.0f;
     float error, gain;
@@ -156,7 +145,6 @@ void updateRingsControl() {
   ps->tonic = 12.f;
   ps->note = voct_in;
 
-
   // set params
   CONSTRAIN(struct_in, 0.0f, 1.0f);    //0.9995f
   patch->structure = struct_in;
@@ -178,7 +166,7 @@ void updateRingsControl() {
   bool trig = false;
   bool prev_trig = instance[0].prev_trig;
   trig = (trigger_in > 0.f);
-  
+
   if (trig) {
     if (!prev_trig) {
       ps->strum = true;
@@ -249,7 +237,7 @@ void initRings() {
     if(INRATE(1) == calc_ScalarRate)
       instance[0].performance_state.internal_strum = true;
     else
-      instance[0].performance_state.internal_strum = false;
+      instance[0].performance_state.internal_sturum = false;
 
     if(INRATE(2) == calc_ScalarRate)
       instance[0].performance_state.internal_note = true;

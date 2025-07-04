@@ -53,30 +53,32 @@ void displayUpdate() {
   //display.setTextColor(WHITE, 0);
   // display.setFont(&myfont2);
 
-  // bpm
+  // // name
   display.setCursor(bpm_text_pos.x, bpm_text_pos.y);
   display.print(" ");
-  display.print(oscnames[engine_in]); 
-  
-  // name
+  if (voice_number == 0) {
+    display.print(oscnames[engine_in]);
+  } else if (voice_number == 1) {
+    display.print(modelnames[engine_in]);
+  } 
   //display.setCursor(trans_text_pos.x, trans_text_pos.y);
-  //display.print(oscnames[engine_in]); 
-  
-    // morph
+  //display.print(oscnames[engine_in]);
+
+  // morph
   display.setCursor(seq_info_pos.x, seq_info_pos.y);
   display.print("M: ");
   display.print(morph_in);
-  
-    // harmonics
+
+  // harmonics
   display.setCursor(mode_text_pos.x, mode_text_pos.y);
   display.print("H: ");
   display.print(harm_in);  // user sees 1-8
-  
+
   // timber
   display.setCursor(play_text_pos.x, play_text_pos.y);
   display.print("T: ");
   display.print(timbre_in);
-  
+
   //display.setCursor(trans_text_pos.x, seq_info_pos.y);
   //display.print("P:");
   //display.print(voices[0].patch.note);
