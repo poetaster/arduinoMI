@@ -142,6 +142,8 @@ float pos_mod = 0.25f; // position
 #include "plaits.h"
 #include <RINGS.h>
 #include "rings.h"
+#include <BRAIDS.h>
+#include "braids.h"
 
 #include "Midier.h"
 // midi related functions
@@ -351,6 +353,8 @@ void setup() {
   delay(100);
   initRings();
   delay(100);
+  initBraids();
+  delay(100);
   // Initialize wave switch states
   update_timer = millis();
 
@@ -365,6 +369,8 @@ void loop() {
       updatePlaitsAudio();
     } else if (voice_number == 1) {
       updateRingsAudio();
+    } else if (voice_number == 2) {
+      updateBraidsAudio();
     }
     counter = 0; // increments on each pass of the timer when the timer writes
   }
@@ -405,32 +411,49 @@ void loop1() {
 
 
 void read_buttons() {
-
+  bool doublePressMode = false;
   if (btn_one.pressed() && btn_two.pressed()) {
     // rings easter egg mode/ fm engine.
     easterEgg = !easterEgg;
+    doublePressMode = true;
 
-  } 
-  if (btn_one.pressed() && ! btn_two.pressed()) {
-    engineCount ++;
-    if (engineCount > max_engines) {
-      engineCount = 0;
-    }
-    engine_in = engineCount;
-
-  } 
-  if (btn_two.pressed() && ! btn_one.pressed() ) {
-    voice_number++;
-    if (voice_number > 1) voice_number = 0;
-    
-    if (voice_number == 0) {
-      max_engines = 16;
-    } else if (voice_number == 1) {
-      max_engines = 5;
-      engineCount = 0; // reset for rings
-    }
-    
   }
+  if (!doublePressMode) {
+    // being tripple shure :)
+    if (btn_one.pressed() && ! btn_two.pressed()) {
+      engineCount ++;
+      if (engineCount > max_engines) {
+        engineCount = 0;
+      }
+      engine_in = engineCount;
+
+    }
+    if (btn_two.pressed() && ! btn_one.pressed() ) {
+      voice_number++;
+      if (voice_number > 2) voice_number = 0;
+      if (voice_number == 0) {
+        engine_in = engine_in%17; 
+        max_engines = 16;
+        
+      } else if (voice_number == 1) {
+        max_engines = 5;
+        engine_in = engine_in%6; 
+        
+      } else if (voice_number == 2 ){
+        engine_in = engine_in%47; 
+        max_engines = 46;
+      }
+    }
+  }
+}
+
+float voct_midiBraids(int cv_in) {
+  
+  int val = 0;
+  for (int j = 0; j < cv_avg; ++j) val += analogRead(cv_in); // read the A/D a few times and average for a more stable value
+  val = val / cv_avg;
+  pitch = pitch_offset + map(val, 0.0, 4095.0, mapping_upper_limit, 0.0); // convert pitch CV data value to a MIDI note number
+  return pitch - 37; // don't know why, probably tuned to A so -5 + -36 to drop two octaves
 }
 
 void voct_midi(int cv_in) {

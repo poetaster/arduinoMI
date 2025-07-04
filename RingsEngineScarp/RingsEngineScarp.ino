@@ -246,7 +246,7 @@ void setup() {
 
   // let's get more resolution
   analogReadResolution(12);
-  
+
   // Additions
   // ENCODER
   pinMode(encoderA_pin, INPUT_PULLUP);
@@ -459,163 +459,22 @@ void updateRingsAudio() {
 
   // our output buffers, post rendering
   int16_t *obuff = voices[0].obuff;
-  int16_t *abuff = voices[0].abuff;
-
-  float   *trig_in; // = IN(1);
-
-  float   voct_in = pitch_in * 1.0f; // IN0(2);
-  
-  //Serial.println(voct_in);
-  
-  float   struct_in = harm_in; // IN0(3);
-  float   bright_in = timbre_in; // IN0(4);
-
-  float   damp_in = morph_in; // IN0(5);
-  float   pos_in = 0.25f ; //IN0(6);
-
-  short   model = engine_in; // IN0(7);
-  short   polyphony = 3; // IN0(8);
-  bool    intern_exciter = false; // (IN0(9) > 0.f);
-  bool    easter_egg = easterEgg; // (IN0(10) > 0.f);
-  bool    bypass = false; // (IN0(11) > 0.f);
-
-  //float *out1 = OUT(0);
-  //float *out2 = OUT(1);
 
   rings::Patch *patch = &voices[0].patch;
   rings::PerformanceState *ps = &voices[0].performance_state;
-
-  float   *in = voices[0].input;
-  float   *out = voices[0].out;
-  float   *aux = voices[0].aux;
   size_t  size = kBlockSize;
 
-
-  // check input rates for excitation input
-  /* we'll get to this later
-    if ((INRATE(0) == calc_FullRate) {
-    std::copy(&in[0], &in[inNumSamples], &input[0]);
-    // intern_exciter should be off, but user can override
-    ps->internal_exciter = intern_exciter;
-    }
-    else {
-    // if there's no audio input, set input to zero...
-    input = voices[0].silence;
-    // ... and use internal exciter!
-    ps->internal_exciter = true;
-    }
-  */
-  in = voices[0].silence;
-
-  // ... and use internal exciter!
-  ps->internal_exciter = true;
-
-  // set resonator model
-  CONSTRAIN(model, 0, 5);
-  voices[0].part.set_model(static_cast<rings::ResonatorModel>(model));
-  voices[0].string_synth.set_fx(static_cast<rings::FxType>(model));
-
-  // set polyphony
-  if (polyphony != voices[0].prev_poly) {
-    CONSTRAIN(polyphony, 1, 4);
-    voices[0].part.set_polyphony(polyphony);
-    voices[0].string_synth.set_polyphony(polyphony);
-    voices[0].prev_poly = polyphony;
-  }
-
-  // set pitch
-  CONSTRAIN(voct_in, 0.f, 114.f);
-  ps->tonic = 12.f;
-  ps->note = voct_in;
-
-
-  // set params
-  CONSTRAIN(struct_in, 0.0f, 1.0f);    //0.9995f
-  patch->structure = struct_in;
-
-  float chord = struct_in * (rings::kNumChords - 1);
-  voices[0].performance_state.chord = roundf(chord);
-
-  CONSTRAIN(bright_in, 0.0f, 1.0f);
-  patch->brightness = bright_in;
-
-  CONSTRAIN(damp_in, 0.0f, 1.0f);
-  patch->damping = damp_in;
-
-  CONSTRAIN(pos_in, 0.0f, 1.0f);
-  patch->position = pos_in;
-
-  // check trigger input
-  if (!ps->internal_strum) {
-
-    bool trig = false;
-    bool prev_trig = voices[0].prev_trig;
-    float sum = 0.f;
-    /*
-      if (INRATE(1) == calc_FullRate) {   // trigger input is audio rate
-      // TODO: use vDSP for the summation
-      for (int i = 0; i < inNumSamples; ++i)
-        sum += trig_in[i];
-      trig = (sum > 0.f);
-      }
-      else {          // trigger input is control or scalar rate
-      trig = (trig_in[0] > 0.f);
-      }*/
-    trig = (trigger_in > 0.f);
-
-    if (trig) {
-      if (!prev_trig)
-        ps->strum = true;
-      else
-        ps->strum = false;
-    }
-    voices[0].prev_trig = trig;
-
-  }
-
-  voices[0].part.set_bypass(bypass);
-
-  if (easter_egg) {
-    // vbs
-    /*for(int count=0; count<inNumSamples; count+=size) {
-
-        voices[0].strummer.Process(NULL, size, ps);
-        voices[0].string_synth.Process(*ps, *patch,
-                               input+count, out1+count, out2+count, size);
-      }*/
-    /* ignore input
-        for (size_t i = 0; i < size; ++i) {
-       in[i] = static_cast<float>(input[i].r) / 32768.0f;
-      }
-    */
+  if (easterEgg) {
     voices[0].strummer.Process(NULL, size, ps);
-    voices[0].string_synth.Process(*ps, *patch, in, out, aux, size);
+    voices[0].string_synth.Process(*ps, *patch, voices[0].input, voices[0].out, voices[0].aux, size);
   }
   else {
 
-    /* vbs
-      for (int count = 0; count < inNumSamples; count += size) {
-      voices[0].strummer.Process(input + count, size, ps);
-      voices[0].part.Process(*ps, *patch,
-                         input + count, out1 + count, out2 + count, size);
-      }*/
-    /* ignore input
-      for (size_t i = 0; i < size; ++i) {
-      float in_sample = static_cast<float>(input[i].r) / 32768.0f;
-      float error, gain;
-      error = in_sample * in_sample - in_level;
-      in_level += error * (error > 0.0f ? 0.1f : 0.0001f);
-      gain = in_level <= kNoiseGateThreshold
-             ? (1.0f / kNoiseGateThreshold) * in_level : 1.0f;
-      in[i] = gain * in_sample;
-      }*/
-    voices[0].strummer.Process(in, size, ps);
-    voices[0].part.Process(*ps, *patch, in, out, aux, size);
-
-
+    voices[0].strummer.Process(NULL, size, ps);
+    voices[0].string_synth.Process(*ps, *patch, voices[0].input, voices[0].out, voices[0].aux, size);
   }
   for (size_t i = 0; i < size; ++i) {
-    obuff[i] = stmlib::Clip16(static_cast<int16_t>(out[i] * 32768.0f));
+    obuff[i] = (int16_t)(voices[0].out[i] * 32768.0f);
     //abuff[i] = stmlib::Clip16(static_cast<int16_t>(aux[i] * 32768.0f));
 
   }
@@ -704,11 +563,9 @@ void loop1() {
 
       }
       if (button[0] && button[7] ) {
-        easterEgg = true;
-      } else {
-        easterEgg = false;
-      }
-      
+        easterEgg = !easterEgg;
+      } 
+
       // change pitch on pot 0
       if (display_mode == 0 ) { // change sample if pot has moved enough
         //noteA = (map(mozziAnalogRead(MODR_PIN), POT_MIN, POT_MAX, 200, 10000));
@@ -739,7 +596,7 @@ void loop1() {
   }
 
   // now, after buttons check if only encoder moved and no buttons
-  
+
   if (! anybuttonpressed && encoder_delta) {
     float turn = encoder_delta * 0.01f;
     harm_in = harm_in + turn;
@@ -768,10 +625,126 @@ void loop1() {
     readpot(0);
     readpot(1);
     pot_timer = now;
+    updateRingsControl();
   }
 
   displayUpdate();
 
+}
 
+void updateRingsControl() {
+  float   *trig_in; // = IN(1);
+  float   voct_in = pitch_in * 1.0f; // IN0(2);
+  float   struct_in = harm_in; // IN0(3);
+  float   bright_in = timbre_in; // IN0(4);
+
+  float   damp_in = morph_in; // IN0(5);
+
+  float   pos_in = 0.2f ; //IN0(6); was .25
+
+  short   model = engine_in; // IN0(7);
+  short   polyphony = 3; // IN0(8);
+  bool    intern_exciter = true; // (IN0(9) > 0.f);
+  bool    easter_egg = easterEgg; // (IN0(10) > 0.f);
+  bool    bypass = false; // (IN0(11) > 0.f);
+
+  //float *out1 = OUT(0);
+  //float *out2 = OUT(1);
+
+  rings::Patch *patch = &voices[0].patch;
+  rings::PerformanceState *ps = &voices[0].performance_state;
+
+  // float   *in = voices[0].input;
+  size_t  size = rings::kMaxBlockSize;
+
+  // check input rates for excitation input
+/*
+  if ( timb_mod > 0.0f ) { // input on CV3
+    //std::copy(&in[0], &in[inNumSamples], &input[0]);
+    //std::copy(CV1_buffer[0], CV1_buffer[32], voices[0].input[0]);
+    // intern_exciter should be off, but user can override
+    voices[0].input = CV1_buffer;
+    ps->internal_exciter = intern_exciter;
+  }
+  else {
+    // if there's no audio input, set input to zero...
+    voices[0].input = voices[0].silence;
+    // ... and use internal exciter!
+    ps->internal_exciter = true;
+  }
+*/
+
+  
+    voices[0].input = voices[0].silence;
+
+    // ... and use internal exciter!
+    ps->internal_exciter = true;
+  
+
+  /* ignore input // from the original
+    for (size_t i = 0; i < size; ++i) {
+    float in_sample = static_cast<float>(input[i].r) / 32768.0f;
+    float error, gain;
+    error = in_sample * in_sample - in_level;
+    in_level += error * (error > 0.0f ? 0.1f : 0.0001f);
+    gain = in_level <= kNoiseGateThreshold
+         ? (1.0f / kNoiseGateThreshold) * in_level : 1.0f;
+    in[i] = gain * in_sample;
+    }*/
+
+
+
+
+  // set resonator model
+  CONSTRAIN(model, 0, 5);
+  voices[0].part.set_model(static_cast<rings::ResonatorModel>(model));
+  voices[0].string_synth.set_fx(static_cast<rings::FxType>(model));
+
+  // set polyphony
+  if (polyphony != voices[0].prev_poly) {
+    CONSTRAIN(polyphony, 1, 4);
+    voices[0].part.set_polyphony(polyphony);
+    voices[0].string_synth.set_polyphony(polyphony);
+    voices[0].prev_poly = polyphony;
+  }
+
+  // set pitch
+  CONSTRAIN(voct_in, 0.f, 114.f);
+  ps->tonic = 12.f;
+  ps->note = voct_in;
+
+
+  // set params
+  CONSTRAIN(struct_in, 0.0f, 1.0f);    //0.9995f
+  patch->structure = struct_in;
+
+  float chord = struct_in * (rings::kNumChords - 1);
+  voices[0].performance_state.chord = roundf(chord);
+
+  CONSTRAIN(bright_in, 0.0f, 1.0f);
+  patch->brightness = bright_in;
+
+  CONSTRAIN(damp_in, 0.0f, 1.0f);
+  patch->damping = damp_in;
+
+  CONSTRAIN(pos_in, 0.0f, 1.0f);
+  patch->position = pos_in;
+
+  // check trigger input
+
+  bool trig = false;
+  bool prev_trig = voices[0].prev_trig;
+  trig = (trigger_in > 0.f);
+
+  if (trig) {
+    if (!prev_trig) {
+      ps->strum = true;
+    }    else {
+      ps->strum = false;
+    }
+  }
+  voices[0].prev_trig = trig;
+
+  voices[0].part.set_bypass(bypass);
 
 }
