@@ -68,7 +68,7 @@ void updateRingsAudio() {
   }
 
   for (size_t i = 0; i < size; ++i) {
-    out_bufferL[i] = (int16_t)( ( instance[0].out[i] + 0.1f ) * 32768.0f); // the .1 is gainwhich should be done elsewhere.
+    out_bufferL[i] = (int16_t)( ( instance[0].out[i] + 0.11f ) * 32768.0f); // the .11 is gainwhich should be done elsewhere.
     //out_bufferL[i] = stmlib::Clip16(static_cast<int32_t>(instance[0].out[i] * 32768.0f)); // was obuff
     //abuff[i] = stmlib::Clip16(static_cast<int16_t>(aux[i] * 32768.0f));
   }

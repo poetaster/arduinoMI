@@ -77,12 +77,28 @@ void updateBraidsAudio() {
   //osc->set_pitch( ( pitch_in - pitch_adj)  + pitch_fm ); // << 7);
   osc->set_pitch( (int)pitch_in << 7);
 
-  int16_t timbre = timbre_in + timb_mod;
+  
+  float modulation;
+  
+  if (timb_mod < 0.05) {
+    modulation = 1.0f;
+  } else {
+    modulation = timb_mod;
+  }
+  float timbre = (timbre_in * modulation);
   CONSTRAIN(timbre, 0.0f, 1.0f);
-  timbre = timbre * 32767;
-  int16_t morph = morph_in + morph_mod;
+
+  if (morph_mod < 0.05) {
+    modulation = 1.0f;
+  } else {
+    modulation = morph_mod;
+  }
+  float morph = (morph_in * modulation);
   CONSTRAIN(morph, 0.0f, 1.0f);
-  morph = morph * 32767;
+  
+  // this is the scale used in braids
+  timbre = timbre * 32767.0f;
+  morph = morph * 32767.0f;
 
   osc->set_parameters(timbre, morph);
 

@@ -88,15 +88,41 @@ void updatePlaitsAudio() {
 }
 
 void updatePlaitsControl() {
+  
+  float modulation;
+  
+  if (timb_mod < 0.05) {
+    modulation = 1.0f;
+  } else {
+    modulation = timb_mod;
+  }
+  float timbre = (timbre_in * modulation);
+  CONSTRAIN(timbre, 0.0f, 1.0f);
+
+  if (morph_mod < 0.05) {
+    modulation = 1.0f;
+  } else {
+    modulation = morph_mod;
+  }
+  float morph = (morph_in * modulation);
+  CONSTRAIN(morph, 0.0f, 1.0f);
+
+  if (pos_mod < 0.05) {
+    modulation = 1.0f;
+  } else {
+    modulation = pos_mod;
+  }
+  float harm = (harm_in * modulation);
+  CONSTRAIN(harm, 0.0f, 1.0f);
+  
   voices[0].patch.engine = engine_in;
   voices[0].patch.note = pitch_in;
-  voices[0].patch.harmonics = harm_in;
-  voices[0].patch.morph = morph_in;
-  voices[0].patch.timbre = timbre_in;
-
+  voices[0].patch.harmonics = harm;
+  voices[0].patch.morph = morph;
+  voices[0].patch.timbre = timbre;
   voices[0].patch.timbre_modulation_amount = timb_mod;
   voices[0].patch.morph_modulation_amount = morph_mod;
-
+    
   /*
     voices[0].octave_ = octave_in;
      voices[0].patch.decay = 0.5f;
