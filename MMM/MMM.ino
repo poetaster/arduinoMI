@@ -39,13 +39,18 @@ double median(std::vector<int>& numbers) {
   return n % 2 == 0 ? (numbers[n / 2 - 1] + numbers[n / 2]) / 2.0 : numbers[n / 2];
 }
 
+float mapf(float value, float fromLow, float fromHigh, float toLow, float toHigh) {
+  float result;
+  result = (value - fromLow) * (toHigh - toLow) / (fromHigh - fromLow) + toLow;
+  return result;
+}
 
 
 // volts to octave for 3.3 volts
 // based onhttps://little-scale.blogspot.com/2018/05/pitch-cv-to-frequency-conversion-via.html
 float data;
 float pitch;
-float pitch_offset = 12;
+float pitch_offset = -8;
 float freq;
 
 float max_voltage_of_adc = 3.3;
@@ -252,6 +257,7 @@ bool button_state = true;
 
 int32_t previous_pitch = 4000;
 
+bool just_booting = true;
 
 void setup() {
   if (debug) {
@@ -385,9 +391,15 @@ void setup1() {
 // second core deals with ui / control rate updates
 void loop1() {
 
+  
   btn_one.update();
   btn_two.update();
-
+  
+  // at boot permit octave down
+  if (just_booting && btn_one.pressed()) {
+    pitch_offset = -20;
+    just_booting = false;
+  }
 
   int32_t now = millis();
   if ( now - update_timer > 6 ) {
@@ -411,6 +423,7 @@ void loop1() {
 
 
 void read_buttons() {
+  
   bool doublePressMode = false;
   if (btn_one.pressed() && btn_two.pressed()) {
     // rings easter egg mode/ fm engine.
@@ -432,23 +445,23 @@ void read_buttons() {
       voice_number++;
       if (voice_number > 2) voice_number = 0;
       if (voice_number == 0) {
-        engine_in = engine_in%17; 
+        engine_in = engine_in % 17;
         max_engines = 16;
-        
+
       } else if (voice_number == 1) {
         max_engines = 5;
-        engine_in = engine_in%6; 
-        
-      } else if (voice_number == 2 ){
-        engine_in = engine_in%47; 
-        max_engines = 46;
+        engine_in = engine_in % 6;
+
+      } else if (voice_number == 2 ) {
+        engine_in = engine_in % 46;
+        max_engines = 45;
       }
     }
   }
 }
 
 float voct_midiBraids(int cv_in) {
-  
+
   int val = 0;
   for (int j = 0; j < cv_avg; ++j) val += analogRead(cv_in); // read the A/D a few times and average for a more stable value
   val = val / cv_avg;
@@ -457,21 +470,24 @@ float voct_midiBraids(int cv_in) {
 }
 
 void voct_midi(int cv_in) {
+
   int val = 0;
   for (int j = 0; j < cv_avg; ++j) val += analogRead(cv_in); // read the A/D a few times and average for a more stable value
   val = val / cv_avg;
   data = (float) val * 1.0f;
   pitch = pitch_offset + map(data, 0.0, 4095.0, mapping_upper_limit, 0.0); // convert pitch CV data value to a MIDI note number
 
-
+  pitch_in = pitch;
   // well, it sucks :)
-  if (pitch > 82) {
+  /*
+    if (pitch > 82) {
     pitch_in = pitch - 7;
-  } else if (pitch < 38) {
+    } else if (pitch < 38) {
     pitch_in = pitch - 9;
-  } else {
+    } else {
     pitch_in = pitch - 8;
-  }
+    }
+  */
 
   // this is a temporary move to get around clicking on trigger + note cv in
   if (pitch != previous_pitch) {
@@ -499,6 +515,7 @@ void read_cv() {
 
   // this should be worked out into calls for the engines instead of conditionals ....
 
+
   int16_t timbre = analogRead(CV3);
   timb_mod = (float)timbre / 4095.0f;
 
@@ -510,28 +527,30 @@ void read_cv() {
 
   if (voice_number == 0) {
     // plaits
-    if (timb_mod > 0.02f) {
-      if (debug) Serial.println(timb_mod);
-      voices[0].modulations.timbre_patched = true;
+    if (timb_mod > 0.01f) {
+      //timb_mod = mapf(timb_mod, 0.02f, 1.0f, -1.0f, 1.0f);
+
+      //voices[0].modulations.timbre_patched = true;
 
     } else {
-      voices[0].modulations.timbre_patched = false;
-    }
-    if (morph_mod > 0.02f ) {
-      if (debug) Serial.println(morph_mod);
-      voices[0].modulations.morph_patched = true;
-    } else {
-      voices[0].modulations.morph_patched = false;
+      //voices[0].modulations.timbre_patched = false;
     }
 
+    if (morph_mod > 0.01f ) {
+      //morph_mod = mapf(morph_mod, 0.02f, 1.0f, -1.0f, 1.0f);
+      //voices[0].modulations.morph_patched = true;
+    } else {
+      //voices[0].modulations.morph_patched = false;
+    }
   }
 
-  if (voice_number == 1 && timb_mod > 0.15f) {
+  if (voice_number == 1 && timb_mod > 0.05f) {
     //rings
     for (size_t i = 0; i < 32; ++i) {
       CV1_buffer[i] = (float) ( analogRead(CV3) / 4095.0f) + 1.0f; // arbitrary +1 gain
     }
   }
+
 
 }
 // either avg or median, both suck :)
@@ -557,12 +576,13 @@ void read_encoders() {
     enc1_delta = (enc1_pos - enc1_pos_last) ;
   }
 
-  if (enc1_delta) {
-    float turn = ( enc1_delta * 0.01f ) + timbre_in;
-    CONSTRAIN(turn, 0.f, 1.0f)
-    if (debug) Serial.println(turn);
-    timbre_in = turn;
+  if ( enc1_delta && ! btn_one.pressed() ) {
+      float turn = ( enc1_delta * 0.01f ) + timbre_in;
+      CONSTRAIN(turn, 0.f, 1.0f)
+      if (debug) Serial.println(turn);
+      timbre_in = turn; 
   }
+
 
   /// only set new pos last after buttons have had a chance to use the delta
   enc1_delta = 0;
