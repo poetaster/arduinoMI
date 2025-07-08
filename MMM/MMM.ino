@@ -25,6 +25,7 @@ bool debug = false;
 #include <PWMAudio.h>
 #define SAMPLERATE 48000
 #define PWMOUT 22
+#define PWMOUT2 30
 PWMAudio DAC(PWMOUT);  // 16 bit PWM audio
 
 // utility
@@ -50,7 +51,7 @@ float mapf(float value, float fromLow, float fromHigh, float toLow, float toHigh
 // based onhttps://little-scale.blogspot.com/2018/05/pitch-cv-to-frequency-conversion-via.html
 float data;
 float pitch;
-float pitch_offset = -8;
+float pitch_offset = -20;
 float freq;
 
 float max_voltage_of_adc = 3.3;
@@ -188,6 +189,7 @@ bool TimerHandler0(struct repeating_timer *t) {
   if ( DAC.availableForWrite()) {
     for (size_t i = 0; i < 32; i++) {
       DAC.write( out_bufferL[i]);
+      //DAC.write( out_bufferR[i]);
     }
 
     counter = 1;
@@ -397,7 +399,7 @@ void loop1() {
   
   // at boot permit octave down
   if (just_booting && btn_one.pressed()) {
-    pitch_offset = -20;
+    pitch_offset = -32;
     just_booting = false;
   }
 
@@ -493,22 +495,24 @@ void voct_midi(int cv_in) {
   if (pitch != previous_pitch) {
     previous_pitch = pitch;
     // this is the plaits version
-    if (voice_number == 0) updateVoicetrigger();
+    
   }
 }
 
 void read_trigger() {
   int16_t trig = analogRead(CV2);
-  if (trig > 2048 ) {
-    trigger_in = 1.0f;
+  if (trig > 1024 ) {
+    trigger_in = 1.0f;  
+    
   } else  {
     //don't turn off here?
     trigger_in = 0.0f;
   }
 
-  //updateVoicetrigger();
+  if (voice_number == 0) updateVoicetrigger();
 
 }
+
 void read_cv() {
   // CV updates
   // braids wants 0 - 32767, plaits 0-1

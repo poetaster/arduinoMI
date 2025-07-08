@@ -84,6 +84,7 @@ void updatePlaitsAudio() {
   voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
   for (size_t i = 0; i < plaits::kBlockSize; i++) {
     out_bufferL[i] = outputPlaits[i].out ;
+    //out_bufferR[i] = outputPlaits[i].aux ;
   }
 }
 
@@ -135,7 +136,7 @@ void updateVoicetrigger() {
   trigger_in = 1.0f; //retain for cv only input?
   //if (debug) Serial.println(pitch);
 
-  bool trigger = (trigger_in == 1.0f);
+  bool trigger = (trigger_in > 0.0f);
   bool trigger_flag = (trigger && (!voices[0].last_trig));
   voices[0].last_trig = trigger;
 
@@ -143,6 +144,7 @@ void updateVoicetrigger() {
     voices[0].modulations.trigger_patched = true;
   } else {
     voices[0].modulations.trigger_patched = false;
+   
   }
   trigger_in = 0.0f;
 }

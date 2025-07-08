@@ -109,11 +109,13 @@ void updateBraidsAudio() {
   osc->set_shape(static_cast<braids::MacroOscillatorShape>(shape));
 
 
-  bool trigger = (trigger_in > 0.f);
+  bool trigger = (trigger_in > 0.0f);
   bool trigger_flag = (trigger && (!inst[0].last_trig));
 
-  if (trigger_flag)
+  if (trigger_flag) {
     osc->Strike();
+    
+  }
 
   inst[0].last_trig = trigger;
 
@@ -122,6 +124,7 @@ void updateBraidsAudio() {
   // copy to output buffer
   for (int count = 0; count < 32; count++) {
     out_bufferL[count] = inst[0].pd.buffer[count];
+    //out_bufferR[count] = inst[0].pd.buffer[count];
   }
 
 }

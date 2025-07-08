@@ -39,6 +39,23 @@ void updateRingsAudio() {
 
   size_t  size = rings::kMaxBlockSize;
 
+
+  // only do trigger actions if we are in focus.
+
+
+  bool trigger = (trigger_in > 0.0f);
+  bool trigger_flag = (trigger && (!instance[0].prev_trig));
+
+
+  if ( trigger_flag) {
+    ps->strum = true;
+  } else {
+    ps->strum = false;
+
+  }
+
+  instance[0].prev_trig = trigger;
+
   if (easterEgg) {
     // vbs
     /*for(int count=0; count<inNumSamples; count+=size) {
@@ -68,9 +85,12 @@ void updateRingsAudio() {
   }
 
   for (size_t i = 0; i < size; ++i) {
-    out_bufferL[i] = (int16_t)( ( instance[0].out[i] + 0.11f ) * 32768.0f); // the .11 is gainwhich should be done elsewhere.
+    out_bufferL[i] =   stmlib::Clip16(static_cast<int32_t>((instance[0].out[i] + instance[0].aux[i] ) * 32768.0f)); 
+    
+    //out_bufferR[i] = (int16_t)( ( instance[0].aux[i] + 0.11f ) * 32768.0f); // the .11 is gainwhich should be done by calibration.
+    
     //out_bufferL[i] = stmlib::Clip16(static_cast<int32_t>(instance[0].out[i] * 32768.0f)); // was obuff
-    //abuff[i] = stmlib::Clip16(static_cast<int16_t>(aux[i] * 32768.0f));
+
   }
 
 
@@ -163,19 +183,6 @@ void updateRingsControl() {
 
   // check trigger input
 
-  bool trig = false;
-  bool prev_trig = instance[0].prev_trig;
-  trig = (trigger_in > 0.f);
-
-  if (trig) {
-    if (!prev_trig) {
-      ps->strum = true;
-    }    else {
-      ps->strum = false;
-    }
-  }
-  instance[0].prev_trig = trig;
-
   instance[0].part.set_bypass(bypass);
 
 }
@@ -210,12 +217,12 @@ void initRings() {
   instance[0].part.Init(instance[0].reverb_buffer);
   instance[0].string_synth.Init(instance[0].reverb_buffer);
 
-  instance[0].part.set_polyphony(1);
+  instance[0].part.set_polyphony(3);
   instance[0].part.set_model(rings::RESONATOR_MODEL_MODAL);
 
-  instance[0].string_synth.set_polyphony(1);
+  instance[0].string_synth.set_polyphony(3);
   instance[0].string_synth.set_fx(rings::FX_FORMANT);
-  instance[0].prev_poly = 0;
+  instance[0].prev_poly = 2;
 
   instance[0].performance_state.fm = 0.f;       // TODO: fm not used, maybe later...
   instance[0].prev_trig = false;
@@ -225,6 +232,7 @@ void initRings() {
 
   // let's see
   instance[0].performance_state.internal_strum = false;
+  
   updateRingsAudio() ;
 
   // check input rates
