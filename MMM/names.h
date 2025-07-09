@@ -27,6 +27,15 @@ const char* const modelnames[] = {
   "SYMPATHETIC_STRING_Q",
   "STRING_AND_REVERB"
 };
+ 
+const char* const FXnames[] = {
+  "FX_FORMANT",
+  "FX_CHORUS",
+  "FX_REVERB",
+  "FX_FORMANT",
+  "FX_ENSEMBLE",
+  "FX_REVERB"
+};
 
 const size_t modelslength = sizeof(modelnames) / sizeof(modelnames[0]);
 

@@ -33,62 +33,32 @@ void updateRingsAudio() {
   rings::Patch *patch = &instance[0].patch;
   rings::PerformanceState *ps = &instance[0].performance_state;
 
-  //float   *in = instance[0].input;
-  //float   *out = instance[0].out;
-  //float   *aux = instance[0].aux;
-
   size_t  size = rings::kMaxBlockSize;
 
-
   // only do trigger actions if we are in focus.
-
-
   bool trigger = (trigger_in > 0.0f);
   bool trigger_flag = (trigger && (!instance[0].prev_trig));
-
-
   if ( trigger_flag) {
     ps->strum = true;
   } else {
     ps->strum = false;
-
   }
-
   instance[0].prev_trig = trigger;
 
   if (easterEgg) {
-    // vbs
-    /*for(int count=0; count<inNumSamples; count+=size) {
-
-        instance[0].strummer.Process(NULL, size, ps);
-        instance[0].string_synth.Process(*ps, *patch,
-                               input+count, out1+count, out2+count, size);
-      }*/
-    /* ignore input
-        for (size_t i = 0; i < size; ++i) {
-       in[i] = static_cast<float>(input[i].r) / 32768.0f;
-      }
-    */
     instance[0].strummer.Process(NULL, size, ps);
     instance[0].string_synth.Process(*ps, *patch, instance[0].silence, instance[0].out, instance[0].aux, size);
   }
   else {
-
-    /* vbs
-      for (int count = 0; count < inNumSamples; count += size) {
-      instance[0].strummer.Process(input + count, size, ps);
-      instance[0].part.Process(*ps, *patch,
-                         input + count, out1 + count, out2 + count, size);
-      }*/
     instance[0].strummer.Process(instance[0].input, size, ps);
     instance[0].part.Process(*ps, *patch, instance[0].input, instance[0].out, instance[0].aux, size);
   }
 
   for (size_t i = 0; i < size; ++i) {
-    out_bufferL[i] =   stmlib::Clip16(static_cast<int32_t>((instance[0].out[i] + instance[0].aux[i] ) * 32768.0f)); 
-    
+    // we're reducing to mono for now.
+      out_bufferL[i] =   stmlib::Clip16(static_cast<int32_t>((instance[0].out[i] + instance[0].aux[i] ) * 32768.0f));
+      
     //out_bufferR[i] = (int16_t)( ( instance[0].aux[i] + 0.11f ) * 32768.0f); // the .11 is gainwhich should be done by calibration.
-    
     //out_bufferL[i] = stmlib::Clip16(static_cast<int32_t>(instance[0].out[i] * 32768.0f)); // was obuff
 
   }
@@ -99,11 +69,10 @@ void updateRingsAudio() {
 void updateRingsControl() {
   float   *trig_in; // = IN(1);
   float   voct_in = pitch_in * 1.0f;
+
   float   struct_in = harm_in;
   float   bright_in = timbre_in;
-
   float   damp_in = morph_in;
-
   float   pos_in = pos_mod;
 
   short   model = engine_in;
@@ -145,7 +114,7 @@ void updateRingsControl() {
     }*/
 
 
-
+  if (engine_in == 3) polyphony = 1;
 
   // set resonator model
   CONSTRAIN(model, 0, 5);
@@ -182,7 +151,7 @@ void updateRingsControl() {
   patch->position = pos_in;
 
   // check trigger input
-
+  //
   instance[0].part.set_bypass(bypass);
 
 }
@@ -232,7 +201,7 @@ void initRings() {
 
   // let's see
   instance[0].performance_state.internal_strum = false;
-  
+
   updateRingsAudio() ;
 
   // check input rates

@@ -56,13 +56,19 @@ void displayUpdate() {
   // // name
   display.setCursor(bpm_text_pos.x, bpm_text_pos.y);
   display.print(" ");
+
   if (voice_number == 0) {
     display.print(oscnames[engine_in]);
   } else if (voice_number == 1) {
-    display.print(modelnames[engine_in]);
+    if (easterEgg) {
+      display.print(FXnames[engine_in]);
+    } else {
+      display.print(modelnames[engine_in]);
+    }
   } else if (voice_number == 2) {
     display.print(braidsnames[engine_in]);
-  }  
+  }
+
   //display.setCursor(trans_text_pos.x, trans_text_pos.y);
   //display.print(oscnames[engine_in]);
 

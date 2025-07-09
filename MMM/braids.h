@@ -113,8 +113,7 @@ void updateBraidsAudio() {
   bool trigger_flag = (trigger && (!inst[0].last_trig));
 
   if (trigger_flag) {
-    osc->Strike();
-    
+    osc->Strike();    
   }
 
   inst[0].last_trig = trigger;

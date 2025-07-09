@@ -58,7 +58,7 @@ float max_voltage_of_adc = 3.3;
 float voltage_division_ratio = 0.3333333333333;
 float notes_per_octave = 12;
 float volts_per_octave = 1;
-float mapping_upper_limit = (max_voltage_of_adc / voltage_division_ratio) * notes_per_octave * volts_per_octave;
+float mapping_upper_limit = 119; //(max_voltage_of_adc / voltage_division_ratio) * notes_per_octave * volts_per_octave;
 
 
 // encoder related // 2,3 8,9
@@ -89,7 +89,7 @@ PioEncoder enc3(8);
 #define CV8 (47u)
 
 int cv_ins[8] = {CV1, CV2, CV3, CV4, CV5, CV6, CV7, CV8};
-int cv_avg = 30;
+int cv_avg = 3;
 
 // buffer for input to rings exciter
 float CV1_buffer[32];
@@ -393,19 +393,19 @@ void setup1() {
 // second core deals with ui / control rate updates
 void loop1() {
 
-  
+
   btn_one.update();
   btn_two.update();
-  
+
   // at boot permit octave down
   if (just_booting && btn_one.pressed()) {
     pitch_offset = -32;
     just_booting = false;
   }
 
-  int32_t now = millis();
-  if ( now - update_timer > 6 ) {
 
+  int32_t now = millis();
+  if ( now - update_timer > 4 ) {
     voct_midi(CV1);
     read_trigger();
     read_cv();
@@ -425,7 +425,7 @@ void loop1() {
 
 
 void read_buttons() {
-  
+
   bool doublePressMode = false;
   if (btn_one.pressed() && btn_two.pressed()) {
     // rings easter egg mode/ fm engine.
@@ -472,7 +472,7 @@ float voct_midiBraids(int cv_in) {
 }
 
 void voct_midi(int cv_in) {
-
+  // this seems sufficient with 3 reads.
   int val = 0;
   for (int j = 0; j < cv_avg; ++j) val += analogRead(cv_in); // read the A/D a few times and average for a more stable value
   val = val / cv_avg;
@@ -480,36 +480,27 @@ void voct_midi(int cv_in) {
   pitch = pitch_offset + map(data, 0.0, 4095.0, mapping_upper_limit, 0.0); // convert pitch CV data value to a MIDI note number
 
   pitch_in = pitch;
-  // well, it sucks :)
-  /*
-    if (pitch > 82) {
-    pitch_in = pitch - 7;
-    } else if (pitch < 38) {
-    pitch_in = pitch - 9;
-    } else {
-    pitch_in = pitch - 8;
-    }
-  */
 
   // this is a temporary move to get around clicking on trigger + note cv in
   if (pitch != previous_pitch) {
     previous_pitch = pitch;
     // this is the plaits version
-    
+
   }
 }
 
 void read_trigger() {
   int16_t trig = analogRead(CV2);
-  if (trig > 1024 ) {
-    trigger_in = 1.0f;  
-    
+  if (trig > 2048 ) {
+    trigger_in = 1.0f;
+    if (voice_number == 0) updateVoicetrigger();
+
   } else  {
     //don't turn off here?
     trigger_in = 0.0f;
   }
 
-  if (voice_number == 0) updateVoicetrigger();
+
 
 }
 
@@ -581,10 +572,10 @@ void read_encoders() {
   }
 
   if ( enc1_delta && ! btn_one.pressed() ) {
-      float turn = ( enc1_delta * 0.01f ) + timbre_in;
-      CONSTRAIN(turn, 0.f, 1.0f)
-      if (debug) Serial.println(turn);
-      timbre_in = turn; 
+    float turn = ( enc1_delta * 0.01f ) + timbre_in;
+    CONSTRAIN(turn, 0.f, 1.0f)
+    if (debug) Serial.println(turn);
+    timbre_in = turn;
   }
 
 
