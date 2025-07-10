@@ -55,6 +55,7 @@ void displayUpdate() {
 
   // // name
   display.setCursor(bpm_text_pos.x, bpm_text_pos.y);
+  display.print(pitch_in);
   display.print(" ");
 
   if (voice_number == 0) {

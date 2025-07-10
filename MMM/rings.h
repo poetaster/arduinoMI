@@ -89,7 +89,7 @@ void updateRingsControl() {
 
   // check input rates for excitation input
 
-  if ( timb_mod > 0.15f ) {
+  if ( timb_mod > 0.08f ) {
     // input on CV3
     // intern_exciter should be off, but user can override
     instance[0].input = CV1_buffer;
@@ -114,7 +114,7 @@ void updateRingsControl() {
     }*/
 
 
-  if (engine_in == 3) polyphony = 1;
+  if (engine_in == 3 && !easterEgg) polyphony = 1; // the 2op fm freaks out with higher polyphony
 
   // set resonator model
   CONSTRAIN(model, 0, 5);
@@ -186,12 +186,12 @@ void initRings() {
   instance[0].part.Init(instance[0].reverb_buffer);
   instance[0].string_synth.Init(instance[0].reverb_buffer);
 
-  instance[0].part.set_polyphony(3);
+  instance[0].part.set_polyphony(2);
   instance[0].part.set_model(rings::RESONATOR_MODEL_MODAL);
 
-  instance[0].string_synth.set_polyphony(3);
+  instance[0].string_synth.set_polyphony(2);
   instance[0].string_synth.set_fx(rings::FX_FORMANT);
-  instance[0].prev_poly = 2;
+  instance[0].prev_poly = 1;
 
   instance[0].performance_state.fm = 0.f;       // TODO: fm not used, maybe later...
   instance[0].prev_trig = false;
