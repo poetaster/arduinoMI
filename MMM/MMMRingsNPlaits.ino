@@ -51,15 +51,15 @@ float mapf(float value, float fromLow, float fromHigh, float toLow, float toHigh
 // based onhttps://little-scale.blogspot.com/2018/05/pitch-cv-to-frequency-conversion-via.html
 float data;
 float pitch;
-float pitch_offset = 8;
+float pitch_offset = 2;
 float freq;
 
 float max_voltage_of_adc = 3.3;
 float voltage_division_ratio = 0.3333333333333;
 float notes_per_octave = 12;
 float volts_per_octave = 1;
-float mapping_upper_limit = 119; //(max_voltage_of_adc / voltage_division_ratio) * notes_per_octave * volts_per_octave;
-float mapping_lower_limit = 0;
+float mapping_upper_limit = 120; //(max_voltage_of_adc / voltage_division_ratio) * notes_per_octave * volts_per_octave;
+float mapping_lower_limit = 0.0;
 
 
 // encoder related // 2,3 8,9
@@ -388,6 +388,8 @@ void setup() {
   update_timer = millis();
   button_timer = millis();
   just_booting = true;
+  btn_one.update();
+  btn_two.update();
 }
 
 
@@ -404,6 +406,8 @@ void loop() {
     }
     counter = 0; // increments on each pass of the timer when the timer writes
   }
+
+
 }
 
 
@@ -415,17 +419,15 @@ void setup1() {
 // second core deals with ui / control rate updates
 void loop1() {
 
-
+  // we need these on boot so the second loop can catch the startup button.
   btn_one.update();
   btn_two.update();
-
+  
   // at boot permit octave down
   if (just_booting && btn_one.pressed()) {
-    pitch_offset = 36;
-    mapping_lower_limit = 24;
-    mapping_upper_limit = 72;
-    
+    pitch_offset = 24;
   }
+  
   just_booting = false;
   
   unsigned long now = millis();
@@ -459,7 +461,7 @@ void read_buttons() {
     btnOneLastTime = btn_one.previousDuration();
     if (btnOneLastTime > 250 && voice_number == 1) easterEgg = !easterEgg;
   }
-  
+
   if (btn_two.rose()) {
     btnTwoLastTime = btn_two.previousDuration();
   }
@@ -547,10 +549,8 @@ void voct_midi(int cv_in) {
   val = val / cv_avg;
   data = (float) val * 1.0f;
   pitch = map(data, 0.0, 4095.0, mapping_upper_limit, mapping_lower_limit); // convert pitch CV data value to a MIDI note number
- 
+
   pitch = pitch - pitch_offset;
-  
-  CONSTRAIN(pitch, mapping_lower_limit, mapping_upper_limit);
   
   pitch_in = pitch;
 
@@ -644,7 +644,7 @@ void read_encoders() {
     enc1_delta = (enc1_pos - enc1_pos_last) ;
   }
 
-  if ( enc1_delta && ! btn_one.pressed() ) {
+  if ( enc1_delta) {
     float turn = ( enc1_delta * 0.01f ) + timbre_in;
     CONSTRAIN(turn, 0.f, 1.0f)
     if (debug) Serial.println(turn);
