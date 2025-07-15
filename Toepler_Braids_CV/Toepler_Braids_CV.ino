@@ -13,7 +13,7 @@
   #define CV3 (28u)
 
 */
-bool debug = true;
+bool debug = false;
 
 #include <Arduino.h>
 #include "stdio.h"
@@ -28,7 +28,7 @@ long midiTimer;
 
 float pitch;
 //float pitch_offset = 4;
-float pitch_offset =30;
+float pitch_offset =38;
 float freq;
 
 float max_voltage_of_adc = 3.3;
@@ -147,7 +147,7 @@ void voct_midi(int cv_in) {
 
   if (debug) Serial.println(pitch);
   
-  if (pitch > 63) pitch = pitch - 1; //adc correction
+  if (pitch > 68) pitch = pitch - 1; //adc correction
   
   pitch_in = pitch ;
   if (pitch != previous_pitch) { 

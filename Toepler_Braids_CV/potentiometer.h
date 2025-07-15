@@ -44,7 +44,7 @@ uint16_t readpot(uint8_t potnum) {
 
   for (int j = 0; j < POT_AVERAGING; ++j) { 
     int readA = analogRead(input); // read the A/D a few times and average for a more stable value
-    if (readA > 1904) readA = readA - 10;
+    if (readA > 2312) readA = readA - 10;
     val+= readA;
   }
   
