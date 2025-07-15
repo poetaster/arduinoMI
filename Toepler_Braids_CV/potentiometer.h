@@ -7,10 +7,10 @@
 //CV3
 //#define AIN3  29 // not available on standard Pico board
 
-#define POT_SAMPLE_TIME 10 // delay time between pot reads
-#define MIN_POT_CHANGE 15 // locked pot reading must change by this in order to register
-#define MIN_COUNTS 8  // unlocked pot must change by this in order to register
-#define POT_AVERAGING 16 // analog sample averaging count 
+#define POT_SAMPLE_TIME 5 // delay time between pot reads
+#define MIN_POT_CHANGE 1 // locked pot reading must change by this in order to register
+#define MIN_COUNTS 1  // unlocked pot must change by this in order to register
+#define POT_AVERAGING 15 // analog sample averaging count 
 #define POT_MIN 0   // A/D may not read min value of 0 so use a bit larger value for map() function
 #define POT_MAX 4095 // A/D may not read max value of 1023 so use a bit smaller value for map() function
 
@@ -42,7 +42,12 @@ uint16_t readpot(uint8_t potnum) {
   
   // note that Pikocore pots are wired "backwards" - max voltage is full ccw
 
-  for (int j = 0; j < POT_AVERAGING; ++j) val += (analogRead(input)); // read the A/D a few times and average for a more stable value
+  for (int j = 0; j < POT_AVERAGING; ++j) { 
+    int readA = analogRead(input); // read the A/D a few times and average for a more stable value
+    if (readA > 1904) readA = readA - 10;
+    val+= readA;
+  }
+  
   val = val / POT_AVERAGING;
   
   if (potlock[potnum]) {

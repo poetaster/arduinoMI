@@ -27,14 +27,17 @@ bool debug = true;
 long midiTimer;
 
 float pitch;
-float pitch_offset = 4;
+//float pitch_offset = 4;
+float pitch_offset =30;
 float freq;
 
 float max_voltage_of_adc = 3.3;
 float voltage_division_ratio = 0.3333333333333;
 float notes_per_octave = 12;
 float volts_per_octave = 1;
-float mapping_upper_limit = (max_voltage_of_adc / voltage_division_ratio) * notes_per_octave * volts_per_octave;
+float mapping_upper_limit = 120; // (max_voltage_of_adc / voltage_division_ratio) * notes_per_octave * volts_per_octave;
+float mapping_lower_limit = 0.0;
+
 
 /*
   struct Serial1MIDISettings : public midi::DefaultSettings
@@ -135,12 +138,29 @@ void HandleNoteOff(byte channel, byte note, byte velocity) {
   //digitalWrite(LED, LOW);
 }
 
-float voct_midi(int cv_in) {
+void voct_midi(int cv_in) {
   
-  pitch = map(potvalue[2], 0.0, 4095.0, mapping_upper_limit, 0.0); // convert pitch CV data value to a MIDI note number
-  return pitch - 37; // don't know why, probably tuned to A so -5 + -36 to drop two octaves
+
+  pitch = map(potvalue[cv_in], 0.0, 4095.0, mapping_upper_limit, 0.0); // convert pitch CV data value to a MIDI note number
+  
+  pitch = pitch - pitch_offset; // pitch offset drops this octaves down
+
+  if (debug) Serial.println(pitch);
+  
+  if (pitch > 63) pitch = pitch - 1; //adc correction
+  
+  pitch_in = pitch ;
+  if (pitch != previous_pitch) { 
+    trigger_in = 0.0f;  
+    previous_pitch = pitch;
+    trigger_in = 1.0f; //retain for cv only input?
+  }
 
 }
+
+
+
+
 void setup() {
 
   if (debug) {
@@ -247,13 +267,8 @@ void loop1() {
   // fm / pitch updates
   //int16_t  pitch = map(potvalue[2], POT_MIN, POT_MAX, 127, 0); // convert pitch CV data value to valid range
  
-  pitch = voct_midi(2);
-  pitch_in = pitch ;
-  if (pitch != previous_pitch) { 
-    trigger_in = 0.0f;  
-    previous_pitch = pitch;
-    trigger_in = 1.0f; //retain for cv only input?
-  }
+  voct_midi(2);
+
 
   button.update();
   if ( button.pressed() ) {
@@ -269,6 +284,7 @@ void loop1() {
     readpot(0);
     readpot(1);
     readpot(2);
+
 
 
     pot_timer = now;
