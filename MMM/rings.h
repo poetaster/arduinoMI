@@ -55,11 +55,11 @@ void updateRingsAudio() {
   }
 
   for (size_t i = 0; i < size; ++i) {
-    // we're reducing to mono for now.
-      out_bufferL[i] =   stmlib::Clip16(static_cast<int32_t>((instance[0].out[i] + instance[0].aux[i] ) * 32768.0f));
+    // we're reducing to mono for now. the stereo below does work..
+    out_bufferL[i] =   stmlib::Clip16(static_cast<int32_t>((instance[0].out[i] + instance[0].aux[i] ) * 32768.0f));
       
-    //out_bufferR[i] = (int16_t)( ( instance[0].aux[i] + 0.11f ) * 32768.0f); // the .11 is gainwhich should be done by calibration.
-    //out_bufferL[i] = stmlib::Clip16(static_cast<int32_t>(instance[0].out[i] * 32768.0f)); // was obuff
+    //out_bufferR[i] = stmlib::Clip16(static_cast<int32_t>((instance[0].aux[i]+.11) * 32768.0f)); // the .11 is gainwhich should be done by calibration.
+    //out_bufferL[i] = stmlib::Clip16(static_cast<int32_t>((instance[0].out[i]+.11) * 32768.0f)); // was obuff
 
   }
 

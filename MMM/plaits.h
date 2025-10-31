@@ -71,9 +71,9 @@ void initPlaits() {
 
   // start with no CV input
   voices[0].prev_trig = false;
-  voices[0].modulations.timbre_patched = false;  //(INRATE(3) != calc_ScalarRate);
-  voices[0].modulations.morph_patched = false;   // (INRATE(4) != calc_ScalarRate);
-  voices[0].modulations.trigger_patched = false; //(INRATE(5) != calc_ScalarRate);
+  voices[0].modulations.timbre_patched = true;  //(INRATE(3) != calc_ScalarRate);
+  voices[0].modulations.morph_patched = true;   // (INRATE(4) != calc_ScalarRate);
+  voices[0].modulations.trigger_patched = true; //(INRATE(5) != calc_ScalarRate);
   voices[0].modulations.level_patched = false;   // (INRATE(6) != calc_ScalarRate);
   // TODO: we don't have an fm input yet.
   voices[0].modulations.frequency_patched = false;
@@ -92,28 +92,19 @@ void updatePlaitsControl() {
   
   float modulation;
   
-  if (timb_mod < 0.05) {
-    modulation = 1.0f;
-  } else {
-    modulation = timb_mod;
-  }
-  float timbre = (timbre_in * modulation);
+  float timbre = (timbre_in + timb_mod);
   CONSTRAIN(timbre, 0.0f, 1.0f);
 
-  if (morph_mod < 0.05) {
-    modulation = 1.0f;
-  } else {
-    modulation = morph_mod;
-  }
-  float morph = (morph_in * modulation);
+  float morph = (morph_in + morph_mod);
   CONSTRAIN(morph, 0.0f, 1.0f);
+  
 
   if (pos_mod < 0.05) {
     modulation = 1.0f;
   } else {
     modulation = pos_mod;
   }
-  float harm = (harm_in * modulation);
+  float harm = (harm_in + pos_mod);
   CONSTRAIN(harm, 0.0f, 1.0f);
   
   voices[0].patch.engine = engine_in;
@@ -123,6 +114,7 @@ void updatePlaitsControl() {
   voices[0].patch.timbre = timbre;
   voices[0].patch.timbre_modulation_amount = timb_mod;
   voices[0].patch.morph_modulation_amount = morph_mod;
+  voices[0].patch.lpg_colour = lpg_in;
     
   /*
     voices[0].octave_ = octave_in;
@@ -137,10 +129,11 @@ void updateVoicetrigger() {
   voices[0].last_trig = trigger;
 
   if (trigger_flag) {
+    voices[0].modulations.trigger = 0.9f;
     voices[0].modulations.trigger_patched = true;
   } else {
     voices[0].modulations.trigger_patched = false;
-   
+    voices[0].modulations.trigger = 0.0f;
   }
   // seem to need to do this for plaits?
   trigger_in = 0.0f;

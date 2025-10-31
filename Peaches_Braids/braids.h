@@ -2,6 +2,41 @@
 
 // braids dsp
 
+const braids::SettingsData kInitSettings = {
+  braids::MACRO_OSC_SHAPE_CSAW,
+
+  braids::RESOLUTION_16_BIT,
+  braids::SAMPLE_RATE_96K,
+
+  0,  // AD->timbre
+  true,  // Trig source auto trigger
+  1,  // Trig delay
+  false,  // Meta modulation
+
+  braids::PITCH_RANGE_440,
+  2,
+  0,  // Quantizer is off
+  false,
+  false,
+  false,
+
+  2,  // Brightness
+  0,  // AD attack
+  5,  // AD decay
+  0,  // AD->FM
+  0,  // AD->COLOR
+  0,  // AD->VCA
+  0,  // Quantizer root
+
+  50,
+  15401,
+  2048,
+
+  { 0, 0 },
+  { 32768, 32768 },
+  "GREETINGS FROM MUTABLE INSTRUMENTS *EDIT ME*",
+};
+
 //const uint16_t decimation_factors[] = { 1, 2, 3, 4, 6, 12, 24 };
 const uint16_t bit_reduction_masks[] = {
   0xffff,
@@ -18,6 +53,7 @@ const uint16_t bit_reduction_masks[] = {
 #define     SAMP_SCALE          (float)(1.0 / 32756.0)
 
 
+braids::Envelope envelope;
 
 typedef struct
 {
@@ -79,6 +115,13 @@ void updateBraidsAudio() {
   int16_t *buffer = voices[0].pd.buffer;
   uint8_t *sync_buffer = voices[0].pd.sync_buffer;
   size_t  size = BLOCK_SIZE;
+  
+  envelope.Update(
+      0 * 8,
+      5 * 8);
+      
+  uint32_t ad_value = envelope.Render();
+
 
   braids::MacroOscillator *osc = voices[0].pd.osc;
   //int offset = 274 * 3; //1638
@@ -90,6 +133,7 @@ void updateBraidsAudio() {
   uint8_t shape = (int)(engine_in);
   if (shape >= braids::MACRO_OSC_SHAPE_LAST)
     shape -= braids::MACRO_OSC_SHAPE_LAST;
+    
   osc->set_shape(static_cast<braids::MacroOscillatorShape>(shape));
 
   bool trigger = (trigger_in != 0.0f);
@@ -98,6 +142,7 @@ void updateBraidsAudio() {
 
   if (trigger_flag) {
     osc->Strike();
+    envelope.Trigger(braids::ENV_SEGMENT_ATTACK);
   }
 
   // render
@@ -137,8 +182,8 @@ void initVoices() {
 
   voices[0].last_trig = false;
 
-  //voices[0].envelope = new braids::Envelope;
-  //voices[0].envelope->Init();
+  //envelope = new braids::Envelope;
+  envelope.Init();
 
   // get some samples initially
   updateBraidsAudio();
@@ -169,39 +214,3 @@ void initVoices() {
       }
   */
 }
-/*
-const braids::SettingsData kInitSettings = {
-  braids::MACRO_OSC_SHAPE_CSAW,
-
-  braids::RESOLUTION_16_BIT,
-  braids::SAMPLE_RATE_96K,
-
-  0,  // AD->timbre
-  true,  // Trig source auto trigger
-  1,  // Trig delay
-  false,  // Meta modulation
-
-  braids::PITCH_RANGE_440,
-  2,
-  0,  // Quantizer is off
-  false,
-  false,
-  false,
-
-  2,  // Brightness
-  0,  // AD attack
-  5,  // AD decay
-  0,  // AD->FM
-  0,  // AD->COLOR
-  0,  // AD->VCA
-  0,  // Quantizer root
-
-  50,
-  15401,
-  2048,
-
-  { 0, 0 },
-  { 32768, 32768 },
-  "GREETINGS FROM MUTABLE INSTRUMENTS *EDIT ME*",
-};
-*/
