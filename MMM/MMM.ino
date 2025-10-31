@@ -17,6 +17,8 @@ bool debug = false;
 #include "hardware/sync.h"
 #include <hardware/pwm.h>
 
+//#include <LittleFS.h>
+
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -27,6 +29,7 @@ bool debug = false;
 #define PWMOUT 22
 #define PWMOUT2 30
 PWMAudio DAC(PWMOUT);  // 16 bit PWM audio
+//PWMAudio DAC2(PWMOUT2);
 
 // utility
 double randomDouble(double minf, double maxf)
@@ -51,14 +54,15 @@ float mapf(float value, float fromLow, float fromHigh, float toLow, float toHigh
 // based onhttps://little-scale.blogspot.com/2018/05/pitch-cv-to-frequency-conversion-via.html
 float data;
 float pitch;
-float pitch_offset = -20;
+float pitch_offset = 36;
 float freq;
 
 float max_voltage_of_adc = 3.3;
 float voltage_division_ratio = 0.3333333333333;
 float notes_per_octave = 12;
 float volts_per_octave = 1;
-float mapping_upper_limit = 119; //(max_voltage_of_adc / voltage_division_ratio) * notes_per_octave * volts_per_octave;
+float mapping_upper_limit = 120; //(max_voltage_of_adc / voltage_division_ratio) * notes_per_octave * volts_per_octave;
+float mapping_lower_limit = 0.0;
 
 
 // encoder related // 2,3 8,9
@@ -89,7 +93,7 @@ PioEncoder enc3(8);
 #define CV8 (47u)
 
 int cv_ins[8] = {CV1, CV2, CV3, CV4, CV5, CV6, CV7, CV8};
-int cv_avg = 3;
+int cv_avg = 5;
 
 // buffer for input to rings exciter
 float CV1_buffer[32];
@@ -122,20 +126,35 @@ int voice_number = 0; // for switching  between modules
 
 // we are reusing the plaits nomenclature for all modules
 // Plaits modulation vars
-float morph_in = 0.7f; // IN(4);
+float morph_in = 0.6f; // IN(4);
 float trigger_in = 0.0f; //IN(5);
 float level_in = 0.0f; //IN(6);
 float harm_in = 0.5f;
-float timbre_in = 0.1f;
+float timbre_in = 0.5f;
 int engine_in;
 char engine_name;
+
+// these are the last settings per voice
+float plaits_morph = morph_in;
+float plaits_harm = harm_in;
+float plaits_timbre = timbre_in;
+int   plaits_engine = 0;
+float rings_morph = morph_in;
+float rings_harm = harm_in;
+float rings_timbre = timbre_in;
+float rings_pos = 0.0f;
+int   rings_engine = 0;
+float braids_timbre = timbre_in;
+float braids_morph = morph_in;
+int   braids_engine = 0;
+
 
 float fm_mod = 0.0f ; //IN(7);
 float timb_mod = 0.0f; //IN(8);
 float morph_mod = 0.0f; //IN(9);
 float decay_in = 0.5f; // IN(10);
 float lpg_in = 0.2f ;// IN(11);
-float pitch_in = 60.0f;
+float pitch_in = 44.0f;
 
 int max_engines = 15; // varies per backend
 
@@ -189,7 +208,7 @@ bool TimerHandler0(struct repeating_timer *t) {
   if ( DAC.availableForWrite()) {
     for (size_t i = 0; i < 32; i++) {
       DAC.write( out_bufferL[i]);
-      //DAC.write( out_bufferR[i]);
+      //DAC2.write( out_bufferR[i]);
     }
 
     counter = 1;
@@ -208,7 +227,112 @@ void cb() {
     counter = 1;
   }
 }
+int addr = 0; // for writing to flash
+int wrote = 0;
+bool writing = false;
+bool reading = false;
 
+
+// called at voice chage to save current values of all voices.
+// using the eeprom fake, we have the last 512 bytes, much more than we need
+/*
+  void writeSettings() {
+
+  int val; // reuse
+  addr = 0;
+  writing = true; // to stop other actitiy
+  // open for writing
+  File settings = LittleFS.open(F("/settings.txt"), "w");
+
+  // We simply print an int at a time, each on a new line.
+  //plaits
+  val = (int) plaits_morph * 100;
+  settings.print(val);
+  val =  (int) plaits_harm * 100;
+  settings.print(val);
+  val =  (int) plaits_timbre * 100;
+  settings.print(val);
+  val =  (int) plaits_engine;
+  settings.print(val);
+
+
+  //rings
+  val =  (int) rings_morph * 100;
+  settings.print(val);
+  val =  (int) rings_harm * 100;
+  settings.print(val);
+  val =  (int) rings_timbre * 100;
+  settings.print(val);
+  val =  (int) rings_pos * 100;
+  settings.print(val);
+  val =  (int) rings_engine;
+  settings.print(val);
+
+
+  //braids
+  val =  (int) braids_timbre * 100;
+  settings.print(val);
+  val =  (int) braids_morph * 100;
+  settings.print(val);
+  val =  (int) braids_engine;
+  settings.print(val);
+
+
+  //  finally, commit
+  settings.close();
+  writing = false;
+
+
+  }
+
+  // called at system setup to initialize from saved values.
+  void readSettings() {
+
+  int val; // reuse
+  File settings = LittleFS.open(F("/settings.txt"), "r");
+
+  // serial parseInt() calls will do an int a line at a time.
+
+  //plaits
+  val = settings.parseInt();
+
+  // first check if the first values is set
+  if (val > 1) {
+    // we have a value, read the rest
+    if (val > 0) plaits_morph = (float) val / 100;
+    val = settings.parseInt();
+    if (val > 0) plaits_harm = (float) val / 100;
+    val = settings.parseInt();
+    if (val > 0) plaits_timbre = (float) val / 100;
+    val = settings.parseInt();
+    plaits_engine = val;
+
+    //rings
+    val = settings.parseInt();
+    if (val > 0) rings_morph = (float)val / 100;
+    val = settings.parseInt();
+    if (val > 0) rings_harm = (float)val / 100;
+    val = settings.parseInt();
+    if (val > 0) rings_timbre = (float)val / 100;
+    val = settings.parseInt();
+    if (val > 0) rings_pos = (float)val / 100;
+    val = settings.parseInt();
+    rings_engine = val;
+
+
+    //braids
+    val = settings.parseInt();
+    if (val > 0) braids_timbre = (float)val / 100;
+    val = settings.parseInt();
+    if (val > 0) braids_morph = (float)val / 100;
+    val = settings.parseInt();
+    braids_engine = val;
+  } else {
+    writeSettings(); // initialize should only happen once.
+  }
+
+  }
+*/
 
 // variables for UI state management
 int enc1_pos_last = 0;
@@ -253,13 +377,22 @@ int carrier_freq;
 
 int current_track;
 int32_t update_timer;
+int32_t button_timer;
 int update_interval = 30;
 int engineCount = 0;
 bool button_state = true;
 
-int32_t previous_pitch = 4000;
 
-bool just_booting = true;
+// last time btn_one release
+unsigned long btnOneLastTime;
+unsigned long btnTwoLastTime;
+
+int32_t previous_pitch = 40;
+
+bool just_booting = false;
+
+//File settingsFile;
+
 
 void setup() {
   if (debug) {
@@ -279,13 +412,15 @@ void setup() {
   }
 
 
-  // set up Pico PWM audio output
+  // set up Pico PWM audio output the DAC2 stereo approach works./
   DAC.setBuffers(4, 32); //plaits::kBlockSize * 4); // DMA buffers
+  //DAC2.setBuffers(4,32);
   //DAC.onTransmit(cb);
   DAC.setFrequency(SAMPLERATE);
+  //DAC2.setFrequency(SAMPLERATE);
   // now start the dac
   DAC.begin();
-
+  //DAC2.begin();
   // lets seee
   analogReadResolution(12);
 
@@ -365,6 +500,14 @@ void setup() {
   delay(100);
   // Initialize wave switch states
   update_timer = millis();
+  button_timer = millis();
+  just_booting = true;
+  btn_one.update();
+  btn_two.update();
+
+  // let's see, seems to be too slow
+  //LittleFS.begin();
+  //readSettings(); // try to retrieve the voice settings from last session.
 
 }
 
@@ -382,6 +525,12 @@ void loop() {
     }
     counter = 0; // increments on each pass of the timer when the timer writes
   }
+
+  /*
+    if (writing) {
+      writeSettings(); // after switching, save this state to flash.
+    }
+  */
 }
 
 
@@ -393,46 +542,64 @@ void setup1() {
 // second core deals with ui / control rate updates
 void loop1() {
 
+  if (! writing) { // don't do shit when eeprom is being written
 
-  btn_one.update();
-  btn_two.update();
+    // we need these on boot so the second loop can catch the startup button.
+    btn_one.update();
+    btn_two.update();
 
-  // at boot permit octave down
-  if (just_booting && btn_one.pressed()) {
-    pitch_offset = -32;
+    // at boot permit octave down
+    if (just_booting && btn_one.pressed()) {
+      pitch_offset = 36;
+    }
+
     just_booting = false;
+
+    unsigned long now = millis();
+
+    if ( now - update_timer > 5 ) {
+      voct_midi(CV1);
+      read_trigger();
+      read_cv();
+      read_encoders();
+      displayUpdate();
+      read_buttons();
+      update_timer = now;
+    }
+
+    if (voice_number == 0) {
+      updatePlaitsControl();
+    } else if (voice_number == 1) {
+      updateRingsControl();
+    }
   }
 
-
-  int32_t now = millis();
-  if ( now - update_timer > 4 ) {
-    voct_midi(CV1);
-    read_trigger();
-    read_cv();
-    read_encoders();
-    displayUpdate();
-    read_buttons();
-    update_timer = now;
-  }
-
-  if (voice_number == 0) {
-    updatePlaitsControl();
-  } else if (voice_number == 1) {
-    updateRingsControl();
-  }
 }
 
 
 
 void read_buttons() {
 
+
   bool doublePressMode = false;
+
+  // if button one was held for more than 75 millis and we're in rings toggle easteregg
+  if (btn_one.rose()) {
+    btnOneLastTime = btn_one.previousDuration();
+    if (btnOneLastTime > 250 && voice_number == 1) easterEgg = !easterEgg;
+  }
+
+  if (btn_two.rose()) {
+    btnTwoLastTime = btn_two.previousDuration();
+  }
+
+
   if (btn_one.pressed() && btn_two.pressed()) {
     // rings easter egg mode/ fm engine.
     easterEgg = !easterEgg;
     doublePressMode = true;
-
   }
+
   if (!doublePressMode) {
     // being tripple shure :)
     if (btn_one.pressed() && ! btn_two.pressed()) {
@@ -441,24 +608,58 @@ void read_buttons() {
         engineCount = 0;
       }
       engine_in = engineCount;
-
     }
     if (btn_two.pressed() && ! btn_one.pressed() ) {
-      voice_number++;
-      if (voice_number > 2) voice_number = 0;
+
+      // first record our last settings
       if (voice_number == 0) {
-        engine_in = engine_in % 17;
-        max_engines = 16;
+        plaits_morph = morph_in;
+        plaits_timbre = timbre_in;
+        plaits_harm = harm_in;
+        plaits_engine = engine_in;
+      }
+      if (voice_number == 1) {
+        rings_morph = morph_in;
+        rings_timbre = timbre_in;
+        rings_harm = harm_in;
+        rings_pos = pos_mod;
+        rings_engine = engine_in;
+      }
+      if (voice_number == 2) {
+        braids_morph = morph_in;
+        braids_timbre = timbre_in;
+        braids_engine = engine_in;
+      }
+
+      voice_number++;
+
+      if (voice_number > 2) voice_number = 0;
+
+      if (voice_number == 0) {
+        engine_in = plaits_engine; // engine_in % 17;
+        max_engines = 15;
+        morph_in = plaits_morph;
+        timbre_in = plaits_timbre;
+        harm_in = plaits_harm;
 
       } else if (voice_number == 1) {
+        engine_in = rings_engine; // % 6;
         max_engines = 5;
-        engine_in = engine_in % 6;
+        morph_in = rings_morph;
+        harm_in = rings_harm;
+        timbre_in = rings_timbre;
+        //pos_mod = rings_pos;
 
       } else if (voice_number == 2 ) {
-        engine_in = engine_in % 46;
+        engine_in = braids_engine; // engine_in % 46;
         max_engines = 45;
+        morph_in = braids_morph;
+        timbre_in = braids_timbre;
       }
+      // sadly, this breaks badly
+      //writing = true;
     }
+
   }
 }
 
@@ -477,7 +678,9 @@ void voct_midi(int cv_in) {
   for (int j = 0; j < cv_avg; ++j) val += analogRead(cv_in); // read the A/D a few times and average for a more stable value
   val = val / cv_avg;
   data = (float) val * 1.0f;
-  pitch = pitch_offset + map(data, 0.0, 4095.0, mapping_upper_limit, 0.0); // convert pitch CV data value to a MIDI note number
+  pitch = map(data, 0.0, 4095.0, mapping_upper_limit, mapping_lower_limit); // convert pitch CV data value to a MIDI note number
+
+  pitch = pitch - pitch_offset;
 
   pitch_in = pitch;
 
@@ -511,38 +714,39 @@ void read_cv() {
   // this should be worked out into calls for the engines instead of conditionals ....
 
 
+  //plaits and rings cv
   int16_t timbre = analogRead(CV3);
   timb_mod = (float)timbre / 4095.0f;
 
   int16_t morph = analogRead(CV4) ;
   morph_mod = (float) morph / 4095.0f;
 
+  
+  // don't remember if this was important
   int16_t pos = analogRead(CV5) ; // f&d noise floor
   if (pos > 100) pos_mod = (float) pos / 4095.0f;
+  
+  int16_t lpgColor = (float) ( analogRead(CV6) ) / 4095.f ;
+  lpg_in = lpgColor;
 
-  if (voice_number == 0) {
+  if (voice_number == 0 || voice_number == 1) {
     // plaits
-    if (timb_mod > 0.01f) {
-      //timb_mod = mapf(timb_mod, 0.02f, 1.0f, -1.0f, 1.0f);
 
+      timb_mod = mapf(timb_mod, 0.0f, 1.0f, 0.0f, 0.8f);
+      if (debug) Serial.print(timb_mod);
+      
       //voices[0].modulations.timbre_patched = true;
-
-    } else {
       //voices[0].modulations.timbre_patched = false;
-    }
-
-    if (morph_mod > 0.01f ) {
       //morph_mod = mapf(morph_mod, 0.02f, 1.0f, -1.0f, 1.0f);
+      morph_mod = mapf(morph_mod, 0.0f, 1.0f, 0.0f, 0.8f);
       //voices[0].modulations.morph_patched = true;
-    } else {
-      //voices[0].modulations.morph_patched = false;
-    }
+
   }
 
   if (voice_number == 1 && timb_mod > 0.05f) {
     //rings
     for (size_t i = 0; i < 32; ++i) {
-      CV1_buffer[i] = (float) ( analogRead(CV3) / 4095.0f) + 1.0f; // arbitrary +1 gain
+      CV1_buffer[i] = (float) ( analogRead(CV3) / 4095.0f) + 1.5f; // arbitrary +1 gain
     }
   }
 
@@ -571,7 +775,7 @@ void read_encoders() {
     enc1_delta = (enc1_pos - enc1_pos_last) ;
   }
 
-  if ( enc1_delta && ! btn_one.pressed() ) {
+  if ( enc1_delta) {
     float turn = ( enc1_delta * 0.01f ) + timbre_in;
     CONSTRAIN(turn, 0.f, 1.0f)
     if (debug) Serial.println(turn);

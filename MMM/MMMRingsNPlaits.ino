@@ -724,29 +724,29 @@ void read_cv() {
   
   // don't remember if this was important
   int16_t pos = analogRead(CV5) ; // f&d noise floor
-  (pos > 100) pos_mod = (float) pos / 4095.0f;
+  if (pos > 100) pos_mod = (float) pos / 4095.0f;
   
   int16_t lpgColor = (float) ( analogRead(CV6) ) / 4095.f ;
   lpg_in = lpgColor;
 
-  if (voice_number == 0) {
+  if (voice_number == 0 || voice_number == 1) {
     // plaits
 
-      timb_mod = mapf(timb_mod, 0.0f, 1.0f, 0.0f, 0.7f);
+      timb_mod = mapf(timb_mod, 0.0f, 1.0f, 0.0f, 0.8f);
       if (debug) Serial.print(timb_mod);
       
       //voices[0].modulations.timbre_patched = true;
       //voices[0].modulations.timbre_patched = false;
       //morph_mod = mapf(morph_mod, 0.02f, 1.0f, -1.0f, 1.0f);
-      morph_mod = mapf(morph_mod, 0.0f, 1.0f, 0.0f, 0.7f);
+      morph_mod = mapf(morph_mod, 0.0f, 1.0f, 0.0f, 0.8f);
       //voices[0].modulations.morph_patched = true;
 
   }
 
-  if (voice_number == 1 && timb_mod > 0.01f) {
+  if (voice_number == 1 && timb_mod > 0.05f) {
     //rings
     for (size_t i = 0; i < 32; ++i) {
-      CV1_buffer[i] = (float) ( analogRead(CV3) / 4095.0f) + 1.1f; // arbitrary +1 gain
+      CV1_buffer[i] = (float) ( analogRead(CV3) / 4095.0f) + 1.5f; // arbitrary +1 gain
     }
   }
 
