@@ -9,7 +9,7 @@
    Copyright (c)  2020 (emilie.o.gillet@gmail.com)
 */
 
-bool debugging = true;
+bool debugging = false;
 
 #include <Arduino.h>
 #include "stdio.h"
