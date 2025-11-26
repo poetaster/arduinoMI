@@ -163,10 +163,13 @@ float pos_mod = 0.25f; // position
 
 
 #include <STMLIB.h>
-#include <PLAITS.h>
-#include "plaits.h"
+
 #include <RINGS.h>
 #include "rings.h"
+
+#include <PLAITS.h>
+#include "plaits.h"
+
 #include <BRAIDS.h>
 #include "braids.h"
 

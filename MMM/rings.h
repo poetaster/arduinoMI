@@ -1,4 +1,7 @@
-
+#include "rings/dsp/part.h"
+#include "rings/dsp/strummer.h"
+#include "rings/dsp/string_synth_part.h"
+#include "rings/dsp/dsp.h"
 
 const size_t aBlockSize = rings::kMaxBlockSize;
 

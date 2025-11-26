@@ -1,6 +1,9 @@
 
 // plaits dsp
 
+#include "plaits/dsp/dsp.h"
+#include "plaits/dsp/voice.h"
+
 plaits::Modulations modulations;
 plaits::Patch patch;
 plaits::Voice voice;

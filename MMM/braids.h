@@ -1,5 +1,12 @@
 #pragma once
 
+#include "braids/envelope.h"
+#include "braids/macro_oscillator.h"
+#include "braids/quantizer.h"
+#include "braids/signature_waveshaper.h"
+#include "braids/quantizer_scales.h"
+#include "braids/vco_jitter_source.h"
+
 // braids dsp
 
 //const uint16_t decimation_factors[] = { 1, 2, 3, 4, 6, 12, 24 };

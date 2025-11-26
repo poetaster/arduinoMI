@@ -1286,8 +1286,8 @@ void DigitalOscillator::RenderBowed(
     ++excitation_ptr;
     size -= 2;
   }
-  if ((excitation_ptr >> 1) >= LUT_BOWING_ENVELOPE_SIZE - 32) {
-    excitation_ptr = (LUT_BOWING_ENVELOPE_SIZE - 32) << 1;
+  if ((excitation_ptr >> 1) >= BRAIDS_LUT_BOWING_ENVELOPE_SIZE - 32) {
+    excitation_ptr = (BRAIDS_LUT_BOWING_ENVELOPE_SIZE - 32) << 1;
   }
   state_.phy.delay_ptr = delay_ptr % kWGNeckLength;
   state_.phy.excitation_ptr = excitation_ptr;
@@ -1455,8 +1455,8 @@ void DigitalOscillator::RenderFluted(
       ++excitation_ptr;
     }
   }
-  if (excitation_ptr >= LUT_BLOWING_ENVELOPE_SIZE - 32) {
-    excitation_ptr = LUT_BLOWING_ENVELOPE_SIZE - 32;
+  if (excitation_ptr >= BRAIDS_LUT_BLOWING_ENVELOPE_SIZE - 32) {
+    excitation_ptr = BRAIDS_LUT_BLOWING_ENVELOPE_SIZE - 32;
   }
   state_.phy.delay_ptr = delay_ptr;
   state_.phy.excitation_ptr = excitation_ptr;
