@@ -1,19 +1,19 @@
-#include "braids/analog_oscillator.cc"
-#include "braids/analog_oscillator.h"
-#include "braids/digital_oscillator.cc"
-#include "braids/digital_oscillator.h"
-#include "braids/envelope.h"
-#include "braids/excitation.h"
-#include "braids/macro_oscillator.cc"
+// BRAIDS.h - Arduino wrapper for Mutable Instruments Braids
+// Note all the originals sources, .cc files, are retained and a copy with .inc extension has been made
+//
+#ifndef BRAIDS_ARDUINO_H_
+#define BRAIDS_ARDUINO_H_
+
 #include "braids/macro_oscillator.h"
-#include "braids/parameter_interpolation.h"
-#include "braids/quantizer.cc"
+#include "braids/analog_oscillator.h"
+#include "braids/digital_oscillator.h"
 #include "braids/quantizer.h"
 #include "braids/quantizer_scales.h"
-#include "braids/resources.cc"
-#include "braids/resources.h"
-#include "braids/settings.h"
-#include "braids/settings.cc"
 #include "braids/signature_waveshaper.h"
-#include "braids/svf.h"
+#include "braids/settings.h"
+#include "braids/resources.h"
 #include "braids/vco_jitter_source.h"
+#include "braids/parameter_interpolation.h"
+#include "braids/excitation.h"
+
+#endif // BRAIDS_ARDUINO_H_
