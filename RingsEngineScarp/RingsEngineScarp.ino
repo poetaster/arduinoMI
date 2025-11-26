@@ -58,35 +58,6 @@ PWMAudio DAC(PWMOUT);  // 16 bit PWM audio
 #include <STMLIB.h>
 #include <RINGS.h>
 
-const size_t kBlockSize = rings::kMaxBlockSize;
-
-float rings::Dsp::sr = 48000.0f;
-float rings::Dsp::a3 = 440.0f / 48000.0f;
-
-
-struct Unit {
-  rings::Part             part;
-  rings::StringSynthPart  string_synth;
-  rings::Strummer         strummer;
-  rings::PerformanceState performance_state;
-  rings::Patch            patch;
-
-  uint16_t                *reverb_buffer;
-
-  float                   *silence;
-  float                   *out, *aux;     // output buffers
-  float                   *input; // input buffer
-
-  bool                    prev_trig;
-  int                     prev_poly;
-
-  // we're using the original rendering, not vbs
-  int16_t                 obuff[kBlockSize]; // from float[]s below in update routine
-  int16_t                 abuff[kBlockSize]; // ditto
-};
-
-struct Unit voices[1];
-
 // Plaits modulation vars
 float morph_in = 0.7f; // IN(4);
 float trigger_in; //IN(5);
@@ -103,13 +74,7 @@ float decay_in = 0.5f; // IN(10);
 float lpg_in = 0.1f ;// IN(11);
 int pitch_in = 60;
 
-
-// Braids vars
-//    float   voct_in = IN0(0);
-//    float   timbre_in = IN0(1);
-//    float   color_in = IN0(2);
-//    float   model_in = IN0(3);
-//    float   *trig_in = IN(4);
+#include "rings.h"
 
 // clock timer  stuff
 
@@ -135,7 +100,7 @@ bool TimerHandler0(struct repeating_timer *t) {
   bool sync = true;
 
   if ( DAC.availableForWrite() ) {
-    for (size_t i = 0; i < kBlockSize; i++) {
+    for (size_t i = 0; i < rings::kMaxBlockSize; i++) {
       DAC.write( voices[0].obuff[i]);
     }
     counter =  1;
@@ -295,94 +260,14 @@ void setup() {
   digitalWrite(23, HIGH);
 
   // init the braids voices
-  initVoices();
+  initRings();
 
   // initialize a mode to play
   mode = midier::Mode::Ionian;
   makeScale( roots[scaleRoot], mode);
 
-  // Connect the HandleNoteOn function to the library, so it is called upon reception of a NoteOn.
-  //MIDI.setHandleNoteOn(HandleNoteOn);  // Put only the name of the function
-  //MIDI.setHandleNoteOff(HandleNoteOff);  // Put only the name of the function
-  //MIDI.begin(MIDI_CHANNEL_OMNI);
-
 
 }
-
-// initialize voice parameters
-void initVoices() {
-
-  rings::Dsp::setSr(SAMPLERATE);
-  // allocate memory + init with zeros
-
-  voices[0].reverb_buffer = (uint16_t*)malloc(32768 * sizeof(uint16_t));
-  memset(voices[0].reverb_buffer, 0, 32768 * sizeof(uint16_t));
-
-  voices[0].silence = (float*)malloc(kBlockSize * sizeof(float));
-  memset(voices[0].silence, 0, kBlockSize * sizeof(float));
-
-  voices[0].input = (float*)malloc(kBlockSize * sizeof(float));
-  memset(voices[0].input, 0, kBlockSize * sizeof(float));
-
-  voices[0].out = (float *)malloc(kBlockSize * sizeof(float));
-  voices[0].aux = (float *)malloc(kBlockSize * sizeof(float));
-
-  // zero out...
-  memset(&voices[0].strummer, 0, sizeof(voices[0].strummer));
-  memset(&voices[0].part, 0, sizeof(voices[0].part));
-  memset(&voices[0].string_synth, 0, sizeof(voices[0].string_synth));
-
-
-
-  voices[0].strummer.Init(0.01, 48000.0f / kBlockSize);
-  voices[0].part.Init(voices[0].reverb_buffer);
-  voices[0].string_synth.Init(voices[0].reverb_buffer);
-
-  voices[0].part.set_polyphony(1);
-  voices[0].part.set_model(rings::RESONATOR_MODEL_MODAL);
-
-  voices[0].string_synth.set_polyphony(1);
-  voices[0].string_synth.set_fx(rings::FX_FORMANT);
-  voices[0].prev_poly = 0;
-
-  voices[0].performance_state.fm = 0.f;       // TODO: fm not used, maybe later...
-  voices[0].prev_trig = false;
-
-  // we're fixing this for the moment until we can test with input
-  voices[0].performance_state.internal_exciter = true;
-  Serial.println("got to first update");
-  updateRingsAudio() ;
-  Serial.println("survived first update");
-  // check input rates
-  /*
-    if(INRATE(0) == calc_FullRate)
-      voices[0].performance_state.internal_exciter = false;
-    else
-      voices[0].performance_state.internal_exciter = true;
-
-    if(INRATE(1) == calc_ScalarRate)
-      voices[0].performance_state.internal_strum = true;
-    else
-      voices[0].performance_state.internal_strum = false;
-
-    if(INRATE(2) == calc_ScalarRate)
-      voices[0].performance_state.internal_note = true;
-    else
-      voices[0].performance_state.internal_note = false;
-  */
-
-}
-
-void cb() {
-  if (DAC.availableForWrite() > 14) {
-    for (int i = 0; i <  kBlockSize; i++) {
-      // out = ;   // left channel called .aux
-      DAC.write( voices[0].obuff[i] );
-    }
-  }
-}
-
-
 
 
 void updateControl() {
@@ -403,12 +288,14 @@ void updateControl() {
   CONSTRAIN(timbre_in, 0.0f, 1.0f);
   scanbuttons();
 
-
   for (int i = 0; i < 9; ++i) { // scan all the buttons
     if (button[i]) {
 
       anybuttonpressed = true;
       if (i < 8) {
+        
+        trigger_in = 1.0f;
+        
         digitalWrite(led[i] , HIGH);
 
         // a track button is pressed
@@ -453,34 +340,11 @@ void updateControl() {
       }
     }
   }
+  if (! anybuttonpressed) {
+     trigger_in = 0.0f;
+  }
 }
 
-void updateRingsAudio() {
-
-  // our output buffers, post rendering
-  int16_t *obuff = voices[0].obuff;
-
-  rings::Patch *patch = &voices[0].patch;
-  rings::PerformanceState *ps = &voices[0].performance_state;
-  size_t  size = kBlockSize;
-
-  if (easterEgg) {
-    voices[0].strummer.Process(NULL, size, ps);
-    voices[0].string_synth.Process(*ps, *patch, voices[0].input, voices[0].out, voices[0].aux, size);
-  }
-  else {
-
-    voices[0].strummer.Process(NULL, size, ps);
-    voices[0].string_synth.Process(*ps, *patch, voices[0].input, voices[0].out, voices[0].aux, size);
-  }
-  for (size_t i = 0; i < size; ++i) {
-    obuff[i] = (int16_t)(voices[0].out[i] * 32768.0f);
-    //abuff[i] = stmlib::Clip16(static_cast<int16_t>(aux[i] * 32768.0f));
-
-  }
-
-
-}
 
 void loop() {
   // when the osc buffer has been written to PWM buffer
@@ -489,6 +353,7 @@ void loop() {
     counter = 0; // increments on each pass of the timer when the timer writes
   }
 
+  
 
 }
 
@@ -564,7 +429,7 @@ void loop1() {
       }
       if (button[0] && button[7] ) {
         easterEgg = !easterEgg;
-      } 
+      }
 
       // change pitch on pot 0
       if (display_mode == 0 ) { // change sample if pot has moved enough
@@ -629,122 +494,5 @@ void loop1() {
   }
 
   displayUpdate();
-
-}
-
-void updateRingsControl() {
-  float   *trig_in; // = IN(1);
-  float   voct_in = pitch_in * 1.0f; // IN0(2);
-  float   struct_in = harm_in; // IN0(3);
-  float   bright_in = timbre_in; // IN0(4);
-
-  float   damp_in = morph_in; // IN0(5);
-
-  float   pos_in = 0.2f ; //IN0(6); was .25
-
-  short   model = engine_in; // IN0(7);
-  short   polyphony = 3; // IN0(8);
-  bool    intern_exciter = true; // (IN0(9) > 0.f);
-  bool    easter_egg = easterEgg; // (IN0(10) > 0.f);
-  bool    bypass = false; // (IN0(11) > 0.f);
-
-  //float *out1 = OUT(0);
-  //float *out2 = OUT(1);
-
-  rings::Patch *patch = &voices[0].patch;
-  rings::PerformanceState *ps = &voices[0].performance_state;
-
-  // float   *in = voices[0].input;
-  size_t  size = rings::kMaxBlockSize;
-
-  // check input rates for excitation input
-/*
-  if ( timb_mod > 0.0f ) { // input on CV3
-    //std::copy(&in[0], &in[inNumSamples], &input[0]);
-    //std::copy(CV1_buffer[0], CV1_buffer[32], voices[0].input[0]);
-    // intern_exciter should be off, but user can override
-    voices[0].input = CV1_buffer;
-    ps->internal_exciter = intern_exciter;
-  }
-  else {
-    // if there's no audio input, set input to zero...
-    voices[0].input = voices[0].silence;
-    // ... and use internal exciter!
-    ps->internal_exciter = true;
-  }
-*/
-
-  
-    voices[0].input = voices[0].silence;
-
-    // ... and use internal exciter!
-    ps->internal_exciter = true;
-  
-
-  /* ignore input // from the original
-    for (size_t i = 0; i < size; ++i) {
-    float in_sample = static_cast<float>(input[i].r) / 32768.0f;
-    float error, gain;
-    error = in_sample * in_sample - in_level;
-    in_level += error * (error > 0.0f ? 0.1f : 0.0001f);
-    gain = in_level <= kNoiseGateThreshold
-         ? (1.0f / kNoiseGateThreshold) * in_level : 1.0f;
-    in[i] = gain * in_sample;
-    }*/
-
-
-
-
-  // set resonator model
-  CONSTRAIN(model, 0, 5);
-  voices[0].part.set_model(static_cast<rings::ResonatorModel>(model));
-  voices[0].string_synth.set_fx(static_cast<rings::FxType>(model));
-
-  // set polyphony
-  if (polyphony != voices[0].prev_poly) {
-    CONSTRAIN(polyphony, 1, 4);
-    voices[0].part.set_polyphony(polyphony);
-    voices[0].string_synth.set_polyphony(polyphony);
-    voices[0].prev_poly = polyphony;
-  }
-
-  // set pitch
-  CONSTRAIN(voct_in, 0.f, 114.f);
-  ps->tonic = 12.f;
-  ps->note = voct_in;
-
-
-  // set params
-  CONSTRAIN(struct_in, 0.0f, 1.0f);    //0.9995f
-  patch->structure = struct_in;
-
-  float chord = struct_in * (rings::kNumChords - 1);
-  voices[0].performance_state.chord = roundf(chord);
-
-  CONSTRAIN(bright_in, 0.0f, 1.0f);
-  patch->brightness = bright_in;
-
-  CONSTRAIN(damp_in, 0.0f, 1.0f);
-  patch->damping = damp_in;
-
-  CONSTRAIN(pos_in, 0.0f, 1.0f);
-  patch->position = pos_in;
-
-  // check trigger input
-
-  bool trig = false;
-  bool prev_trig = voices[0].prev_trig;
-  trig = (trigger_in > 0.f);
-
-  if (trig) {
-    if (!prev_trig) {
-      ps->strum = true;
-    }    else {
-      ps->strum = false;
-    }
-  }
-  voices[0].prev_trig = trig;
-
-  voices[0].part.set_bypass(bypass);
 
 }

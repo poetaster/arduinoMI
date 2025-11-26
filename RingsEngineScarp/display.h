@@ -90,24 +90,25 @@ void displayUpdate() {
 
   // seqno
   display.setCursor(seqno_text_pos.x, seqno_text_pos.y);
-  display.print("h: ");
+  display.print("S: ");
   display.print(harm_in);  // user sees 1-8
 
   // name
   display.setCursor(seq_info_pos.x, seq_info_pos.y);
   display.print("P: ");
-  display.print(oscnames[engine_in]);
-  
+  display.print(modelnames[engine_in]);
+
   // color
   display.setCursor(trans_text_pos.x, play_text_pos.y);
-  display.print("c: ");
-  display.print(morph_in);
+  display.print("B: ");
+  display.print(timbre_in);
 
 
   display.setCursor(mode_text_pos.x, play_text_pos.y);
-  display.print("t: ");
-  display.print(timbre_in);
-  
+  display.print("D: ");
+  display.print(morph_in);
+
+
   // play/pause
   display.setCursor(play_text_pos.x, play_text_pos.y);
   display.print("m: ");

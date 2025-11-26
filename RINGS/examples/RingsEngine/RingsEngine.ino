@@ -389,9 +389,22 @@ void updateRingsAudio() {
 
 
   }
+
+  float gain;
+  if (engine_in != 0 && engine_in != 3) {
+    gain = 1.5;
+  } else if (engine_in == 5) {
+    gain = 1.8;
+  } else {
+    gain = 1.0;
+  }
+
   for (size_t i = 0; i < size; ++i) {
-    obuff[i] = stmlib::Clip16(static_cast<int16_t>(out[i] * 32768.0f));
-    //abuff[i] = stmlib::Clip16(static_cast<int16_t>(aux[i] * 32768.0f));
+    // we mix down to mono
+    obuff[i] =   stmlib::Clip16(static_cast<int32_t>(( (voices[0].out[i] * gain) + ( voices[0].aux[i] * gain) ) * 32768.0f));
+
+    // obuff[i] = (int16_t)(voices[0].out[i] * 32768.0f);
+    // abuff[i] = stmlib::Clip16(static_cast<int16_t>(aux[i] * 32768.0f));
 
   }
 

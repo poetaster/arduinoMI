@@ -57,10 +57,6 @@ void HandleNoteOn(byte channel, byte note, byte velocity) {
 
 void aNoteOff( float note, int velocity) {
   trigger_in = 0.0;
-  //voices[0].modulations.trigger_patched = false;
-  //voices[0].modulations.trigger = 0.f;
-  //envelope.noteOff();
-  //digitalWrite(LED, LOW);
 }
 
 void aNoteOn(float note, int velocity) {
@@ -68,10 +64,4 @@ void aNoteOn(float note, int velocity) {
   if (trigger_in < 0.1) {
     trigger_in = 0.0f;
   }
-
-
-  //voices[0].patch.note = pitch;
-  //carrier_freq = note;
-  //envelope.noteOn();
-  //digitalWrite(LED, HIGH);
 }

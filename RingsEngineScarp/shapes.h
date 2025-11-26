@@ -12,7 +12,26 @@ int main() {
     const std::vector<std::string> v(list, list + len);
     std::copy(v.begin(), v.end(), std::ostream_iterator<std::string>(std::cout, "\n"));
 }*/
-  
+
+  const char* const modelnames[] = {
+  "MODAL_RESO",
+  "SYMPA_STRING",
+  "MODULATED_STRING",
+  "2-OP_FM_VOICE",
+  "SYMPATHETIC_STRING_Q",
+  "STRING_AND_REVERB"
+};
+ 
+const char* const FXnames[] = {
+  "FX_FORMANT",
+  "FX_CHORUS",
+  "FX_REVERB",
+  "FX_FORMANT",
+  "FX_ENSEMBLE",
+  "FX_REVERB"
+};
+
+const size_t modelslength = sizeof(modelnames) / sizeof(modelnames[0]);
   
 const char* const oscnames[] = {
 "CSAW",
