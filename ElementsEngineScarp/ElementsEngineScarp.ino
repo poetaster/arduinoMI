@@ -58,6 +58,9 @@ PWMAudio DAC(PWMOUT);  // 16 bit PWM audio
 #include <STMLIB.h>
 #include <ELEMENTS.h>
 
+#include "elements/dsp/dsp.h"
+#include "elements/dsp/part.h"
+
 float elements::Dsp::kSampleRate = 32000.0f;
 float elements::Dsp::kSrFactor = 32000.0f / kSampleRate;
 float elements::Dsp::kIntervalCorrection = logf(kSrFactor) / logf(2.0f) * 12.0f;
