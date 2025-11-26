@@ -25,6 +25,19 @@ You should hear it step through the patches making small changes as it goes.
 
 The STMLIB, BRAIDS and PLAITS directories can be placed in your Arduino/libraries/ folder and used as follows, for braids & plaits:
 ```
+#pragma once
+
+#include <STMLIB.h>
+#include <BRAIDS.h>
+
+#include "braids/envelope.h"
+#include "braids/macro_oscillator.h"
+#include "braids/quantizer.h"
+#include "braids/signature_waveshaper.h"
+#include "braids/quantizer_scales.h"
+#include "braids/vco_jitter_source.h"
+
+
 #define     MI_SAMPLERATE      96000.f
 #define     BLOCK_SIZE          32      // --> macro_oscillator.h !
 #define     SAMP_SCALE          (float)(1.0 / 32756.0)
@@ -61,6 +74,9 @@ struct Unit voices[1];
 // plaits dsp
 #include <STMLIB.h>
 #include <PLAITS.h>
+
+#include "plaits/dsp/dsp.h"
+#include "plaits/dsp/voice.h"
 
 plaits::Modulations modulations;
 plaits::Patch patch;
