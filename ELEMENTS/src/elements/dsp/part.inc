@@ -109,8 +109,8 @@ void Part::Seed(uint32_t* seed, size_t size) {
 
 void Part::Process(
     const PerformanceState& performance_state,
-    const float* blow_in,
-    const float* strike_in,
+    float* blow_in, //Blue
+    float* strike_in,
     float* main,
     float* aux,
     size_t size) {

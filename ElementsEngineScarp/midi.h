@@ -63,26 +63,11 @@ void aNoteOff( float note, int velocity) {
   //digitalWrite(LED, LOW);
 }
 
+// moved to all button check
 void aNoteOn(float note, int velocity) {
   if (velocity == 0) {
-    aNoteOff(note, velocity);
-    trigger_in = 0.f;
-  }
-
-  trigger_in = randomDouble(0.0, 1.0);
-  if (trigger_in < 0.1) {
-    trigger_in = 0.f;
+    //trigger_in = 0.f;
   } else {
-    /*
-    for (int i; i < elements::kMaxBlockSize; i++) {
-      voices[0].strike_in[i] = trigger_in;
-    }*/
-    
+    //trigger_in = 1.f;
   }
-
-
-  //voices[0].patch.note = pitch;
-  //carrier_freq = note;
-  //envelope.noteOn();
-  //digitalWrite(LED, HIGH);
 }

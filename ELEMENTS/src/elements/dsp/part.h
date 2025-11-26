@@ -58,8 +58,8 @@ class Part {
   
   void Process(
       const PerformanceState& performance_state,
-      const float* blow_in,
-      const float* strike_in,
+      float* blow_in, // blue
+      float* strike_in,
       float* main,
       float* aux,
       size_t n);

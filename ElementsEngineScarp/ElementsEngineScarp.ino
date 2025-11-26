@@ -53,7 +53,9 @@ PWMAudio DAC(PWMOUT);  // 16 bit PWM audio
 
 //MIDI_CREATE_DEFAULT_INSTANCE();
 
-// rings dsp
+// elements dsp
+// buffer for input to rings exciter
+float CV1_buffer[32];
 
 #include <STMLIB.h>
 #include <ELEMENTS.h>
@@ -101,20 +103,28 @@ float harm_in = 0.1f;
 float timbre_in = 0.1f;
 int engine_in;
 
-float fm_mod = 0.0f ; //IN(7);
-float timb_mod = 0.0f; //IN(8);
-float morph_mod = 0.0f; //IN(9);
-float decay_in = 0.5f; // IN(10);
-float lpg_in = 0.1f ;// IN(11);
+// defaults
+float   strength = 0.5f;
+float   contour = 0.2f;
+float   bow_level = 0.0f;
+float   blow_level = 0.0f;
+float   strike_level = 0.0f;
+float   flow = 0.5f;
+float   mallet = 0.5f;
+float   damping = 0.7f;
+float   pos = 0.2f;
+float   bow_timbre = 0.5f;
+float   blow_timbre = 0.5f;
+float   strike_timbre = 0.5f;
+float   geometry = 0.25f;
+float   space = 0.3f;
+float   bright = 0.3f;
+int     model = 0.0f ; //IN0(19);
+bool    easter_egg = false; //0.f; //IN0(20) > 0.f;
+
 int pitch_in = 60;
 
 
-// Braids vars
-//    float   voct_in = IN0(0);
-//    float   timbre_in = IN0(1);
-//    float   color_in = IN0(2);
-//    float   model_in = IN0(3);
-//    float   *trig_in = IN(4);
 
 // clock timer  stuff
 
@@ -303,11 +313,6 @@ void setup() {
   mode = midier::Mode::Ionian;
   makeScale( roots[scaleRoot], mode);
 
-  // Connect the HandleNoteOn function to the library, so it is called upon reception of a NoteOn.
-  //MIDI.setHandleNoteOn(HandleNoteOn);  // Put only the name of the function
-  //MIDI.setHandleNoteOff(HandleNoteOff);  // Put only the name of the function
-  //MIDI.begin(MIDI_CHANNEL_OMNI);
-
 
 }
 
@@ -315,7 +320,6 @@ void setup() {
 void initVoices() {
 
   elements::Dsp::setSr(SAMPLERATE);
-
 
   // allocate memory
   voices[0].reverb_buffer = (uint16_t*)malloc(32768 * sizeof(uint16_t));
@@ -329,7 +333,6 @@ void initVoices() {
   voices[0].silence = (float *)malloc(kBlockSize * sizeof(float));
 
   memset(voices[0].silence, 0, kBlockSize * sizeof(float));
-
 
   // Init and seed the random parameters and generators with the serial number.
   voices[0].part = new elements::Part;
@@ -366,53 +369,7 @@ void initVoices() {
 
 }
 
-void cb() {
-  if (DAC.availableForWrite() > 14) {
-    for (int i = 0; i <  kBlockSize; i++) {
-      // out = ;   // left channel called .aux
-      DAC.write( voices[0].obuff[i] );
-    }
-  }
-}
 
-/*
-  void audioOutput() {
-  voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
-
-  for (int i = 0; i <  plaits::kBlockSize; i++) {
-    uint16_t out = outputPlaits[i].out;
-    if ( DAC.availableForWrite() ) DAC.write( out );
-  }
-  // write samples to DMA buffer - this is a blocking call so it stalls when buffer is full
-  // f.l() + MOZZI_AUDIO_BIAS
-  // left
-  }
-
-  bool canBufferAudioOutput() {
-
-  if ( DAC.availableForWrite() > 32 ) {
-    return true;
-  }
-  return false;
-  }
-
-
-  bool updateAudio() {
-  if (canBufferAudioOutput()) {
-    audioOutput();
-    return true;
-  }
-  return false;
-
-  }
-*/
-
-bool canBufferAudioOutput() {
-  if ( DAC.availableForWrite() > 32 ) {
-    return true;
-  }
-  return false;
-}
 void updateControl() {
 
   //MIDI.read();
@@ -443,10 +400,10 @@ void updateControl() {
         current_track = i; // keypress selects track we are working on
 
         if ( encoder_delta == 0) {
-          aNoteOff(currentMode[i], 0);
+          aNoteOn(currentMode[i], 0);
           //noteA = freqs[i];
           if (button[8]) scaleRoot = i; // change scaleroot if both encoder and another button is pressed.
-          
+
           pitch_in = currentMode[i] + 24; //freqs[i];
           aNoteOn( pitch_in, 100 );
         }
@@ -484,33 +441,159 @@ void updateControl() {
   }
 }
 
+void changeProgram(int prog) {
+
+  switch (prog) {
+    case 0:
+      strength = 0.5f;
+      contour = 0.5f;
+      bow_level = 1.0f;
+      voices[0].blow_in = voices[0].silence;
+      voices[0].strike_in = voices[0].silence;
+      bow_timbre = timbre_in; //IN0(11);
+      blow_level = 0.0f;
+      strike_level = 0.0f;
+      flow = 0.5f;
+      mallet = 0.5f;
+      damping = 0.7f;
+      pos = 0.2f;
+      geometry = 0.25f;
+      space = 0.3f;
+      model = 0 ;
+      break;
+
+
+    case 1:
+      strength = 0.5f;
+      contour = 0.5f;
+      bow_level = 0.0f;
+      blow_level = 0.6f;
+      voices[0].blow_in = voices[0].silence;
+      voices[0].strike_in = voices[0].silence;
+      blow_timbre = timbre_in; //IN0(11);
+      strike_level = 0.0f;
+      flow = 0.5f;
+      mallet = 0.5f;
+      damping = 0.7f;
+      pos = 0.2f;
+      geometry = 0.25f;
+      space = 0.3f;
+      model = 0 ;
+      break;
+
+    case 2:
+      strength = 0.5f;
+      contour = 0.5f;
+      bow_level = 0.0f;
+      blow_level = 0.5f;
+      blow_timbre = timbre_in; //IN0(11);
+      voices[0].blow_in = voices[0].silence;
+      voices[0].strike_in = voices[0].silence;
+      strike_level = 0.0f;
+      flow = 0.5f;
+      mallet = 0.5f;
+      damping = 0.7f;
+      pos = 0.2f;
+      geometry = 0.25f;
+      space = 0.3f;
+      model = 0 ;
+      bright = 0.3f;
+      break;
+
+    case 3:
+      strength = 0.5f;
+      contour = 0.2f;
+      bow_level = 0.0f;
+      blow_level = 0.0f;
+      strike_level = 0.5f;
+      voices[0].strike_in = CV1_buffer;
+      voices[0].blow_in = voices[0].silence;
+      flow = 0.5f;
+      mallet = 0.5f;
+      damping = 0.9f;
+      pos = 0.2f;
+      geometry = 0.8f;
+      space = 0.6f;
+      model = 0 ;
+      bright = 0.4f;
+      break;
+
+    case 4:
+      strength = 0.5f;
+      contour = 0.2f;
+      bow_level = 0.0f;
+      blow_level = 0.0f;
+      strike_level = 0.9f;
+      voices[0].strike_in = CV1_buffer;
+      voices[0].blow_in = voices[0].silence;
+      flow = 0.5f;
+      mallet = 0.5f;
+      damping = 0.9f;
+      pos = 0.2f;
+      geometry = 0.25f;
+      space = 0.3f;
+      model = 2 ;
+      bright = 0.5f;
+      break;
+
+    case 5:
+      strength = 0.5f;
+      contour = 0.2f;
+      bow_level = 0.0f;
+      blow_level = 0.0f;
+      strike_level = 0.5f;
+      voices[0].strike_in = voices[0].silence;
+       voices[0].blow_in = voices[0].silence;
+      flow = 0.5f;
+      mallet = 0.7f;
+      damping = 0.85f;
+      pos = 0.2f;
+      geometry = 0.25f;
+      space = 0.6f;
+      model = 0 ;
+      bright = 0.3f;
+      break;
+
+    case 6:
+      strength = 0.5f;
+      contour = 0.5f;
+      bow_level = 0.0f;
+      blow_level = 0.0f;
+      strike_level = 0.5f;
+      voices[0].strike_in = voices[0].silence;
+       voices[0].blow_in = voices[0].silence;
+      flow = 0.5f;
+      mallet = 1;
+      damping = 0.7f;
+      pos = 0.2f;
+      geometry = 0.25f;
+      space = 0.3f;
+      model = 0 ;
+      bright = 0.3f;
+      break;
+  }
+
+}
 
 
 
 
 void updateElementsAudio() {
+
   float   *in0;// = IN(0);
   float   *in1;// = IN(1);
   float   *gate_in;// = IN(2);
-
   float   voct_in = pitch_in; // IN0(3);
-  float   strength = 0.7f; //IN0(4);
-  float   contour = 0.9f ; //harm_in; // IN0(5); // envelope shape
-  float   bow_level = 0.f; // IN0(6);
-  float   blow_level = 0.f; // IN0(7);
-  float   strike_level = 0.9f; // IN0(8);
-  float   flow = 0.f; //IN0(9); blow meta
-  float   mallet = 0.5f ; //IN0(10); // strike meta
-  float   bow_timbre = timbre_in; //IN0(11);
-  float   blow_timbre = timbre_in; //IN0(12);
-  float   strike_timbre = timbre_in; // IN0(13);
-  float   geometry = harm_in + 0.5f; // IN0(14);
-  float   brightness = 0.3f; // IN0(15);
-  float   damping = harm_in + 0.1f; // IN0(16);
-  float   position = 0.5f; // IN0(17);
-  float   space = morph_in + 0.01f; //IN0(18);
-  int     model = engine_in; //2.f; //IN0(19);
-  bool    easter_egg = false; //0.f; //IN0(20) > 0.f;
+  
+  // set params as per program
+  changeProgram(engine_in);
+
+
+  geometry = harm_in; // IN0(14);
+  space = morph_in + 0.01f; //IN0(18);
+  model = 0.0f ; //IN0(19);
+  
+  easter_egg = false; //0.f; //IN0(20) > 0.f;
 
 
   /*
@@ -530,7 +613,7 @@ void updateElementsAudio() {
       voices[0].ps.gate = 0;*/
 
   size_t  size = elements::kMaxBlockSize;
-
+  
   float   *blow_in = voices[0].blow_in;
   float   *strike_in = voices[0].strike_in;
   float   *out = voices[0].out;
@@ -538,10 +621,11 @@ void updateElementsAudio() {
 
   elements::PerformanceState ps = voices[0].ps;
   elements::Patch            *p = voices[0].p;
-  
+
   // set resonator model:
   // RESONATOR_MODEL_MODAL, RESONATOR_MODEL_STRING, RESONATOR_MODEL_STRINGS
   CONSTRAIN(model, 0, 2);
+
   voices[0].part->set_resonator_model(static_cast<elements::ResonatorModel>(model));
 
   // set pitch
@@ -582,14 +666,14 @@ void updateElementsAudio() {
   CONSTRAIN(geometry, 0.0f, 0.9995f);
   p->resonator_geometry = geometry;
 
-  CONSTRAIN(brightness, 0.0f, 0.9995f);
-  p->resonator_brightness = brightness;
+  CONSTRAIN(bright, 0.0f, 0.9995f);
+  p->resonator_brightness = bright;
 
   CONSTRAIN(damping, 0.0f, 0.9995f);
   p->resonator_damping = damping;
 
-  CONSTRAIN(position, 0.0f, 0.9995f);
-  p->resonator_position = position;
+  CONSTRAIN(pos, 0.0f, 0.9995f);
+  p->resonator_position = pos;
 
   CONSTRAIN(space, 0.0f, 0.9995f);
   p->space = space ; //* 1.11f; // vb, use the last bit to trigger rev freeze
@@ -599,6 +683,7 @@ void updateElementsAudio() {
 
   // gate input
   ps.gate = trigger_in > 0.f; // gate_in[0] > 0.f;
+  
   /*
     if(INRATE(2) == calc_FullRate) {
       float sum = 0.f;
@@ -611,8 +696,8 @@ void updateElementsAudio() {
       ps.gate = gate_in[0] > 0.f;
   */
 
-  blow_in = voices[0].silence;
-  strike_in= voices[0].silence;
+
+  
   // check input rates
   /*
     if(INRATE(0) == calc_FullRate)
@@ -627,11 +712,11 @@ void updateElementsAudio() {
   */
 
   // input and output can't be the same arrays
-/*
-  for (size_t count = 0; count < size; count += size) {
+  /*
+    for (size_t count = 0; count < size; count += size) {
 
-    voices[0].part->Process(ps, blow_in + count, strike_in + count, out + count, aux + count, size);
-  }*/
+      voices[0].part->Process(ps, blow_in + count, strike_in + count, out + count, aux + count, size);
+    }*/
   // from rings
   int16_t *obuff = voices[0].obuff;
   int16_t *abuff = voices[0].abuff;
@@ -641,7 +726,7 @@ void updateElementsAudio() {
 
 
   // to pwm buffers
-  
+
   for (size_t i = 0; i < size; ++i) {
     //obuff[i] = stmlib::SoftConvert(out[i]);
     //abuff[i] = stmlib::SoftConvert(aux[i]);
@@ -712,28 +797,13 @@ void loop1() {
 
 
 
-  for (int i = 0; i < 9; ++i) { // scan all the buttons
+  for (int i = 0; i < 8; ++i) { // scan all the buttons
     if (button[i]) {
-
       anybuttonpressed = true;
       if (i < 8)  digitalWrite(led[i] , HIGH);
 
       //  if ((!potlock[1]) || (!potlock[2])) seq[i].trigger=euclid(16,map(potvalue[1],POT_MIN,POT_MAX,0,MAX_SEQ_STEPS),map(potvalue[2],POT_MIN,POT_MAX,0,MAX_SEQ_STEPS-1));
       // look up drum trigger pattern encoder play modes
-
-      if ( i == 8) {
-        engineCount = engineCount + encoder_delta;
-        CONSTRAIN(engineCount, 0, 47);
-        engine_in = engineCount; // ( engine +) % voices[0].voice_.GetNumEngines();
-
-      }
-
-      if ( (encoder_pos != encoder_pos_last ) && i == 1  ) {
-        engineCount = engineCount + encoder_delta;
-        CONSTRAIN(engineCount, 0, 47);
-        engine_in = engineCount;
-
-      }
 
       // change pitch on pot 0
       if (display_mode == 0 ) { // change sample if pot has moved enough
@@ -764,12 +834,28 @@ void loop1() {
     }
   }
 
+  // encoder button handling
+  if (button[8]) {
+      if ( (encoder_pos != encoder_pos_last ) ) {
+        engineCount = engineCount + encoder_delta;
+        CONSTRAIN(engineCount, 0, 6);
+        engine_in = engineCount;
+        
+      }
+  }
+  
+  if (anybuttonpressed) {
+    trigger_in = 1.0f;
+  } else {
+    trigger_in = 0.0f;
+  }
+
   // now, after buttons check if only encoder moved and no buttons
   // this is broken by mozzi, sigh.
   if (! anybuttonpressed && encoder_delta) {
     float turn = encoder_delta * 0.01f;
     harm_in = harm_in + turn;
-    
+
     //display_value(RATE_value - 50); // this is wrong, bro :)
   }
 
@@ -795,6 +881,12 @@ void loop1() {
     readpot(0);
     readpot(1);
     pot_timer = now;
+    
+//    create some noise input
+    for (size_t i = 0; i < 32; ++i) {
+      CV1_buffer[i] = (float) randomDouble(0.0, 1.0); // arbitrary +1 gain
+    }
+
   }
 
   displayUpdate();
