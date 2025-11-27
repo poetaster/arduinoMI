@@ -22,6 +22,23 @@ bool debugging = true;
 #define PWMOUT 22
 PWMAudio DAC(PWMOUT);  // 16 bit PWM audio
 
+// we can refer to sample[0] since there is only one.
+#define NUM_VOICES 1
+struct voice_t {
+  int16_t sample;   // index of the sample structure in sampledefs.h
+  int16_t level;   // 0-1000 for legacy reasons
+  uint32_t sampleindex; // 20:12 fixed point index into the sample array
+  uint16_t sampleincrement; // 1:12 fixed point sample step for pitch changes
+  bool isPlaying;  // true when sample is playing
+} voice[NUM_VOICES] = {
+  0, 700, 0, 4096, false, // test sample
+};
+#include "samples.h" // we're just using a sample for now.
+#define NUM_SAMPLES (sizeof(sample)/sizeof(sample_t))
+
+
+
+
 // plaits dsp
 #include <STMLIB.h>
 #include <CLOUDS.h>
@@ -33,8 +50,8 @@ PWMAudio DAC(PWMOUT);  // 16 bit PWM audio
 #include "clouds/dsp/mu_law.h"
 #include "clouds/dsp/sample_rate_converter.h"
 
-const uint16 kAudioBlockSize = 32;        // sig vs can't be smaller than this!
-const uint16 kNumArgs = 14;
+const uint16_t kAudioBlockSize = 32;        // sig vs can't be smaller than this!
+const uint16_t kNumArgs = 14;
 
 
 enum ModParams {
@@ -47,6 +64,9 @@ enum ModParams {
   PARAM_CHANNEL_LAST
 };
 
+// main output audio buffer
+int16_t out_bufferL[32];
+int16_t out_bufferR[32];
 
 struct Unit {
 
@@ -74,7 +94,7 @@ struct Unit {
 
   bool        gate_connected;
   bool        trig_connected;
-  uint32      pcount;
+  uint32_t      pcount;
 
 
   clouds::SampleRateConverter < -clouds::kDownsamplingFactor, 45, clouds::src_filter_1x_2_45 > src_down_;
@@ -130,7 +150,7 @@ bool TimerHandler0(struct repeating_timer *t) {
   bool sync = true;
   if ( DAC.availableForWrite()) {
     for (size_t i = 0; i < kAudioBlockSize; i++) {
-      DAC.write( outputPlaits[i].out); // 244 is mozzi audio bias
+      DAC.write( out_bufferL[i] ); // 244 is mozzi audio bias
     }
     counter = 1;
   }
@@ -167,8 +187,6 @@ void setup() {
   }
 
 
-
-
   // set up Pico PWM audio output
   DAC.setBuffers(4, 32); // DMA buffers
   //DAC.onTransmit(cb);
@@ -179,13 +197,8 @@ void setup() {
   pinMode(23, OUTPUT);
   digitalWrite(23, HIGH);
 
-  // init the plaits voices
-
+  // init the clouds voice(s)
   initVoices();
-  // prefill buffer
-
-
-
 
 }
 
@@ -196,7 +209,7 @@ void initVoices() {
   int smallBufSize = 65536 - 128;
 
   cloud[0].large_buffer = (uint8_t*)malloc(largeBufSize * sizeof(uint8_t));
-  cloud[0].small_buffer = (uint8_t*)RTAlloc(smallBufSize * sizeof(uint8_t));
+  cloud[0].small_buffer = (uint8_t*)malloc(smallBufSize * sizeof(uint8_t));
 
   cloud[0].sr = SAMPLERATE;
   cloud[0].processor = new clouds::GranularProcessor;
@@ -226,7 +239,7 @@ void initVoices() {
   cloud[0].src_up_.Init();
   cloud[0].pcount = 0;
   // have to think about this :)
-  //uint16 numAudioInputs = cloud[0].mNumInputs - kNumArgs;
+  //uint16_t numAudioInputs = cloud[0].mNumInputs - kNumArgs;
 
 
 
@@ -234,28 +247,24 @@ void initVoices() {
 
 // main audio called from loop, cpu 2)
 void updateCloudsAudio() {
-  float   pitch = IN0(0);
 
-  float   in_gain = IN0(6);
-  float   spread = IN0(7);
-  float   reverb = IN0(8);
-  float   fb = IN0(9);
-  bool    freeze = IN0(10) > 0.f;
-  short   mode = IN0(11);
-  bool    lofi = IN0(12) > 0.f;
-  float   *trig_in = IN(13);
+  float   pitch = 24.0f ; // pitch_in; // IN0(0);
+  float   in_gain = 1.0f; // harm_in; //IN0(6);
+  float   spread = 0.5f;// IN0(7);
+  float   reverb = morph_in; // IN0(8);
+  float   fb = timbre_in ; // IN0(9);
+  bool    freeze = false; // IN0(10) > 0.f;
+  short   mode = 0; // 0 -3
+  bool    lofi = 0; // IN0(12) > 0.f;
 
 
-  float   *outL = OUT(0);
-  float   *outR = OUT(1);
-
-  int vs = inNumSamples;
+  int vs = 1; //inNumSamples; // hmmmm
 
   // find out number of audio inputs
-  uint16 numAudioInputs = cloud[0].mNumInputs - kNumArgs;
+  //uint16_t numAudioInputs = cloud[0].mNumInputs - kNumArgs;
 
-  if (numAudioInputs == 1)
-    Copy(inNumSamples, IN(kNumArgs + 1), IN(kNumArgs));
+  // if (numAudioInputs == 1)
+  //   Copy(inNumSamples, IN(kNumArgs + 1), IN(kNumArgs));
 
   clouds::FloatFrame  *input = cloud[0].input;
   clouds::FloatFrame  *output = cloud[0].output;
@@ -269,8 +278,27 @@ void updateCloudsAudio() {
   smoothed_value[PARAM_PITCH] += coef * (pitch - smoothed_value[PARAM_PITCH]);
   p->pitch = smoothed_value[PARAM_PITCH];
 
+
+  // this is a kludge until I can test with 'real' input.
+  // this is a sample player in-line
+
+  int32_t newsample, samplesum = 0;
+  uint32_t index;
+  int16_t samp0, samp1, delta, tracksample;
+
+  tracksample = voice[0].sample; // precompute for a little more speed below
+
+  index = voice[0].sampleindex >> 12; // get the integer part of the sample increment
+
+  if (index >= sample[tracksample].samplesize) {
+    index = 0;
+  }
+  // increment the sampleindex while filling the buffer below
+
+  // no idea why this is done with floats.
+
   for (int i = 1; i < PARAM_CHANNEL_LAST; ++i) {
-    float value = IN0(i);
+  float value = map(index, 0, A11wlk0144_1_SIZE, 0.0f, 1.0f) ; //IN0(i); cheat from included define
     constrain(value, 0.0f, 1.0f);
     smoothed_value[i] += coef * (value - smoothed_value[i]);
     //        smoothed_value[i] = value;
@@ -296,17 +324,40 @@ void updateCloudsAudio() {
   gp->set_freeze(freeze);
   gp->set_playback_mode(static_cast<clouds::PlaybackMode>(mode));
 
-  uint16 trig_rate = INRATE(13);
+  // uint16_t trig_rate = INRATE(13); // A non-positive to positive transition causes a trigger to happen.
 
   for (int count = 0; count < vs; count += kAudioBlockSize) {
 
-    for (int i = 0; i < kAudioBlockSize; ++i) {
-      input[i].l = IN(kNumArgs)[i + count] * in_gain;
-      input[i].r = IN(kNumArgs + 1)[i + count] * in_gain;
+  for (int i = 0; i < kAudioBlockSize; ++i) {
+
+      index = voice[0].sampleindex >> 12;
+      tracksample = voice[0].sample; // precompute for a little more speed below
+      index = voice[0].sampleindex >> 12; // get the integer part of the sample increment
+      if (index >= sample[0].samplesize) voice[0].isPlaying = false; // have we played the whole sample?
+      if (voice[0].isPlaying) { // if sample is still playing, do interpolation
+        samp0 = sample[0].samplearray[index]; // get the first sample to interpolate
+        samp1 = sample[0].samplearray[index + 1]; // get the second sample
+        delta = samp1 - samp0;
+        newsample = (int32_t)samp0 + ((int32_t)delta * ((int32_t)voice[0].sampleindex & 0x0fff)) / 4096; // interpolate between the two samples
+        samplesum += (newsample * (127 * voice[0].level)) / 1000;
+        voice[0].sampleindex += voice[0].sampleincrement; // add step increment
+      }
+
+      input[i].l = static_cast<float>(samplesum) / 32768.0f;
+      input[i].r = static_cast<float>(samplesum) / 32768.0f;
+
+      /*
+        input[i].l = IN(kNumArgs)[i + count] * in_gain;
+        input[i].r = IN(kNumArgs + 1)[i + count] * in_gain;
+      */
     }
 
     bool trigger = false;
-    switch (trig_rate) {
+    if (trigger_in == 1.0f) {
+      trigger = true;
+    }
+    /*
+      switch (trig_rate) {
       case 1 :
         trigger = ( trig_in[0] > 0.f );
         break;
@@ -317,21 +368,22 @@ void updateCloudsAudio() {
         }
         trigger = ( sum > 0.f );
         break;
-    }
+      }
+    */
 
     p->trigger = (trigger && !cloud[0].previous_trig);
     cloud[0].previous_trig = trigger;
 
 
     gp->Process(input, output, kAudioBlockSize);
-    gp->Prepare();      // muss immer hier sein?
+    gp->Prepare();      // why here?
 
     if (p->trigger)
       p->trigger = false;
 
     for (int i = 0; i < kAudioBlockSize; ++i) {
-      outL[i + count] = output[i].l;
-      outR[i + count] = output[i].r;
+      out_bufferL[i] = output[i].l; // we stick to mono since we can't test stereo :)
+      //out_bufferR[i + count] = output[i].r;
     }
   }
 
@@ -342,7 +394,6 @@ void loop() {
 
   if ( counter == 1 ) {
     updateCloudsAudio();
-
     counter = 0; // increments on each pass of the timer after the timer writes samples
   }
 
@@ -366,6 +417,12 @@ void loop1() {
   float octave = randomDouble(0.2, 0.4);
   float decay = randomDouble(0.1, 0.4);
 
+  if (trigger > 0.1f) {
+    trigger_in = 1.0f;
+  } else {
+    trigger_in = 0.0f;
+  }
+
   //octave_in = octave;
   pitch_in = pitch;
   harm_in = harmonics;
@@ -376,7 +433,7 @@ void loop1() {
   if (engineInc > 4) {
     engineCount ++; // don't switch engine so often :)
     engineInc = 0;
-    voices[0].patch.engine = engineCount;
+    //voices[0].patch.engine = engineCount;
   }
   if (engineCount > 15) engineCount = 0;
 
