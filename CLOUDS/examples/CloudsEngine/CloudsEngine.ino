@@ -37,8 +37,6 @@ struct voice_t {
 #define NUM_SAMPLES (sizeof(sample)/sizeof(sample_t))
 
 
-
-
 // plaits dsp
 #include <STMLIB.h>
 #include <CLOUDS.h>
@@ -342,9 +340,10 @@ void updateCloudsAudio() {
         samplesum += (newsample * (127 * voice[0].level)) / 1000;
         voice[0].sampleindex += voice[0].sampleincrement; // add step increment
       }
-
-      input[i].l = static_cast<float>(samplesum) / 32768.0f;
-      input[i].r = static_cast<float>(samplesum) / 32768.0f;
+      //out_bufferL[i] = samplesum;
+      
+      input[i].l = samplesum;
+      input[i].r = samplesum;
 
       /*
         input[i].l = IN(kNumArgs)[i + count] * in_gain;
