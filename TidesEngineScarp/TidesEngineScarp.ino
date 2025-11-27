@@ -90,6 +90,12 @@ float midi_frequency(uint32_t midi_note) {
 #include <STMLIB.h>
 #include <TIDES.h>
 
+#include "stmlib/dsp/dsp.h"
+#include "tides2/poly_slope_generator.h"
+#include "tides2/ramp_extractor.h"
+//#include "tides2/resources.h"
+
+
 const size_t kAudioBlockSize = 8;        // sig vs can't be smaller than this!
 const size_t kNumOutputs = 4;
 
