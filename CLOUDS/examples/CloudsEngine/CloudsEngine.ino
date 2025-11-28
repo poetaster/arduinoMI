@@ -272,11 +272,11 @@ void updateCloudsAudio() {
   float   pitch = constrain(pitch_in, -48.0f, 48.0f);
   float   in_gain = 0.5f; // harm_in; //IN0(6);
   float   spread = 0.5f;// IN0(7);
-  float   reverb = constrain( morph_in, 0.f, 1.f); // IN0(8);
-  float   fb = constrain (timbre_in, 0.f, 1.f) ; // IN0(9);
+  float   reverb = 0.6f;// constrain( morph_in, 0.f, 1.f); // IN0(8);
+  float   fb = 0.5f;//constrain (timbre_in, 0.f, 1.f) ; // IN0(9);
   bool    freeze = false; // IN0(10) > 0.f;
   short   mode = 3; // 0 -3
-  bool    lofi = 0; // IN0(12) > 0.f;
+  bool    lofi = 1; // IN0(12) > 0.f;
 
 
   int vs = 32; //inNumSamples; // hmmmm
@@ -298,23 +298,29 @@ void updateCloudsAudio() {
   smoothed_value[PARAM_PITCH] += coef * (pitch - smoothed_value[PARAM_PITCH]);
   p->pitch = smoothed_value[PARAM_PITCH];
 
-
   for (int i = 1; i < PARAM_CHANNEL_LAST; ++i) {
-
-    float value = (float) sample_buffer[i]  / 32768.0f; // 0.0f; //IN0(i);
+    float value = 0.f;//(float) sample_buffer[i]  / 32768.0f; // 0.0f; //IN0(i);
     value = constrain(value, 0.0f, 1.0f);
 
     smoothed_value[i] += coef * (value - smoothed_value[i]);
-    //        smoothed_value[i] = value;
   }
-
   p->position = smoothed_value[PARAM_POSITION];
+
+
+  float siz = 0.35f;
+  smoothed_value[PARAM_SIZE] += coef * (siz - smoothed_value[PARAM_SIZE]);
   p->size = smoothed_value[PARAM_SIZE];
+
+  float dens = 0.02f;
+  smoothed_value[PARAM_DENSITY] += coef * (dens - smoothed_value[PARAM_DENSITY]);
   p->density = smoothed_value[PARAM_DENSITY];
+
+
+  float tex = 0.3f;
+  smoothed_value[PARAM_TEXTURE] += coef * (tex - smoothed_value[PARAM_TEXTURE]);
   p->texture = smoothed_value[PARAM_TEXTURE];
+  
   p->dry_wet = smoothed_value[PARAM_DRYWET];
-
-
   p->stereo_spread = spread;
   p->reverb = reverb;
   p->feedback = fb;
@@ -334,7 +340,7 @@ void updateCloudsAudio() {
       input[i].l = sample_buffer[i + count] * in_gain;;
       input[i].r = input[i].l;
     }
-    
+
     bool trigger = false;
     if (trigger_in == 1.0f) {
       trigger = true;
@@ -364,7 +370,7 @@ void updateCloudsAudio() {
       p->trigger = false;
 
     for (int i = 0; i < kAudioBlockSize; ++i) {
-      out_bufferL[i] = stmlib::Clip16(static_cast<int32_t>( (output[i + count].l )  * 32768.0f) ); // in rings we had gain?
+      out_bufferL[i] = stmlib::Clip16(static_cast<int32_t>( (output[i].l )  * 32768.0f) ); // in rings we had gain?
       //output[i].l; // we stick to mono since we can't test stereo :)
       //out_bufferR[i + count] = output[i].r;
     }
@@ -398,7 +404,7 @@ void fillSampleBuffer() {
     //out_bufferL[i] =sample_buffer[i]; // testing, works
   }
 
-  
+
 }
 
 void loop() {
