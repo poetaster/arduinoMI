@@ -125,6 +125,7 @@ float decay_in = 0.5f; // IN(10);
 float lpg_in = 0.2f ;// IN(11);
 float pitch_in = 60.f;
 float octave_in = 3.f;
+float dw_in = 0.5f;
 
 int engineCount = 0;
 int engineInc = 0;
@@ -270,19 +271,20 @@ void updateCloudsAudio() {
   */
   //  MiClouds.ar(input, pit: -15.0, pos: 0.5, size: 0.25,  dens: dens, tex: 0.5, drywet: 1, mode: 0);
 
-  float   pitch =  -2.0f; //constrain(pitch_in, -48.0f, 48.0f);
+  float   pitch =  constrain(pitch_in, -48.0f, 48.0f);
   float   in_gain = 1.0f; // harm_in; //IN0(6);
   float   spread = 0.5f;// IN0(7);
   float   reverb = 0.5f; // IN0(8);
   float   fb =  0.4f; // IN0(9);
   float   siz = constrain(harm_in, 0.f, 0.7f) ;// 0.35f;
   float   dens = constrain( morph_in, 0.f, 0.7f);;
-  float   tex = constrain (timbre_in, 0.f, 0.8f) ;;
+  float   tex = constrain (timbre_in, 0.f, 0.8f) ;
+  float   drywet = constrain(dw_in, 0.3f, 0.8f);
   bool    freeze = false; // IN0(10) > 0.f;
   short   mode = 0; // 0 -3
   bool    lofi = 1; // IN0(12) > 0.f;
 
-  cloud[0].pot_value_[PARAM_DRYWET] = cloud[0].smoothed_value_[PARAM_DRYWET] = 0.5f; // just testing.
+  cloud[0].pot_value_[PARAM_DRYWET] = cloud[0].smoothed_value_[PARAM_DRYWET] = drywet;
   
   int vs = 32; //inNumSamples; // hmmmm
 
@@ -431,7 +433,8 @@ void loop1() {
   float harmonics = randomDouble(0.0, 0.8); // SinOsc.kr(0.03, 0, 0.5, 0.5).range(0.0, 1.0);
   float timbre = randomDouble(0.0, 0.8); //LFTri.kr(0.07, 0, 0.5, 0.5).range(0.0, 1.0);
   float morph = randomDouble(0.1, 0.8) ; //LFTri.kr(0.11, 0, 0.5, 0.5).squared;
-  float pitch = randomDouble(24, 42); // TIRand.kr(24, 48, trigger);
+  float pitch = randomDouble(-48, 48); // TIRand.kr(24, 48, trigger);
+  float drywet = randomDouble(0.2, 0.9);
   float octave = randomDouble(0.2, 0.4);
   float decay = randomDouble(0.1, 0.4);
 
@@ -446,7 +449,8 @@ void loop1() {
   harm_in = harmonics;
   morph_in = morph;
   timbre_in = timbre;
-
+  dw_in = drywet;
+  
   engineInc++ ;
   if (engineInc > 4) {
     engineCount ++; // don't switch engine so often :)
