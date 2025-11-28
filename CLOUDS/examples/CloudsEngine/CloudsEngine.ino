@@ -48,6 +48,8 @@ struct voice_t {
 #include "clouds/dsp/mu_law.h"
 #include "clouds/dsp/sample_rate_converter.h"
 
+
+
 const uint16_t kAudioBlockSize = 32;        // sig vs can't be smaller than this!
 const uint16_t kNumArgs = 14;
 
@@ -66,13 +68,19 @@ enum ModParams {
 int16_t out_bufferL[32];
 int16_t out_bufferR[32];
 
+uint8_t sample_buffer[32]; // used while we play samples for demo
+
+
 struct Unit {
 
   clouds::GranularProcessor   *processor;
 
   // buffers
-  uint8_t     *large_buffer;
-  uint8_t     *small_buffer;
+  //uint8_t     *large_buffer;
+  //uint8_t     *small_buffer;
+  // Pre-allocate big blocks in main memory and CCM. No malloc here.
+  uint8_t     large_buffer[118784];
+  uint8_t     small_buffer[65536 - 128];
 
   // parameters
   float       in_gain;
@@ -148,7 +156,7 @@ bool TimerHandler0(struct repeating_timer *t) {
   bool sync = true;
   if ( DAC.availableForWrite()) {
     for (size_t i = 0; i < kAudioBlockSize; i++) {
-      DAC.write( out_bufferL[i] ); // 244 is mozzi audio bias
+      DAC.write( out_bufferL[i] );
     }
     counter = 1;
   }
@@ -170,7 +178,7 @@ int carrier_freq;
 
 void setup() {
   if (debugging) {
-    Serial.begin(57600);
+    Serial.begin(115200);
     Serial.println(F("YUP"));
   }
   // pwm timing setup
@@ -194,9 +202,14 @@ void setup() {
   // thi is to switch to PWM for power to avoid ripple noise
   pinMode(23, OUTPUT);
   digitalWrite(23, HIGH);
+  // start playing sample
+  voice[0].sampleindex = 0; // trigger sample for this track
+  voice[0].isPlaying = true;
 
+  fillSampleBuffer();
   // init the clouds voice(s)
   initVoices();
+  updateCloudsAudio();
 
 }
 
@@ -206,8 +219,10 @@ void initVoices() {
   int largeBufSize = 118784;
   int smallBufSize = 65536 - 128;
 
-  cloud[0].large_buffer = (uint8_t*)malloc(largeBufSize * sizeof(uint8_t));
-  cloud[0].small_buffer = (uint8_t*)malloc(smallBufSize * sizeof(uint8_t));
+  // we fixed it with static inits in the unit
+
+  //cloud[0].large_buffer = (uint8_t*)malloc(largeBufSize * sizeof(uint8_t));
+  //cloud[0].small_buffer = (uint8_t*)malloc(smallBufSize * sizeof(uint8_t));
 
   cloud[0].sr = SAMPLERATE;
   cloud[0].processor = new clouds::GranularProcessor;
@@ -238,6 +253,7 @@ void initVoices() {
   cloud[0].pcount = 0;
   // have to think about this :)
   //uint16_t numAudioInputs = cloud[0].mNumInputs - kNumArgs;
+  Serial.println(F("INIT DONE"));
 
 
 
@@ -277,26 +293,8 @@ void updateCloudsAudio() {
   p->pitch = smoothed_value[PARAM_PITCH];
 
 
-  // this is a kludge until I can test with 'real' input.
-  // this is a sample player in-line
-
-  int32_t newsample, samplesum = 0;
-  uint32_t index;
-  int16_t samp0, samp1, delta, tracksample;
-
-  tracksample = voice[0].sample; // precompute for a little more speed below
-
-  index = voice[0].sampleindex >> 12; // get the integer part of the sample increment
-
-  if (index >= sample[tracksample].samplesize) {
-    index = 0;
-  }
-  // increment the sampleindex while filling the buffer below
-
-  // no idea why this is done with floats.
-
   for (int i = 1; i < PARAM_CHANNEL_LAST; ++i) {
-  float value = map(index, 0, A11wlk0144_1_SIZE, 0.0f, 1.0f) ; //IN0(i); cheat from included define
+    float value = 0.0f; //IN0(i); 
     constrain(value, 0.0f, 1.0f);
     smoothed_value[i] += coef * (value - smoothed_value[i]);
     //        smoothed_value[i] = value;
@@ -326,29 +324,14 @@ void updateCloudsAudio() {
 
   for (int count = 0; count < vs; count += kAudioBlockSize) {
 
-  for (int i = 0; i < kAudioBlockSize; ++i) {
-
-      index = voice[0].sampleindex >> 12;
-      tracksample = voice[0].sample; // precompute for a little more speed below
-      index = voice[0].sampleindex >> 12; // get the integer part of the sample increment
-      if (index >= sample[0].samplesize) voice[0].isPlaying = false; // have we played the whole sample?
-      if (voice[0].isPlaying) { // if sample is still playing, do interpolation
-        samp0 = sample[0].samplearray[index]; // get the first sample to interpolate
-        samp1 = sample[0].samplearray[index + 1]; // get the second sample
-        delta = samp1 - samp0;
-        newsample = (int32_t)samp0 + ((int32_t)delta * ((int32_t)voice[0].sampleindex & 0x0fff)) / 4096; // interpolate between the two samples
-        samplesum += (newsample * (127 * voice[0].level)) / 1000;
-        voice[0].sampleindex += voice[0].sampleincrement; // add step increment
-      }
-      //out_bufferL[i] = samplesum;
-      
-      input[i].l = samplesum;
-      input[i].r = samplesum;
-
+    for (int i = 0; i < kAudioBlockSize; ++i) {
       /*
         input[i].l = IN(kNumArgs)[i + count] * in_gain;
         input[i].r = IN(kNumArgs + 1)[i + count] * in_gain;
       */
+      input[i].l = sample_buffer[i];
+      input[i].r = sample_buffer[i];
+
     }
 
     bool trigger = false;
@@ -373,7 +356,6 @@ void updateCloudsAudio() {
     p->trigger = (trigger && !cloud[0].previous_trig);
     cloud[0].previous_trig = trigger;
 
-
     gp->Process(input, output, kAudioBlockSize);
     gp->Prepare();      // why here?
 
@@ -381,21 +363,46 @@ void updateCloudsAudio() {
       p->trigger = false;
 
     for (int i = 0; i < kAudioBlockSize; ++i) {
-      out_bufferL[i] = output[i].l; // we stick to mono since we can't test stereo :)
+      out_bufferL[i] = stmlib::Clip16(static_cast<int32_t>(( (output[i].l ) + ( output[i].r) ) * 32768.0f)); // in rings we had gain?
+      //output[i].l; // we stick to mono since we can't test stereo :)
       //out_bufferR[i + count] = output[i].r;
     }
   }
 
 }
 
-void loop() {
-  //voices[0].transposition_ = 0.;
+void fillSampleBuffer() {
+  // start / resume playing sample looping
+  if (! voice[0].isPlaying) {
+    voice[0].sampleindex = 0; // trigger sample for this track
+    voice[0].isPlaying = true;
+  }
 
+  int32_t newsample, samplesum = 0, filtersum;
+  uint32_t index;
+  int16_t samp0, samp1, delta, tracksample;
+  tracksample = voice[0].sample; // precompute for a little more speed below
+
+  for (int i = 0; i < kAudioBlockSize; ++i) {
+
+    index = voice[0].sampleindex >> 12; // get the integer part of the sample increment
+    if (index >= sample[tracksample].samplesize) {
+      voice[0].isPlaying = false; // have we played the whole sample?
+    }
+    if (voice[0].isPlaying) { // if sample is still playing, do interpolation
+      samp0 = sample[tracksample].samplearray[index]; // get the first sample to interpolate
+      voice[0].sampleindex += voice[0].sampleincrement; // add step increment
+    }
+    sample_buffer[i] = constrain( samp0, -32767, 32767); // apply clipping
+  }
+}
+
+void loop() {
   if ( counter == 1 ) {
+    fillSampleBuffer();
     updateCloudsAudio();
     counter = 0; // increments on each pass of the timer after the timer writes samples
   }
-
 }
 
 // second core dedicated to display foo
@@ -408,11 +415,12 @@ void setup1() {
 // second core deals with ui / control rate updates
 void loop1() {
 
+
   float trigger = randomDouble(0.0, 1.0); // Dust.kr( LFNoise2.kr(0.1).range(0.1, 7) );
   float harmonics = randomDouble(0.0, 0.8); // SinOsc.kr(0.03, 0, 0.5, 0.5).range(0.0, 1.0);
   float timbre = randomDouble(0.0, 0.8); //LFTri.kr(0.07, 0, 0.5, 0.5).range(0.0, 1.0);
   float morph = randomDouble(0.1, 0.8) ; //LFTri.kr(0.11, 0, 0.5, 0.5).squared;
-  float pitch = randomDouble(42, 64); // TIRand.kr(24, 48, trigger);
+  float pitch = randomDouble(24, 42); // TIRand.kr(24, 48, trigger);
   float octave = randomDouble(0.2, 0.4);
   float decay = randomDouble(0.1, 0.4);
 
@@ -438,5 +446,4 @@ void loop1() {
 
   delay(3000);
 
-  //voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits, 1);
 }
