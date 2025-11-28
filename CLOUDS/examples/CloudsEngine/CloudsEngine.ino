@@ -279,7 +279,7 @@ void updateCloudsAudio() {
   float   siz = constrain(harm_in, 0.f, 0.7f) ;// 0.35f;
   float   dens = constrain( morph_in, 0.f, 0.7f);;
   float   tex = constrain (timbre_in, 0.f, 0.8f) ;
-  float   drywet = constrain(dw_in, 0.3f, 0.8f);
+  float   drywet = constrain(dw_in, 0.3f, 1.0f);
   bool    freeze = false; // IN0(10) > 0.f;
   short   mode = 0; // 0 -3
   bool    lofi = 1; // IN0(12) > 0.f;
@@ -340,7 +340,7 @@ void updateCloudsAudio() {
         input[i].l = IN(kNumArgs)[i + count] * in_gain;
         input[i].r = IN(kNumArgs + 1)[i + count] * in_gain;
       */
-      input[i].l = (float) sample_buffer[i + count] / 32768.0f; // grain is ko.
+      input[i].l = (float) sample_buffer[i + count] / 32768.0f;
       input[i].r = input[i].l;
     }
 
@@ -434,7 +434,7 @@ void loop1() {
   float timbre = randomDouble(0.0, 0.8); //LFTri.kr(0.07, 0, 0.5, 0.5).range(0.0, 1.0);
   float morph = randomDouble(0.1, 0.8) ; //LFTri.kr(0.11, 0, 0.5, 0.5).squared;
   float pitch = randomDouble(-48, 48); // TIRand.kr(24, 48, trigger);
-  float drywet = randomDouble(0.2, 0.9);
+  float drywet = randomDouble(0.7, 1.0);
   float octave = randomDouble(0.2, 0.4);
   float decay = randomDouble(0.1, 0.4);
 
