@@ -68,7 +68,7 @@ enum ModParams {
 int16_t out_bufferL[32];
 int16_t out_bufferR[32];
 
-uint8_t sample_buffer[32]; // used while we play samples for demo
+int16_t sample_buffer[32]; // used while we play samples for demo
 
 
 struct Unit {
@@ -261,18 +261,25 @@ void initVoices() {
 
 // main audio called from loop, cpu 2)
 void updateCloudsAudio() {
+  /*
+    constrain(in_gain, 0.125f, 8.f);
+    constrain(spread, 0.f, 1.f);
+    constrain(reverb, 0.f, 1.f);
+    constrain(fb, 0.f, 1.f);
+    constrain(mode, 0, 3);
+  */
 
-  float   pitch = 24.0f ; // pitch_in; // IN0(0);
-  float   in_gain = 1.0f; // harm_in; //IN0(6);
+  float   pitch = constrain(pitch_in, -48.0f, 48.0f);
+  float   in_gain = 0.5f; // harm_in; //IN0(6);
   float   spread = 0.5f;// IN0(7);
-  float   reverb = morph_in; // IN0(8);
-  float   fb = timbre_in ; // IN0(9);
+  float   reverb = constrain( morph_in, 0.f, 1.f); // IN0(8);
+  float   fb = constrain (timbre_in, 0.f, 1.f) ; // IN0(9);
   bool    freeze = false; // IN0(10) > 0.f;
-  short   mode = 0; // 0 -3
+  short   mode = 3; // 0 -3
   bool    lofi = 0; // IN0(12) > 0.f;
 
 
-  int vs = 1; //inNumSamples; // hmmmm
+  int vs = 32; //inNumSamples; // hmmmm
 
   // find out number of audio inputs
   //uint16_t numAudioInputs = cloud[0].mNumInputs - kNumArgs;
@@ -288,14 +295,15 @@ void updateCloudsAudio() {
   clouds::GranularProcessor   *gp = cloud[0].processor;
   clouds::Parameters   *p = gp->mutable_parameters();
 
-  constrain(pitch, -48.0f, 48.0f);
   smoothed_value[PARAM_PITCH] += coef * (pitch - smoothed_value[PARAM_PITCH]);
   p->pitch = smoothed_value[PARAM_PITCH];
 
 
   for (int i = 1; i < PARAM_CHANNEL_LAST; ++i) {
-    float value = 0.0f; //IN0(i); 
-    constrain(value, 0.0f, 1.0f);
+
+    float value = (float) sample_buffer[i]  / 32768.0f; // 0.0f; //IN0(i);
+    value = constrain(value, 0.0f, 1.0f);
+
     smoothed_value[i] += coef * (value - smoothed_value[i]);
     //        smoothed_value[i] = value;
   }
@@ -307,12 +315,6 @@ void updateCloudsAudio() {
   p->dry_wet = smoothed_value[PARAM_DRYWET];
 
 
-  constrain(in_gain, 0.125f, 8.f);
-  constrain(spread, 0.f, 1.f);
-  constrain(reverb, 0.f, 1.f);
-  constrain(fb, 0.f, 1.f);
-  constrain(mode, 0, 3);
-
   p->stereo_spread = spread;
   p->reverb = reverb;
   p->feedback = fb;
@@ -322,18 +324,17 @@ void updateCloudsAudio() {
 
   // uint16_t trig_rate = INRATE(13); // A non-positive to positive transition causes a trigger to happen.
 
-  for (int count = 0; count < vs; count += kAudioBlockSize) {
+  for (int count = 0; count < 1; count += kAudioBlockSize) {
 
     for (int i = 0; i < kAudioBlockSize; ++i) {
       /*
         input[i].l = IN(kNumArgs)[i + count] * in_gain;
         input[i].r = IN(kNumArgs + 1)[i + count] * in_gain;
       */
-      input[i].l = sample_buffer[i];
-      input[i].r = sample_buffer[i];
-
+      input[i].l = sample_buffer[i + count] * in_gain;;
+      input[i].r = input[i].l;
     }
-
+    
     bool trigger = false;
     if (trigger_in == 1.0f) {
       trigger = true;
@@ -363,7 +364,7 @@ void updateCloudsAudio() {
       p->trigger = false;
 
     for (int i = 0; i < kAudioBlockSize; ++i) {
-      out_bufferL[i] = stmlib::Clip16(static_cast<int32_t>(( (output[i].l ) + ( output[i].r) ) * 32768.0f)); // in rings we had gain?
+      out_bufferL[i] = stmlib::Clip16(static_cast<int32_t>( (output[i + count].l )  * 32768.0f) ); // in rings we had gain?
       //output[i].l; // we stick to mono since we can't test stereo :)
       //out_bufferR[i + count] = output[i].r;
     }
@@ -394,7 +395,10 @@ void fillSampleBuffer() {
       voice[0].sampleindex += voice[0].sampleincrement; // add step increment
     }
     sample_buffer[i] = constrain( samp0, -32767, 32767); // apply clipping
+    //out_bufferL[i] =sample_buffer[i]; // testing, works
   }
+
+  
 }
 
 void loop() {
