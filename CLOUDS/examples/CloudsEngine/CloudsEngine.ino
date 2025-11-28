@@ -268,17 +268,22 @@ void updateCloudsAudio() {
     constrain(fb, 0.f, 1.f);
     constrain(mode, 0, 3);
   */
+  //  MiClouds.ar(input, pit: -15.0, pos: 0.5, size: 0.25,  dens: dens, tex: 0.5, drywet: 1, mode: 0);
 
-  float   pitch = constrain(pitch_in, -48.0f, 48.0f);
-  float   in_gain = 0.5f; // harm_in; //IN0(6);
+  float   pitch =  -2.0f; //constrain(pitch_in, -48.0f, 48.0f);
+  float   in_gain = 1.0f; // harm_in; //IN0(6);
   float   spread = 0.5f;// IN0(7);
-  float   reverb = 0.6f;// constrain( morph_in, 0.f, 1.f); // IN0(8);
-  float   fb = 0.5f;//constrain (timbre_in, 0.f, 1.f) ; // IN0(9);
+  float   reverb = 0.5f; // IN0(8);
+  float   fb =  0.4f; // IN0(9);
+  float   siz = constrain(harm_in, 0.f, 0.7f) ;// 0.35f;
+  float   dens = constrain( morph_in, 0.f, 0.7f);;
+  float   tex = constrain (timbre_in, 0.f, 0.8f) ;;
   bool    freeze = false; // IN0(10) > 0.f;
-  short   mode = 3; // 0 -3
+  short   mode = 0; // 0 -3
   bool    lofi = 1; // IN0(12) > 0.f;
 
-
+  cloud[0].pot_value_[PARAM_DRYWET] = cloud[0].smoothed_value_[PARAM_DRYWET] = 0.5f; // just testing.
+  
   int vs = 32; //inNumSamples; // hmmmm
 
   // find out number of audio inputs
@@ -296,30 +301,26 @@ void updateCloudsAudio() {
   clouds::Parameters   *p = gp->mutable_parameters();
 
   smoothed_value[PARAM_PITCH] += coef * (pitch - smoothed_value[PARAM_PITCH]);
-  p->pitch = smoothed_value[PARAM_PITCH];
+  p->pitch =  smoothed_value[PARAM_PITCH];
 
   for (int i = 1; i < PARAM_CHANNEL_LAST; ++i) {
-    float value = 0.f;//(float) sample_buffer[i]  / 32768.0f; // 0.0f; //IN0(i);
+    float value = 0.5f; // 0.0f; //IN0(i);
     value = constrain(value, 0.0f, 1.0f);
 
     smoothed_value[i] += coef * (value - smoothed_value[i]);
   }
   p->position = smoothed_value[PARAM_POSITION];
 
-
-  float siz = 0.35f;
   smoothed_value[PARAM_SIZE] += coef * (siz - smoothed_value[PARAM_SIZE]);
   p->size = smoothed_value[PARAM_SIZE];
 
-  float dens = 0.02f;
   smoothed_value[PARAM_DENSITY] += coef * (dens - smoothed_value[PARAM_DENSITY]);
   p->density = smoothed_value[PARAM_DENSITY];
 
 
-  float tex = 0.3f;
   smoothed_value[PARAM_TEXTURE] += coef * (tex - smoothed_value[PARAM_TEXTURE]);
   p->texture = smoothed_value[PARAM_TEXTURE];
-  
+
   p->dry_wet = smoothed_value[PARAM_DRYWET];
   p->stereo_spread = spread;
   p->reverb = reverb;
@@ -337,7 +338,7 @@ void updateCloudsAudio() {
         input[i].l = IN(kNumArgs)[i + count] * in_gain;
         input[i].r = IN(kNumArgs + 1)[i + count] * in_gain;
       */
-      input[i].l = sample_buffer[i + count] * in_gain;;
+      input[i].l = (float) sample_buffer[i + count] / 32768.0f; // grain is ko.
       input[i].r = input[i].l;
     }
 
@@ -401,7 +402,7 @@ void fillSampleBuffer() {
       voice[0].sampleindex += voice[0].sampleincrement; // add step increment
     }
     sample_buffer[i] = constrain( samp0, -32767, 32767); // apply clipping
-    //out_bufferL[i] =sample_buffer[i]; // testing, works
+    // out_bufferL[i] =sample_buffer[i]; // testing, works
   }
 
 

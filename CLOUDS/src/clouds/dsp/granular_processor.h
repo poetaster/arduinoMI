@@ -83,7 +83,7 @@ class GranularProcessor {
 
     // work directly with float frames not shorts
   //void Process(ShortFrame* input, ShortFrame* output, size_t size);
-    void Process(FloatFrame* input, FloatFrame* output, size_t size);
+  void Process(FloatFrame* input, FloatFrame* output, size_t size);
   void Prepare();
   
   inline Parameters* mutable_parameters() {
