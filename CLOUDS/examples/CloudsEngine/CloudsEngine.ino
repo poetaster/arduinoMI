@@ -127,6 +127,7 @@ float pitch_in = 60.f;
 float octave_in = 3.f;
 float dw_in = 0.5f;
 float pos_in =0.0f;
+bool freeze_in = false;
 
 int engineCount = 0;
 int engineInc = 0;
@@ -282,8 +283,8 @@ void updateCloudsAudio() {
   float   tex = constrain (timbre_in, 0.f, 0.8f) ;
   float   posi = constrain(pos_in, 0.f, 1.f);  
   float   drywet = constrain(dw_in, 0.3f, 1.0f);
-  bool    freeze = false; // IN0(10) > 0.f;
-  short   mode = 0; // 0 -3
+  bool    freeze = freeze_in; // IN0(10) > 0.f;
+  short   mode = 2; // 0 -3
   bool    lofi = 0; // IN0(12) > 0.f;
 
   
@@ -380,7 +381,9 @@ void updateCloudsAudio() {
       p->trigger = false;
 
     for (int i = 0; i < kAudioBlockSize; ++i) {
+      
       out_bufferL[i] = stmlib::Clip16(static_cast<int32_t>( (output[i].l )  * 32768.0f) ); // in rings we had gain?
+      
       //output[i].l; // we stick to mono since we can't test stereo :)
       //out_bufferR[i + count] = output[i].r;
     }
@@ -411,7 +414,7 @@ void fillSampleBuffer() {
       voice[0].sampleindex += voice[0].sampleincrement; // add step increment
     }
     sample_buffer[i] = constrain( samp0, -32767, 32767); // apply clipping
-    // out_bufferL[i] =sample_buffer[i]; // testing, works
+    // out_bufferL[i] =sample_buffer[i]; // you can test a sample with this, disable in updateCloudsAudio
   }
 
 
@@ -465,6 +468,9 @@ void loop1() {
     engineCount ++; // don't switch engine so often :)
     engineInc = 0;
     //voices[0].patch.engine = engineCount;
+    freeze_in = true;
+  } else {
+    freeze_in = false;
   }
   if (engineCount > 15) engineCount = 0;
 
