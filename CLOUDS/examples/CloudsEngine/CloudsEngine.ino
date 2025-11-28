@@ -126,6 +126,7 @@ float lpg_in = 0.2f ;// IN(11);
 float pitch_in = 60.f;
 float octave_in = 3.f;
 float dw_in = 0.5f;
+float pos_in =0.0f;
 
 int engineCount = 0;
 int engineInc = 0;
@@ -279,12 +280,13 @@ void updateCloudsAudio() {
   float   siz = constrain(harm_in, 0.f, 0.7f) ;// 0.35f;
   float   dens = constrain( morph_in, 0.f, 0.7f);;
   float   tex = constrain (timbre_in, 0.f, 0.8f) ;
+  float   posi = constrain(pos_in, 0.f, 1.f);  
   float   drywet = constrain(dw_in, 0.3f, 1.0f);
   bool    freeze = false; // IN0(10) > 0.f;
   short   mode = 0; // 0 -3
-  bool    lofi = 1; // IN0(12) > 0.f;
+  bool    lofi = 0; // IN0(12) > 0.f;
 
-  cloud[0].pot_value_[PARAM_DRYWET] = cloud[0].smoothed_value_[PARAM_DRYWET] = drywet;
+  
   
   int vs = 32; //inNumSamples; // hmmmm
 
@@ -304,13 +306,18 @@ void updateCloudsAudio() {
 
   smoothed_value[PARAM_PITCH] += coef * (pitch - smoothed_value[PARAM_PITCH]);
   p->pitch =  smoothed_value[PARAM_PITCH];
-
+  
+  cloud[0].pot_value_[PARAM_DRYWET] = cloud[0].smoothed_value_[PARAM_DRYWET] = drywet;
+  
+  /* this was from the original cv input
   for (int i = 1; i < PARAM_CHANNEL_LAST; ++i) {
     float value = 0.5f; // 0.0f; //IN0(i);
     value = constrain(value, 0.0f, 1.0f);
 
     smoothed_value[i] += coef * (value - smoothed_value[i]);
-  }
+  }*/
+  
+  smoothed_value[PARAM_POSITION] += coef * (posi - smoothed_value[PARAM_POSITION]);
   p->position = smoothed_value[PARAM_POSITION];
 
   smoothed_value[PARAM_SIZE] += coef * (siz - smoothed_value[PARAM_SIZE]);
@@ -434,7 +441,8 @@ void loop1() {
   float timbre = randomDouble(0.0, 0.8); //LFTri.kr(0.07, 0, 0.5, 0.5).range(0.0, 1.0);
   float morph = randomDouble(0.1, 0.8) ; //LFTri.kr(0.11, 0, 0.5, 0.5).squared;
   float pitch = randomDouble(-48, 48); // TIRand.kr(24, 48, trigger);
-  float drywet = randomDouble(0.7, 1.0);
+  float drywet = randomDouble(0.9, 1.0);
+  float posi = randomDouble(0.0, 1.0); 
   float octave = randomDouble(0.2, 0.4);
   float decay = randomDouble(0.1, 0.4);
 
@@ -450,6 +458,7 @@ void loop1() {
   morph_in = morph;
   timbre_in = timbre;
   dw_in = drywet;
+  pos_in = posi;
   
   engineInc++ ;
   if (engineInc > 4) {
