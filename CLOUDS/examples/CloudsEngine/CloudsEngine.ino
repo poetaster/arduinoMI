@@ -23,7 +23,7 @@ bool debugging = true;
 PWMAudio DAC(PWMOUT);  // 16 bit PWM audio
 
 // we can refer to sample[0] since there is only one.
-#define NUM_VOICES 1
+#define NUM_VOICES 7
 struct voice_t {
   int16_t sample;   // index of the sample structure in sampledefs.h
   int16_t level;   // 0-1000 for legacy reasons
@@ -32,6 +32,12 @@ struct voice_t {
   bool isPlaying;  // true when sample is playing
 } voice[NUM_VOICES] = {
   0, 700, 0, 4096, false, // test sample
+  1, 700, 0, 4096, false, // test sample
+  2, 700, 0, 4096, false, // test sample
+  3, 700, 0, 4096, false, // test sample
+  4, 700, 0, 4096, false, // test sample
+  5, 700, 0, 4096, false, // test sample
+  6, 700, 0, 4096, false, // test sample
 };
 #include "samples.h" // we're just using a sample for now.
 #define NUM_SAMPLES (sizeof(sample)/sizeof(sample_t))
@@ -126,8 +132,10 @@ float lpg_in = 0.2f ;// IN(11);
 float pitch_in = 60.f;
 float octave_in = 3.f;
 float dw_in = 0.5f;
-float pos_in =0.0f;
+float pos_in = 0.0f;
 bool freeze_in = false;
+int voice_in = 0;
+int mode_in = 0;
 
 int engineCount = 0;
 int engineInc = 0;
@@ -281,14 +289,14 @@ void updateCloudsAudio() {
   float   siz = constrain(harm_in, 0.f, 0.7f) ;// 0.35f;
   float   dens = constrain( morph_in, 0.f, 0.7f);;
   float   tex = constrain (timbre_in, 0.f, 0.8f) ;
-  float   posi = constrain(pos_in, 0.f, 1.f);  
+  float   posi = constrain(pos_in, 0.f, 1.f);
   float   drywet = constrain(dw_in, 0.3f, 1.0f);
   bool    freeze = freeze_in; // IN0(10) > 0.f;
-  short   mode = 2; // 0 -3
+  short   mode = mode_in; // 0 -3
   bool    lofi = 0; // IN0(12) > 0.f;
 
-  
-  
+
+
   int vs = 32; //inNumSamples; // hmmmm
 
   // find out number of audio inputs
@@ -307,17 +315,17 @@ void updateCloudsAudio() {
 
   smoothed_value[PARAM_PITCH] += coef * (pitch - smoothed_value[PARAM_PITCH]);
   p->pitch =  smoothed_value[PARAM_PITCH];
-  
+
   cloud[0].pot_value_[PARAM_DRYWET] = cloud[0].smoothed_value_[PARAM_DRYWET] = drywet;
-  
+
   /* this was from the original cv input
-  for (int i = 1; i < PARAM_CHANNEL_LAST; ++i) {
+    for (int i = 1; i < PARAM_CHANNEL_LAST; ++i) {
     float value = 0.5f; // 0.0f; //IN0(i);
     value = constrain(value, 0.0f, 1.0f);
 
     smoothed_value[i] += coef * (value - smoothed_value[i]);
-  }*/
-  
+    }*/
+
   smoothed_value[PARAM_POSITION] += coef * (posi - smoothed_value[PARAM_POSITION]);
   p->position = smoothed_value[PARAM_POSITION];
 
@@ -381,9 +389,9 @@ void updateCloudsAudio() {
       p->trigger = false;
 
     for (int i = 0; i < kAudioBlockSize; ++i) {
-      
+
       out_bufferL[i] = stmlib::Clip16(static_cast<int32_t>( (output[i].l )  * 32768.0f) ); // in rings we had gain?
-      
+
       //output[i].l; // we stick to mono since we can't test stereo :)
       //out_bufferR[i + count] = output[i].r;
     }
@@ -393,25 +401,25 @@ void updateCloudsAudio() {
 
 void fillSampleBuffer() {
   // start / resume playing sample looping
-  if (! voice[0].isPlaying) {
-    voice[0].sampleindex = 0; // trigger sample for this track
-    voice[0].isPlaying = true;
+  if (! voice[voice_in].isPlaying) {
+    voice[voice_in].sampleindex = 0; // trigger sample for this track
+    voice[voice_in].isPlaying = true;
   }
 
   int32_t newsample, samplesum = 0, filtersum;
   uint32_t index;
   int16_t samp0, samp1, delta, tracksample;
-  tracksample = voice[0].sample; // precompute for a little more speed below
+  tracksample = voice[voice_in].sample; // precompute for a little more speed below
 
   for (int i = 0; i < kAudioBlockSize; ++i) {
 
-    index = voice[0].sampleindex >> 12; // get the integer part of the sample increment
+    index = voice[voice_in].sampleindex >> 12; // get the integer part of the sample increment
     if (index >= sample[tracksample].samplesize) {
-      voice[0].isPlaying = false; // have we played the whole sample?
+      voice[voice_in].isPlaying = false; // have we played the whole sample?
     }
     if (voice[0].isPlaying) { // if sample is still playing, do interpolation
       samp0 = sample[tracksample].samplearray[index]; // get the first sample to interpolate
-      voice[0].sampleindex += voice[0].sampleincrement; // add step increment
+      voice[voice_in].sampleindex += voice[voice_in].sampleincrement; // add step increment
     }
     sample_buffer[i] = constrain( samp0, -32767, 32767); // apply clipping
     // out_bufferL[i] =sample_buffer[i]; // you can test a sample with this, disable in updateCloudsAudio
@@ -445,10 +453,10 @@ void loop1() {
   float morph = randomDouble(0.1, 0.8) ; //LFTri.kr(0.11, 0, 0.5, 0.5).squared;
   float pitch = randomDouble(-48, 48); // TIRand.kr(24, 48, trigger);
   float drywet = randomDouble(0.9, 1.0);
-  float posi = randomDouble(0.0, 1.0); 
+  float posi = randomDouble(0.0, 1.0);
   float octave = randomDouble(0.2, 0.4);
   float decay = randomDouble(0.1, 0.4);
-
+  
   if (trigger > 0.1f) {
     trigger_in = 1.0f;
   } else {
@@ -467,12 +475,17 @@ void loop1() {
   if (engineInc > 4) {
     engineCount ++; // don't switch engine so often :)
     engineInc = 0;
-    //voices[0].patch.engine = engineCount;
-    freeze_in = true;
+    freeze_in = true; 
   } else {
     freeze_in = false;
+    mode_in = 0;
   }
-  if (engineCount > 15) engineCount = 0;
+  // change the sample used from time to time.
+  if (engineCount > 8) {
+    voice_in = constrain(random(8), 0,7);
+    mode_in = constrain(random(3), 0,3);
+    engineCount = 0;
+  }
 
   delay(3000);
 
