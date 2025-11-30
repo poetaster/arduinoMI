@@ -12,49 +12,56 @@ struct sample_t {
 	Eight,	// pointer to sample array
 	Eight_SIZE,	// size of the sample array
 	Eight_SIZE,	//sampleindex. if at end of sample array sound is not playing
-	35,	// MIDI note on that plays this sample
+	36,	// MIDI note on that plays this sample
 	127,	// play volume 0-127
 	"Eight",	// sample name
 
 	Five,	// pointer to sample array
 	Five_SIZE,	// size of the sample array
 	Five_SIZE,	//sampleindex. if at end of sample array sound is not playing
-	36,	// MIDI note on that plays this sample
+	37,	// MIDI note on that plays this sample
 	127,	// play volume 0-127
 	"Five",	// sample name
 
 	Four,	// pointer to sample array
 	Four_SIZE,	// size of the sample array
 	Four_SIZE,	//sampleindex. if at end of sample array sound is not playing
-	37,	// MIDI note on that plays this sample
+	38,	// MIDI note on that plays this sample
 	127,	// play volume 0-127
 	"Four",	// sample name
 
 	One,	// pointer to sample array
 	One_SIZE,	// size of the sample array
 	One_SIZE,	//sampleindex. if at end of sample array sound is not playing
-	38,	// MIDI note on that plays this sample
+	39,	// MIDI note on that plays this sample
 	127,	// play volume 0-127
 	"One",	// sample name
+
+	R2,	// pointer to sample array
+	R2_SIZE,	// size of the sample array
+	R2_SIZE,	//sampleindex. if at end of sample array sound is not playing
+	40,	// MIDI note on that plays this sample
+	127,	// play volume 0-127
+	"R2",	// sample name
 
 	Seven,	// pointer to sample array
 	Seven_SIZE,	// size of the sample array
 	Seven_SIZE,	//sampleindex. if at end of sample array sound is not playing
-	39,	// MIDI note on that plays this sample
+	41,	// MIDI note on that plays this sample
 	127,	// play volume 0-127
 	"Seven",	// sample name
 
 	Six,	// pointer to sample array
 	Six_SIZE,	// size of the sample array
 	Six_SIZE,	//sampleindex. if at end of sample array sound is not playing
-	40,	// MIDI note on that plays this sample
+	42,	// MIDI note on that plays this sample
 	127,	// play volume 0-127
 	"Six",	// sample name
 
 	Two,	// pointer to sample array
 	Two_SIZE,	// size of the sample array
 	Two_SIZE,	//sampleindex. if at end of sample array sound is not playing
-	41,	// MIDI note on that plays this sample
+	43,	// MIDI note on that plays this sample
 	127,	// play volume 0-127
 	"Two",	// sample name
 

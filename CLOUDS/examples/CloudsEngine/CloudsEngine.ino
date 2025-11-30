@@ -23,7 +23,7 @@ bool debugging = true;
 PWMAudio DAC(PWMOUT);  // 16 bit PWM audio
 
 // we can refer to sample[0] since there is only one.
-#define NUM_VOICES 7
+#define NUM_VOICES 8
 struct voice_t {
   int16_t sample;   // index of the sample structure in sampledefs.h
   int16_t level;   // 0-1000 for legacy reasons
@@ -38,6 +38,7 @@ struct voice_t {
   4, 700, 0, 4096, false, // test sample
   5, 700, 0, 4096, false, // test sample
   6, 700, 0, 4096, false, // test sample
+  7, 700, 0, 4096, false, // test sample
 };
 #include "samples.h" // we're just using a sample for now.
 #define NUM_SAMPLES (sizeof(sample)/sizeof(sample_t))
@@ -134,7 +135,7 @@ float octave_in = 3.f;
 float dw_in = 0.5f;
 float pos_in = 0.0f;
 bool freeze_in = false;
-int voice_in = 0;
+int voice_in = 4;
 int mode_in = 0;
 
 int engineCount = 0;
@@ -456,7 +457,7 @@ void loop1() {
   float posi = randomDouble(0.0, 1.0);
   float octave = randomDouble(0.2, 0.4);
   float decay = randomDouble(0.1, 0.4);
-  
+
   if (trigger > 0.1f) {
     trigger_in = 1.0f;
   } else {
@@ -470,23 +471,31 @@ void loop1() {
   timbre_in = timbre;
   dw_in = drywet;
   pos_in = posi;
-  
+
+  // in other examples for MI modules, this was changing engine
+  // here we change samples and modes
   engineInc++ ;
   if (engineInc > 4) {
     engineCount ++; // don't switch engine so often :)
     engineInc = 0;
-    freeze_in = true; 
+    
+    mode_in = mode_in + 1;
+    if (mode_in > 3) mode_in = 0;
+    
+    freeze_in = true;
   } else {
     freeze_in = false;
     mode_in = 0;
   }
   // change the sample used from time to time.
   if (engineCount > 8) {
-    voice_in = constrain(random(8), 0,7);
-    mode_in = constrain(random(3), 0,3);
+    
+    voice_in = voice_in + 1;
+    if (voice_in > 8) voice_in = 0;
+
     engineCount = 0;
   }
 
-  delay(3000);
+  delay(5000);
 
 }
