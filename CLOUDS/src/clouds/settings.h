@@ -31,8 +31,6 @@
 
 #include "stmlib/stmlib.h"
 
-#include "clouds/drivers/adc.h"
-
 namespace clouds {
 
 struct CalibrationData {
