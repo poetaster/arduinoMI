@@ -141,7 +141,7 @@ int mode_in = 0;
 int engineCount = 0;
 int engineInc = 0;
 
-// clock timer  stuff
+// clock timer  stuff  
 
 #define TIMER_INTERRUPT_DEBUG         0
 #define _TIMERINTERRUPT_LOGLEVEL_     4
@@ -174,6 +174,12 @@ bool TimerHandler0(struct repeating_timer *t) {
   }
 
   return true;
+}
+
+float mapf(float value, float fromLow, float fromHigh, float toLow, float toHigh) {
+  float result;
+  result = (value - fromLow) * (toHigh - toLow) / (fromHigh - fromLow) + toLow;
+  return result;
 }
 
 // produce some random numbers in ranges.
@@ -282,16 +288,16 @@ void updateCloudsAudio() {
   */
   //  MiClouds.ar(input, pit: -15.0, pos: 0.5, size: 0.25,  dens: dens, tex: 0.5, drywet: 1, mode: 0);
 
-  float   pitch =  constrain(pitch_in, -48.0f, 48.0f);
-  float   in_gain = 1.0f; // harm_in; //IN0(6);
+  float   pitch =  pitch_in; // mapf(pitch_in, 0.0, 120.0, -48.0, 48.0);
+  float   in_gain = 1.5f; // harm_in; //IN0(6);
   float   spread = 0.5f;// IN0(7);
   float   reverb = 0.5f; // IN0(8);
   float   fb =  0.4f; // IN0(9);
   float   siz = constrain(harm_in, 0.f, 0.7f) ;// 0.35f;
   float   dens = constrain( morph_in, 0.f, 0.7f);;
   float   tex = constrain (timbre_in, 0.f, 0.8f) ;
-  float   posi = constrain(pos_in, 0.f, 1.f);
-  float   drywet = constrain(dw_in, 0.3f, 1.0f);
+  float   posi = 0.0f; //constrain(pos_in, 0.f, 1.f);
+  float   drywet = 1.0f; //constrain(dw_in, 0.3f, 1.0f);
   bool    freeze = freeze_in; // IN0(10) > 0.f;
   short   mode = mode_in; // 0 -3
   bool    lofi = 0; // IN0(12) > 0.f;
