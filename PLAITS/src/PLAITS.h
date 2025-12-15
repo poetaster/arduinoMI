@@ -1,9 +1,4 @@
 #pragma once
-// PLAITS.h - Arduino wrapper for Mutable Instruments Braids
-// Note all the originals sources, .cc files, are retained and a copy with .inc extension has been made
-//
-#ifndef PLAITS_ARDUINO_H_
-#define PLAITS_ARDUINO_H_
 
 // ==================== RESOURCES ====================
 #include "plaits/resources.h"
@@ -88,7 +83,7 @@
 // ==================== ENGINE2 / FM7 / DX7 / PD / WT / SM ====================
 #include "plaits/dsp/engine2/six_op_engine.h"             // DX7 / 6-op FM
 //#include "plaits/dsp/engine2/phase_distortion_engine.h"   // Phase Distortion
-#include "plaits/dsp/engine2/wave_terrain_engine.h"      // Wave Terrain
+//#include "plaits/dsp/engine2/wave_terrain_engine.h"      // Wave Terrain
 //#include "plaits/dsp/engine2/string_machine_engine.h"    // String Machine / Chorus
 //#include "plaits/dsp/engine2/chiptune_engine.h"          // Chiptune
 //#include "plaits/dsp/engine2/virtual_analog_vcf_engine.h" // VA + VCF
@@ -106,4 +101,3 @@
 #include "plaits/dsp/chords/chord_bank.h"
 #include "plaits/user_data.h"
 
-#endif // PLAITS_ARDUINO_H_

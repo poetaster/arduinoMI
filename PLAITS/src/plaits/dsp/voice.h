@@ -58,7 +58,7 @@
 #include "plaits/dsp/engine2/six_op_engine.h"
 //#include "plaits/dsp/engine2/string_machine_engine.h"
 //#include "plaits/dsp/engine2/virtual_analog_vcf_engine.h"
-#include "plaits/dsp/engine2/wave_terrain_engine.h"
+//#include "plaits/dsp/engine2/wave_terrain_engine.h"
 
 #include "plaits/dsp/envelope.h"
 
@@ -66,7 +66,7 @@
 
 namespace plaits {
 
-const int kMaxEngines = 19;
+const int kMaxEngines = 24;
 const int kMaxTriggerDelay = 8;
 const int kTriggerDelay = 5;
 
@@ -225,7 +225,7 @@ class Voice {
 SixOpEngine six_op_engine_0;
 SixOpEngine six_op_engine_1;
 SixOpEngine six_op_engine_2;
-WaveTerrainEngine wave_terrain_engine_;
+ // WaveTerrainEngine wave_terrain_engine_;
 //  StringMachineEngine string_machine_engine_;
  // ChiptuneEngine chiptune_engine_;
 

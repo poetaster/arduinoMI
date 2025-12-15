@@ -133,7 +133,6 @@ inline float SoftClip(float x) {
      int32_t result;
     __asm ("ssat %0, %1, %2" : "=r" (result) :  "I" (16), "r" (x) );
     return result;
-    __arm_ssat(src, bits)   asm("ssat %[srcr], %[satv], %[srcr]"    :[srcr]"+r"(src):[satv]"I"(bits));
      */
       if (x < -32768) {
           return -32768;
