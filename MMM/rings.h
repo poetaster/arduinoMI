@@ -57,17 +57,15 @@ void updateRingsAudio() {
     instance[0].part.Process(*ps, *patch, instance[0].input, instance[0].out, instance[0].aux, size);
   }
   float gain;
-  if (engine_in !=0 && engine_in !=3) {
-    gain = 1.5;
-  } else if (engine_in == 5) {
-    gain = 1.8;
+  if (engine_in == 5) {
+    gain = 1.1;
   } else {
     gain = 1.0;
   }
 
   for (size_t i = 0; i < size; ++i) {
     // we're reducing to mono for now. the stereo below does work..
-    out_bufferL[i] =   stmlib::Clip16(static_cast<int32_t>(( (instance[0].out[i] * gain) + ( instance[0].aux[i] * gain) ) * 32768.0f));
+    out_bufferL[i] =   stmlib::Clip16(static_cast<int32_t>( ( instance[0].out[i]  + instance[0].aux[i]  ) * 32768.0f) );
       
     //out_bufferR[i] = stmlib::Clip16(static_cast<int32_t>((instance[0].aux[i]+.11) * 32768.0f)); // the .11 is gainwhich should be done by calibration.
     //out_bufferL[i] = stmlib::Clip16(static_cast<int32_t>((instance[0].out[i]+.11) * 32768.0f)); // was obuff

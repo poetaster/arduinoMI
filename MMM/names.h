@@ -1,23 +1,31 @@
 const char* const oscnames[] = {
-  "V-ANALOG",
-  "W-SHAPE",
+  "V-Analog",
+  "Wv-Shape",
   "FM",
-  "GRAINS",
+  "Grains",
   "Add",
-  "W-TABLE",
-  "chord",
-  "SPEECH",
-  "SWARN",
-  "NOISE",
-  "PARTICLE",
-  "STRING",
-  "MODAL",
-  "W-TERRAIN"
+  "Wv-Table",
+  "Chord",
+  "Speech",
+  "Swarm",
+  "Noise",
+  "Partcl",
+  "String",
+  "Modal",
+  "Wv-Terain",
+  "VA-VCF",
+  "PhaseDist",
   "BASSD",
   "SNARED",
   "HI-HAT",
-};
+}; 
+
+//   "6op1",
+//  "6op2",
+//  "6op3",
+
 const size_t nameslength = sizeof(oscnames) / sizeof(oscnames[0]);
+
 
 const char* const modelnames[] = {
   "MODAL_RESO",
@@ -37,7 +45,16 @@ const char* const FXnames[] = {
   "FX_REVERB"
 };
 
+
 const size_t modelslength = sizeof(modelnames) / sizeof(modelnames[0]);
+
+const char* const cloudnames[] = {
+  "GRANULAR",
+  "STRETCH",
+  "LOOPING",
+  "SPECTRAL"
+};
+const size_t cloudnameslength = sizeof(cloudnames) / sizeof(cloudnames[0]);
 
 const char* const braidsnames[] = {
   "CSAW",

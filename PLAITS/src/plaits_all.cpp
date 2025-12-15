@@ -34,4 +34,5 @@
 #include "plaits/dsp/physical_modelling/string_voice.inc"
 
 #include "plaits/dsp/engine/virtual_analog_vcf_engine.inc"
+#include "plaits/dsp/engine/phase_distortion_engine.inc"
 

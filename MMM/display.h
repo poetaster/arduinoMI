@@ -1,7 +1,5 @@
 // display functions/defines
 
-#define DISPLAY_TIME 2000 // time in ms to display numbers on LEDS
-
 enum {
   MODE_PLAY = 0,
   MODE_CONFIG,
@@ -34,28 +32,28 @@ typedef struct {
 //// {x,y} locations of play screen items
 const int step_text_pos[] = { 0, 15, 16, 15, 32, 15, 48, 15, 64, 15, 80, 15, 96, 15, 112, 15 };
 
-const pos_t bpm_text_pos    = {.x = 0,  .y = 8, .str = "bpm:%3d" };
-const pos_t trans_text_pos  = {.x = 46, .y = 8, .str = "trs:%+2d" };
-const pos_t seqno_text_pos  = {.x = 90, .y = 8, .str = "seq:%d" };
-const pos_t seq_info_pos    = {.x = 0,  .y = 20, .str = "" };
-const pos_t mode_text_pos   = {.x = 46, .y = 20, .str = "" };
-const pos_t play_text_pos   = {.x = 90, .y = 20, .str = "" };
+const pos_t line_1_1    = {.x = 0,  .y = 8, .str = "bpm:%3d" };
+const pos_t line_1_2  = {.x = 46, .y = 8, .str = "trs:%+2d" };
+const pos_t line_1_3  = {.x = 90, .y = 8, .str = "seq:%d" };
+const pos_t line_2_1    = {.x = 0,  .y = 18, .str = "" };
+const pos_t line_2_2   = {.x = 46, .y = 18, .str = "" };
+const pos_t line_2_3   = {.x = 90, .y = 18, .str = "" };
+const pos_t line_3_1 = { .x = 0, .y = 24,  .str = "" };
+const pos_t line_3_2 = { .x = 46, .y = 24, .str = "" };
+const pos_t line_3_3 = { .x = 90, .y = 24,  .str = "" };
 
 const pos_t oct_text_offset = { .x = 3, .y = 10,  .str = "" };
 const pos_t gate_bar_offset = { .x = 0, .y = -15, .str = "" };
 const pos_t edit_text_offset = { .x = 3, .y = 22,  .str = "" };
+
 const int gate_bar_width = 14;
 const int gate_bar_height = 4;
 
 void displayUpdate() {
   display.clearDisplay();
-  //display.setFont(&myfont); don't need to call this every time!
-  //display.setTextColor(WHITE, 0);
-  // display.setFont(&myfont2);
-
   // // name
-  display.setCursor(bpm_text_pos.x, bpm_text_pos.y);
-  display.print(wrote);
+  display.setCursor(line_1_1.x, line_1_1.y);
+  display.print(engine_in);
   display.print(" ");
 
   if (voice_number == 0) {
@@ -68,32 +66,34 @@ void displayUpdate() {
     }
   } else if (voice_number == 2) {
     display.print(braidsnames[engine_in]);
+  } else if (voice_number == 3) {
+    display.print(cloudnames[engine_in]);
   }
 
-  //display.setCursor(trans_text_pos.x, trans_text_pos.y);
+  //display.setCursor(line_1_2.x, line_1_2.y);
   //display.print(oscnames[engine_in]);
 
   // morph
-  display.setCursor(seq_info_pos.x, seq_info_pos.y);
+  display.setCursor(line_2_1.x, line_2_1.y);
   display.print("M: ");
   display.print(morph_in);
 
   // harmonics
-  display.setCursor(mode_text_pos.x, mode_text_pos.y);
+  display.setCursor(line_2_2.x, line_2_2.y);
   display.print("H: ");
   display.print(harm_in);  // user sees 1-8
 
   // timber
-  display.setCursor(play_text_pos.x, play_text_pos.y);
+  display.setCursor(line_2_3.x, line_2_3.y);
   display.print("T: ");
   display.print(timbre_in);
 
-  //display.setCursor(trans_text_pos.x, seq_info_pos.y);
+  //display.setCursor(line_1_2.x, line_2_1.y);
   //display.print("P:");
   //display.print(voices[0].patch.note);
 
   // play/pause
-  //display.setCursor(play_text_pos.x, play_text_pos.y);
+  //display.setCursor(line_2_3.x, line_2_3.y);
   //display.print("m: ");
   //display.print(display_mode);
 

@@ -53,7 +53,8 @@ void Voice::Init(BufferAllocator* allocator) {
   engines_.RegisterInstance(&modal_engine_, true, -1.0f, 0.8f);
   engines_.RegisterInstance(&wave_terrain_engine_, false, 0.6f, 0.6f);
   engines_.RegisterInstance(&virtual_analog_vcf_engine_, false, 1.0f, 1.0f);
-
+  engines_.RegisterInstance(&phase_distortion_engine_, false, 0.7f, 0.7f);
+  
   engines_.RegisterInstance(&bass_drum_engine_, true, 0.8f, 0.8f);
   engines_.RegisterInstance(&snare_drum_engine_, true, 0.8f, 0.8f);
   engines_.RegisterInstance(&hi_hat_engine_, true, 0.8f, 0.8f);

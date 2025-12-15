@@ -65,5 +65,6 @@
 #include "plaits/dsp/physical_modelling/string_voice.h"
 
 #include "plaits/dsp/engine/virtual_analog_vcf_engine.h"
+#include "plaits/dsp/engine/phase_distortion_engine.inc"
 
 #endif // PLAITS_ARDUINO_H_

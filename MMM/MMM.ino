@@ -61,7 +61,7 @@ float max_voltage_of_adc = 3.3;
 float voltage_division_ratio = 0.3333333333333;
 float notes_per_octave = 12;
 float volts_per_octave = 1;
-float mapping_upper_limit = 120; //(max_voltage_of_adc / voltage_division_ratio) * notes_per_octave * volts_per_octave;
+float mapping_upper_limit = 120.0; //(max_voltage_of_adc / voltage_division_ratio) * notes_per_octave * volts_per_octave;
 float mapping_lower_limit = 0.0;
 
 
@@ -122,6 +122,9 @@ byte pinState;
 int16_t out_bufferL[32];
 int16_t out_bufferR[32];
 
+// sample buffer for clouds
+int16_t sample_buffer[32]; // used while we play samples for demo
+
 int voice_number = 0; // for switching  between modules
 
 // we are reusing the plaits nomenclature for all modules
@@ -139,11 +142,15 @@ float plaits_morph = morph_in;
 float plaits_harm = harm_in;
 float plaits_timbre = timbre_in;
 int   plaits_engine = 0;
+
+// Rings modulation
+float pos_mod = 0.25f; // position
 float rings_morph = morph_in;
 float rings_harm = harm_in;
 float rings_timbre = timbre_in;
 float rings_pos = 0.0f;
 int   rings_engine = 0;
+
 float braids_timbre = timbre_in;
 float braids_morph = morph_in;
 int   braids_engine = 0;
@@ -156,13 +163,25 @@ float decay_in = 0.5f; // IN(10);
 float lpg_in = 0.2f ;// IN(11);
 float pitch_in = 44.0f;
 
-int max_engines = 15; // varies per backend
 
-// Rings modulation
-float pos_mod = 0.25f; // position
+//clouds
+float clouds_morph = morph_in;
+float clouds_timbre = timbre_in;
+float clouds_harm = harm_in;
+float clouds_pos = pos_mod;
+float clouds_mode = engine_in;
+float clouds_dw_in = 1.0f;
+float clouds_pos_in = 0.0f;
+int   clouds_engine = 0;
+bool  freeze_in = false;
+int   voice_in = 4;
 
 
-#include <STMLIB.h>
+int max_engines = 18; // varies per backend
+
+
+
+#include <STMLIB.h> // 
 
 #include <RINGS.h>
 #include "rings.h"
@@ -173,12 +192,15 @@ float pos_mod = 0.25f; // position
 #include <BRAIDS.h>
 #include "braids.h"
 
+// clouds dsp
+#include <CLOUDS.h>
+#include "clouds.h"
+
 #include "Midier.h"
 // midi related functions
 #include "midi.h"
 
 #include "names.h"
-
 
 // clock timer  stuff
 
@@ -424,6 +446,7 @@ void setup() {
   // now start the dac
   DAC.begin();
   //DAC2.begin();
+  
   // lets seee
   analogReadResolution(12);
 
@@ -435,9 +458,9 @@ void setup() {
   enc2.flip();
   enc1.flip();
 
-  // this is only rp2040 relevant
-  //pinMode(23, OUTPUT); // thi is to switch to PWM for power to avoid ripple noise
-  //digitalWrite(23, HIGH);
+  // thi is to switch to PWM for power to avoid ripple noise
+  pinMode(23, OUTPUT); 
+  digitalWrite(23, HIGH);
 
 
   // CV
@@ -446,6 +469,9 @@ void setup() {
   pinMode(CV3, INPUT);
   pinMode(CV4, INPUT);
   pinMode(CV5, INPUT);
+  pinMode(CV6, INPUT);
+  pinMode(CV7, INPUT);
+  pinMode(CV8, INPUT);
 
   // DISPLAY
 
@@ -501,6 +527,8 @@ void setup() {
   delay(100);
   initBraids();
   delay(100);
+  initClouds();
+
   // Initialize wave switch states
   update_timer = millis();
   button_timer = millis();
@@ -525,6 +553,12 @@ void loop() {
       updateRingsAudio();
     } else if (voice_number == 2) {
       updateBraidsAudio();
+    } else if (voice_number == 3) {
+      // clouds, samplebuffer at same time
+      for (size_t i = 0; i < 32; ++i) {
+        sample_buffer[i] = (float) ( analogRead(CV7) ); // arbitrary +1 gain
+      }
+      updateCloudsAudio();
     }
     counter = 0; // increments on each pass of the timer when the timer writes
   }
@@ -585,34 +619,38 @@ void read_buttons() {
 
 
   bool doublePressMode = false;
+  bool longPress = false;
+  int oneState = btn_one.read();
+  int twoState = btn_two.read();
 
-  // if button one was held for more than 75 millis and we're in rings toggle easteregg
-  if (btn_one.rose()) {
+  // if button one was held for more than 300 millis and we're in rings toggle easteregg
+  if ( btn_one.rose() ) {
+
     btnOneLastTime = btn_one.previousDuration();
-    if (btnOneLastTime > 250 && voice_number == 1) easterEgg = !easterEgg;
-  }
-
-  if (btn_two.rose()) {
-    btnTwoLastTime = btn_two.previousDuration();
-  }
-
-
-  if (btn_one.pressed() && btn_two.pressed()) {
-    // rings easter egg mode/ fm engine.
-    easterEgg = !easterEgg;
-    doublePressMode = true;
-  }
-
-  if (!doublePressMode) {
-    // being tripple shure :)
-    if (btn_one.pressed() && ! btn_two.pressed()) {
+    if ( btnOneLastTime > 350 && ! btn_two.pressed()) {
+      if ( voice_number == 1 ) {
+        easterEgg = !easterEgg;
+        longPress = true;
+      }
+      if ( voice_number == 3 && ! btn_two.pressed()) {
+        freeze_in = !freeze_in;
+        longPress = true;
+      }
+    } else {
       engineCount ++;
       if (engineCount > max_engines) {
         engineCount = 0;
       }
       engine_in = engineCount;
     }
-    if (btn_two.pressed() && ! btn_one.pressed() ) {
+
+  }
+
+  if (btn_two.rose()) {
+    btnTwoLastTime = btn_two.previousDuration();
+    if ( btnTwoLastTime > 350 && ! btn_one.pressed()) {
+
+    } else {
 
       // first record our last settings
       if (voice_number == 0) {
@@ -633,14 +671,21 @@ void read_buttons() {
         braids_timbre = timbre_in;
         braids_engine = engine_in;
       }
+      if (voice_number == 3) {
+        clouds_morph = morph_in;
+        clouds_timbre = timbre_in;
+        clouds_harm = harm_in;
+        clouds_pos = pos_mod;
+        clouds_engine = engine_in;
+      }
 
       voice_number++;
 
-      if (voice_number > 2) voice_number = 0;
+      if (voice_number > 3) voice_number = 0;
 
       if (voice_number == 0) {
         engine_in = plaits_engine; // engine_in % 17;
-        max_engines = 15;
+        max_engines = 18; // was 15
         morph_in = plaits_morph;
         timbre_in = plaits_timbre;
         harm_in = plaits_harm;
@@ -658,10 +703,103 @@ void read_buttons() {
         max_engines = 45;
         morph_in = braids_morph;
         timbre_in = braids_timbre;
+
+      } else if (voice_number == 3 ) {
+        engine_in = clouds_engine; // engine_in % 46;
+        max_engines = 3;
+        morph_in = clouds_morph;
+        timbre_in = clouds_timbre;
+        harm_in = clouds_harm;
+
       }
-      // sadly, this breaks badly
-      //writing = true;
     }
+
+  }
+
+  if (btn_one.pressed() && btn_two.pressed()) {
+    // rings easter egg mode/ fm engine.
+    easterEgg = !easterEgg;
+    doublePressMode = true;
+  }
+
+  if (!doublePressMode && !longPress) {
+    // being tripple shure :)
+    /*
+        if (btn_one.pressed() && ! btn_two.pressed() ) {
+          engineCount ++;
+          if (engineCount > max_engines) {
+            engineCount = 0;
+          }
+          engine_in = engineCount;
+        }
+
+
+        if (btn_two.pressed() &&  ! btn_one.pressed() ) {
+
+          // first record our last settings
+          if (voice_number == 0) {
+            plaits_morph = morph_in;
+            plaits_timbre = timbre_in;
+            plaits_harm = harm_in;
+            plaits_engine = engine_in;
+          }
+          if (voice_number == 1) {
+            rings_morph = morph_in;
+            rings_timbre = timbre_in;
+            rings_harm = harm_in;
+            rings_pos = pos_mod;
+            rings_engine = engine_in;
+          }
+          if (voice_number == 2) {
+            braids_morph = morph_in;
+            braids_timbre = timbre_in;
+            braids_engine = engine_in;
+          }
+          if (voice_number == 3) {
+            clouds_morph = morph_in;
+            clouds_timbre = timbre_in;
+            clouds_harm = harm_in;
+            clouds_pos = pos_mod;
+            clouds_engine = engine_in;
+          }
+
+          voice_number++;
+
+          if (voice_number > 3) voice_number = 0;
+
+          if (voice_number == 0) {
+            engine_in = plaits_engine; // engine_in % 17;
+            max_engines = 15;
+            morph_in = plaits_morph;
+            timbre_in = plaits_timbre;
+            harm_in = plaits_harm;
+
+          } else if (voice_number == 1) {
+            engine_in = rings_engine; // % 6;
+            max_engines = 5;
+            morph_in = rings_morph;
+            harm_in = rings_harm;
+            timbre_in = rings_timbre;
+            //pos_mod = rings_pos;
+
+          } else if (voice_number == 2 ) {
+            engine_in = braids_engine; // engine_in % 46;
+            max_engines = 45;
+            morph_in = braids_morph;
+            timbre_in = braids_timbre;
+
+          } else if (voice_number == 3 ) {
+            engine_in = clouds_engine; // engine_in % 46;
+            max_engines = 4;
+            morph_in = clouds_morph;
+            timbre_in = clouds_timbre;
+            harm_in = clouds_harm;
+
+          }
+          // sadly, this breaks badly
+          //writing = true;
+        }
+    */
 
   }
 }
@@ -674,6 +812,7 @@ float voct_midiBraids(int cv_in) {
   pitch = pitch_offset + map(val, 0.0, 4095.0, mapping_upper_limit, 0.0); // convert pitch CV data value to a MIDI note number
   return pitch - 37; // don't know why, probably tuned to A so -5 + -36 to drop two octaves
 }
+
 
 void voct_midi(int cv_in) {
   // this seems sufficient with 3 reads.
@@ -724,34 +863,44 @@ void read_cv() {
   int16_t morph = analogRead(CV4) ;
   morph_mod = (float) morph / 4095.0f;
 
-  
+
   // don't remember if this was important
   int16_t pos = analogRead(CV5) ; // f&d noise floor
-  if (pos > 100) pos_mod = (float) pos / 4095.0f;
-  
+  if (pos > 50) pos_mod = (float) pos / 4095.0f;
+
   int16_t lpgColor = (float) ( analogRead(CV6) ) / 4095.f ;
   lpg_in = lpgColor;
 
   if (voice_number == 0 || voice_number == 1) {
     // plaits
 
-      timb_mod = mapf(timb_mod, 0.0f, 1.0f, 0.0f, 0.8f);
-      if (debug) Serial.print(timb_mod);
-      
-      //voices[0].modulations.timbre_patched = true;
-      //voices[0].modulations.timbre_patched = false;
-      //morph_mod = mapf(morph_mod, 0.02f, 1.0f, -1.0f, 1.0f);
-      morph_mod = mapf(morph_mod, 0.0f, 1.0f, 0.0f, 0.8f);
-      //voices[0].modulations.morph_patched = true;
+    timb_mod = mapf(timb_mod, 0.0f, 1.0f, 0.0f, 0.8f);
+
+    if (debug) Serial.print(timb_mod);
+
+    //voices[0].modulations.timbre_patched = true;
+    //voices[0].modulations.timbre_patched = false;
+    //morph_mod = mapf(morph_mod, 0.02f, 1.0f, -1.0f, 1.0f);
+
+    morph_mod = mapf(morph_mod, 0.0f, 1.0f, 0.0f, 0.8f);
+
+    //voices[0].modulations.morph_patched = true;
 
   }
 
   if (voice_number == 1 && timb_mod > 0.05f) {
     //rings
     for (size_t i = 0; i < 32; ++i) {
-      CV1_buffer[i] = (float) ( analogRead(CV3) / 4095.0f) + 1.5f; // arbitrary +1 gain
+      CV1_buffer[i] = (float) ( analogRead(CV3) / 4095.0f) ; // arbitrary +1 gain
     }
   }
+
+  if (voice_number == 3) {
+
+  }
+
+
+
 
 
 }
