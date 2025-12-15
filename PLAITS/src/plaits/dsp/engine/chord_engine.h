@@ -37,9 +37,9 @@
 
 namespace plaits {
 
-const int kChordNumNotes = 4;
-const int kChordNumVoices = 4;
-const int kChordNumHarmonics = 3;
+const int kChordNumNotes = 5;
+const int kChordNumVoices = 1;
+const int kChordNumHarmonics = 4;
     
 const int kChordNumChords = 17;
 

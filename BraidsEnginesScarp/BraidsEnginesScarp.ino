@@ -1,9 +1,9 @@
 /*
   (c) 2025 blueprint@poetaster.de GPLv3
-   
+
    Based on  mi_Ugens, Copyright (c) 2020 Volker Böhm. All rights reserved. GPLv3
    https://vboehm.net
-      
+
    Mutable Instruments sources, including the stmlib, tides, plaits elements and braids libs are
    MIT License
    Copyright (c)  2020 (emilie.o.gillet@gmail.com)
@@ -155,7 +155,7 @@ bool TimerHandler0(struct repeating_timer *t) {
   bool sync = true;
   if ( DAC.availableForWrite() ) {
     for (size_t i = 0; i < BLOCK_SIZE; i++) {
-      DAC.write( voices[0].pd.buffer[i], sync); 
+      DAC.write( voices[0].pd.buffer[i], sync);
     }
     counter =  1;
   }
@@ -178,6 +178,18 @@ RotaryEncoder encoder(encoderB_pin, encoderA_pin, RotaryEncoder::LatchMode::FOUR
 void checkEncoderPosition() {
   encoder.tick();   // call tick() to check the state.
 }
+
+// variables for UI state management
+int encoder_pos_last = 0;
+int encoder_delta = 0;
+uint32_t encoder_push_millis;
+uint32_t step_push_millis;
+bool encoder_held = false;
+
+// buttons & knobs defines/functions
+#include "control.h"
+// midi related functions
+#include "midi.h"
 
 // display related
 const int oled_sda_pin = 20;
@@ -202,17 +214,6 @@ Adafruit_SH1106G display = Adafruit_SH1106G(128, 64, &Wire);
 #include "display.h"
 
 
-// variables for UI state management
-int encoder_pos_last = 0;
-int encoder_delta = 0;
-uint32_t encoder_push_millis;
-uint32_t step_push_millis;
-bool encoder_held = false;
-
-// buttons & knobs defines/functions
-#include "control.h"
-// midi related functions
-#include "midi.h"
 
 // utility
 double randomDouble(double minf, double maxf)
@@ -284,7 +285,7 @@ void setup() {
 
   // let's get more resolution
   analogReadResolution(12);
-  
+
   pinMode(BUTTON0, INPUT_PULLUP);
   pinMode(BUTTON1, INPUT_PULLUP);
   pinMode(BUTTON2, INPUT_PULLUP);
@@ -355,7 +356,7 @@ void initVoices() {
 
   voices[0].last_trig = false;
 
-// get some samples initially
+  // get some samples initially
   updateBraidsAudio();
 
 
@@ -363,13 +364,13 @@ void initVoices() {
   //int error;
   //int converter = SRC_SINC_FASTEST;       //SRC_SINC_MEDIUM_QUALITY;
 
- /* if ((unit->src_state = src_callback_new(src_input_callback, converter, 1, &error, &unit->pd)) == NULL)
-  {
-  }
+  /* if ((unit->src_state = src_callback_new(src_input_callback, converter, 1, &error, &unit->pd)) == NULL)
+    {
+    }
   */
-  
+
   //voices[0]->samples = (float *)RTAlloc(unit->mWorld, 1024 * sizeof(float));
-  
+
   /*
          // check resample flag
       int resamp = (int)IN0(5);
@@ -479,7 +480,7 @@ void updateControl() {
       } else {
         modeIndex = modeIndex + 1;
         if (modeIndex == 8 ) modeIndex = 0;
-        
+
         switch (modeIndex) {
           case 0:
             mode = midier::Mode::Ionian;
@@ -537,7 +538,7 @@ void updateBraidsAudio() {
   uint8_t shape = (int)(engine_in);
   if (shape >= braids::MACRO_OSC_SHAPE_LAST)
     shape -= braids::MACRO_OSC_SHAPE_LAST;
-    
+
   osc->set_shape(static_cast<braids::MacroOscillatorShape>(shape));
 
   bool trigger = (trigger_in != 0.0);
@@ -547,16 +548,16 @@ void updateBraidsAudio() {
 
   if (trigger_flag)
     osc->Strike();
-    
+
   for (int count = 0; count < 32; count += size) {
     // render
     osc->Render(sync_buffer, buffer, size);
 
     /*for (int i = 0; i < size; ++i) {
       out[count + i] = buffer[i] * SAMP_SCALE;
-    }*/
+      }*/
   }
-  
+
 }
 
 void loop() {
@@ -590,34 +591,54 @@ void loop1() {
   // UI handlers
   // first encoder
   encoder.tick();
+  encoder_delta = 0;
 
+  // check if encoder moved, increment delta if so
   int encoder_pos = encoder.getPosition();
   if ( (encoder_pos != encoder_pos_last )) {
     encoder_delta = encoder_pos - encoder_pos_last;
   }
-  // set play mode 0 play 1 edit patterns, 3 FX?
-  if (encoder_push_millis > 0 ) {
-    if ((now - encoder_push_millis) > 25 && ! encoder_delta ) {
 
-      if ( !encoder_held ) encoder_held = true;
-
+  // start tracking time encoder button held
+  if (  ! digitalRead( SHIFTBUTTON ) ) {
+    if ( ! encoder_held ) {
+      encoder_push_millis = now;
+      encoder_held = true;
+    }
+    // set mode if button held long enough
+    if ( now - encoder_push_millis > 800  && encoder_delta == 0) {
       display_mode = display_mode + 1;
       if ( display_mode > 2) { // switched back to play mode
         display_mode = 0;
         //configure_sequencer();
       }
+      encoder_push_millis = 0;
+      encoder_held = false;
+
+    } else if (  encoder_delta != 0 && now - encoder_push_millis > 100 ) {
+
+      engineCount = engineCount + encoder_delta;
+      CONSTRAIN(engineCount, 0, 47);
+      engine_in = engineCount; // ( engine +) % voices[0].voice_.GetNumEngines();
+      encoder_push_millis = 0;
+      encoder_held = false;
     }
 
-    if (step_push_millis > 0) { // we're pushing a step key too
-      if (encoder_push_millis < step_push_millis) {  // and encoder was pushed first
-        //strcpy(seq_info, "saveseq");
-      }
+  } else {
+    encoder_push_millis = 0;
+    encoder_held = false;
+  }
+
+  if (step_push_millis > 0) { // we're pushing a step key too
+    if (encoder_push_millis < step_push_millis) {  // and encoder was pushed first
+      //strcpy(seq_info, "saveseq");
     }
   }
 
 
 
-  for (int i = 0; i < 9; ++i) { // scan all the buttons
+
+  for (int i = 0; i < 8; ++i) { // scan all the buttons
     if (button[i]) {
 
       anybuttonpressed = true;
@@ -625,20 +646,6 @@ void loop1() {
 
       //  if ((!potlock[1]) || (!potlock[2])) seq[i].trigger=euclid(16,map(potvalue[1],POT_MIN,POT_MAX,0,MAX_SEQ_STEPS),map(potvalue[2],POT_MIN,POT_MAX,0,MAX_SEQ_STEPS-1));
       // look up drum trigger pattern encoder play modes
-
-      if ( i == 8) {
-        engineCount = engineCount + encoder_delta;
-        CONSTRAIN(engineCount, 0, 47);
-        engine_in = engineCount; // ( engine +) % voices[0].voice_.GetNumEngines();
-
-      }
-
-      if ( (encoder_pos != encoder_pos_last ) && i == 1  ) {
-        engineCount = engineCount + encoder_delta;
-        CONSTRAIN(engineCount, 0, 47);
-        engine_in = engineCount;
-
-      }
 
       // change pitch on pot 0
       if (display_mode == 0 ) { // change sample if pot has moved enough
@@ -670,11 +677,11 @@ void loop1() {
   }
 
   // now, after buttons check if only encoder moved and no buttons
-  // this is broken by mozzi, sigh.
-  if (! anybuttonpressed && encoder_delta) {
+
+  if (! anybuttonpressed && encoder_delta && ! encoder_held) {
     float turn = encoder_delta * 0.01f;
-    harm_in = harm_in + turn;
-    
+    harm_in = constrain(harm_in + turn, 0.0, 1.0);
+
     //display_value(RATE_value - 50); // this is wrong, bro :)
   }
 
@@ -683,13 +690,7 @@ void loop1() {
   encoder_pos_last = encoder_pos;
   encoder_delta = 0;  // we've used it
 
-  // start tracking time encoder button held
-  if ( ! digitalRead( SHIFTBUTTON ) ) {
-    encoder_push_millis = now;
-  } else {
-    encoder_push_millis = 0;
-    encoder_held = false;
-  }
+
 
   // lock pot settings when no keys are pressed so it requires more movement to change value
   // this is so when we change tracks we don't immediately change the settings on the new track
