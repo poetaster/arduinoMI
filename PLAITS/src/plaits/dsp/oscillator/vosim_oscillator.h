@@ -33,7 +33,6 @@
 #include "stmlib/dsp/parameter_interpolator.h"
 
 #include "plaits/dsp/oscillator/oscillator.h"
-#include "plaits/dsp/oscillator/sine_oscillator.h"
 #include "plaits/resources.h"
 
 namespace plaits {
@@ -120,6 +119,10 @@ class VOSIMOscillator {
   }
 
  private:
+  inline float Sine(float phase) {
+    return stmlib::InterpolateWrap(lut_sine, phase, 1024.0f);
+  }
+
   // Oscillator state.
   float carrier_phase_;
   float formant_1_phase_;

@@ -32,15 +32,3 @@
 #include "plaits/dsp/physical_modelling/resonator.inc"
 #include "plaits/dsp/physical_modelling/string.inc"
 #include "plaits/dsp/physical_modelling/string_voice.inc"
-
-
-// Engine2
-#include "plaits/dsp/engine2/chiptune_engine.inc"
-#include "plaits/dsp/engine2/phase_distortion_engine.inc"
-#include "plaits/dsp/engine2/six_op_engine.inc"
-#include "plaits/dsp/engine2/string_machine_engine.inc"
-#include "plaits/dsp/engine2/virtual_analog_vcf_engine.inc"
-#include "plaits/dsp/engine2/wave_terrain_engine.inc"
-
-#include "plaits/dsp/fm/algorithms.inc"
-#include "plaits/dsp/fm/dx_units.inc"

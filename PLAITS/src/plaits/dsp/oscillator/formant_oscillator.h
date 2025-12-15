@@ -33,8 +33,8 @@
 #include "stmlib/dsp/parameter_interpolator.h"
 #include "stmlib/dsp/polyblep.h"
 
-#include "plaits/dsp/oscillator/sine_oscillator.h"
- 
+#include "plaits/resources.h"
+
 namespace plaits {
 
 class FormantOscillator {
@@ -111,6 +111,10 @@ class FormantOscillator {
   }
 
  private:
+  inline float Sine(float phase) {
+    return stmlib::InterpolateWrap(lut_sine, phase, 1024.0f);
+  }
+
   // Oscillator state.
   float carrier_phase_;
   float formant_phase_;

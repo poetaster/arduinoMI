@@ -46,7 +46,7 @@ class Diffuser {
     lp_decay_ = 0.0f;
   }
   
-  void Reset() {
+  void Clear() {
     engine_.Clear();
   }
   

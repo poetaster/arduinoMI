@@ -52,13 +52,7 @@
 #include "plaits/dsp/engine/virtual_analog_engine.h"
 #include "plaits/dsp/engine/waveshaping_engine.h"
 #include "plaits/dsp/engine/wavetable_engine.h"
-
-//#include "plaits/dsp/engine2/chiptune_engine.h"
-//#include "plaits/dsp/engine2/phase_distortion_engine.h"
-#include "plaits/dsp/engine2/six_op_engine.h"
-//#include "plaits/dsp/engine2/string_machine_engine.h"
-//#include "plaits/dsp/engine2/virtual_analog_vcf_engine.h"
-#include "plaits/dsp/engine2/wave_terrain_engine.h"
+#include "plaits/dsp/engine/wave_terrain_engine.h"
 
 #include "plaits/dsp/envelope.h"
 
@@ -66,7 +60,7 @@
 
 namespace plaits {
 
-const int kMaxEngines = 19;
+const int kMaxEngines = 17;
 const int kMaxTriggerDelay = 8;
 const int kTriggerDelay = 5;
 
@@ -114,6 +108,7 @@ class ChannelPostProcessor {
       }
     }
   }
+    
   
  private:
   stmlib::Limiter limiter_;
@@ -153,9 +148,6 @@ struct Modulations {
   bool level_patched;
 };
 
-// char (*__foo)[sizeof(HiHatEngine)] = 1;
-
-
 class Voice {
  public:
   Voice() { }
@@ -167,9 +159,7 @@ class Voice {
   };
   
   void Init(stmlib::BufferAllocator* allocator);
-  void ReloadUserData() {
-    reload_user_data_ = true;
-  }
+    
   void Render(
       const Patch& patch,
       const Modulations& modulations,
@@ -201,7 +191,25 @@ class Voice {
     CONSTRAIN(value, minimum_value, maximum_value);
     return value;
   }
-
+/*  
+  AdditiveEngine additive_engine_;
+  BassDrumEngine bass_drum_engine_;
+  ChordEngine chord_engine_;
+  FMEngine fm_engine_;
+  GrainEngine grain_engine_;
+  HiHatEngine hi_hat_engine_;
+  ModalEngine modal_engine_;
+  NoiseEngine noise_engine_;
+  ParticleEngine particle_engine_;
+  SnareDrumEngine snare_drum_engine_;
+  SpeechEngine speech_engine_;
+  StringEngine string_engine_;
+  SwarmEngine swarm_engine_;
+  VirtualAnalogEngine virtual_analog_engine_;
+  WaveshapingEngine waveshaping_engine_;
+  WavetableEngine wavetable_engine_;
+  WaveTerrainEngine waveterrain_engine_;
+*/
   VirtualAnalogEngine virtual_analog_engine_;
   WaveshapingEngine waveshaping_engine_;
   FMEngine fm_engine_;
@@ -210,7 +218,6 @@ class Voice {
   WavetableEngine wavetable_engine_;
   ChordEngine chord_engine_;
   SpeechEngine speech_engine_;
-
   SwarmEngine swarm_engine_;
   NoiseEngine noise_engine_;
   ParticleEngine particle_engine_;
@@ -219,19 +226,10 @@ class Voice {
   BassDrumEngine bass_drum_engine_;
   SnareDrumEngine snare_drum_engine_;
   HiHatEngine hi_hat_engine_;
-  
-//  VirtualAnalogVCFEngine virtual_analog_vcf_engine_;
-// PhaseDistortionEngine phase_distortion_engine_;
-SixOpEngine six_op_engine_0;
-SixOpEngine six_op_engine_1;
-SixOpEngine six_op_engine_2;
-WaveTerrainEngine wave_terrain_engine_;
-//  StringMachineEngine string_machine_engine_;
- // ChiptuneEngine chiptune_engine_;
+  WaveTerrainEngine wave_terrain_engine_;
 
-  stmlib::HysteresisQuantizer2 engine_quantizer_;
+  stmlib::HysteresisQuantizer engine_quantizer_;
   
-  bool reload_user_data_;
   int previous_engine_index_;
   float engine_cv_;
   
@@ -257,8 +255,4 @@ WaveTerrainEngine wave_terrain_engine_;
 
 }  // namespace plaits
 
-
-
 #endif  // PLAITS_DSP_VOICE_H_
-
-
