@@ -53,6 +53,7 @@
 #include "plaits/dsp/engine/waveshaping_engine.h"
 #include "plaits/dsp/engine/wavetable_engine.h"
 #include "plaits/dsp/engine/wave_terrain_engine.h"
+#include "plaits/dsp/engine/virtual_analog_vcf_engine.h"
 
 #include "plaits/dsp/envelope.h"
 
@@ -227,6 +228,7 @@ class Voice {
   SnareDrumEngine snare_drum_engine_;
   HiHatEngine hi_hat_engine_;
   WaveTerrainEngine wave_terrain_engine_;
+  VirtualAnalogVCFEngine virtual_analog_vcf_engine_;
 
   stmlib::HysteresisQuantizer engine_quantizer_;
   

@@ -24,48 +24,59 @@
 //
 // -----------------------------------------------------------------------------
 //
-// 2 variable shape oscillators with sync and crossfading.
+// 808-style HH with two noise sources - one faithful to the original, the other
+// more metallic.
 
-#ifndef PLAITS_DSP_ENGINE_VIRTUAL_ANALOG_ENGINE_H_
-#define PLAITS_DSP_ENGINE_VIRTUAL_ANALOG_ENGINE_H_
-
-#include "plaits/dsp/engine/engine.h"
-#include "plaits/dsp/oscillator/variable_saw_oscillator.h"
-#include "plaits/dsp/oscillator/variable_shape_oscillator_one.h"
-
-#define VA_VARIANT 2
+#include "plaits/dsp/engine/hi_hat_engine.h"
 
 namespace plaits {
-  
-class VirtualAnalogEngine : public Engine {
- public:
-  VirtualAnalogEngine() { }
-  ~VirtualAnalogEngine() { }
-  
-  virtual void Init(stmlib::BufferAllocator* allocator);
-  virtual void Reset();
-  virtual void Render(const EngineParameters& parameters,
-      float* out,
-      float* aux,
-      size_t size,
-      bool* already_enveloped);
-  
- private:
-  float ComputeDetuning(float detune) const;
-  
-  VariShapeOscillator primary_;
-  VariShapeOscillator auxiliary_;
 
-  VariShapeOscillator sync_;
-  VariableSawOscillator variable_saw_;
+using namespace stmlib;
 
-  float auxiliary_amount_;
-  float xmod_amount_;
-  float* temp_buffer_;
+void HiHatEngine::Init(BufferAllocator* allocator) {
+  hi_hat_1_.Init();
+  hi_hat_2_.Init();
+  temp_buffer_[0] = allocator->Allocate<float>(kMaxBlockSize);
+  temp_buffer_[1] = allocator->Allocate<float>(kMaxBlockSize);
+}
+
+void HiHatEngine::Reset() {
   
-  DISALLOW_COPY_AND_ASSIGN(VirtualAnalogEngine);
-};
+}
+
+void HiHatEngine::Render(
+    const EngineParameters& parameters,
+    float* out,
+    float* aux,
+    size_t size,
+    bool* already_enveloped) {
+  const float f0 = NoteToFrequency(parameters.note);
+  
+  hi_hat_1_.Render(
+      parameters.trigger & TRIGGER_UNPATCHED,
+      parameters.trigger & TRIGGER_RISING_EDGE,
+      parameters.accent,
+      f0,
+      parameters.timbre,
+      parameters.morph,
+      parameters.harmonics,
+      temp_buffer_[0],
+      temp_buffer_[1],
+      out,
+      size);
+  
+  hi_hat_2_.Render(
+      parameters.trigger & TRIGGER_UNPATCHED,
+      parameters.trigger & TRIGGER_RISING_EDGE,
+      parameters.accent,
+      f0,
+      parameters.timbre,
+      parameters.morph,
+      parameters.harmonics,
+      temp_buffer_[0],
+      temp_buffer_[1],
+      aux,
+      size);
+}
 
 }  // namespace plaits
-
-#endif  // PLAITS_DSP_ENGINE_VIRTUAL_ANALOG_ENGINE_H_

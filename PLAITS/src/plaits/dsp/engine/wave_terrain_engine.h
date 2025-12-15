@@ -1,4 +1,4 @@
-// Copyright 2016 Emilie Gillet.
+// Copyright 2021 Emilie Gillet.
 //
 // Author: Emilie Gillet (emilie.o.gillet@gmail.com)
 //
@@ -24,26 +24,33 @@
 //
 // -----------------------------------------------------------------------------
 //
-// 2 variable shape oscillators with sync and crossfading.
+// Wave terrain synthesis - a 2D function evaluated along an elliptical path of
+// adjustable center and excentricity.
+//
+// This implementation initially used pre-computed terrains stored in flash
+// memory, but even at a poor resolution of 64x64 with 8-bit samples, this
+// takes 4kb per terrain! It turned out that directly evaluating the terrain
+// function on the fly uses less flash, but is also faster than bicubic
+// interpolation of the terrain data.
 
-#ifndef PLAITS_DSP_ENGINE_VIRTUAL_ANALOG_ENGINE_H_
-#define PLAITS_DSP_ENGINE_VIRTUAL_ANALOG_ENGINE_H_
+#ifndef PLAITS_DSP_ENGINE_WAVE_TERRAIN_ENGINE_H_
+#define PLAITS_DSP_ENGINE_WAVE_TERRAIN_ENGINE_H_
 
 #include "plaits/dsp/engine/engine.h"
-#include "plaits/dsp/oscillator/variable_saw_oscillator.h"
-#include "plaits/dsp/oscillator/variable_shape_oscillator_one.h"
-
-#define VA_VARIANT 2
+#include "plaits/dsp/oscillator/sine_oscillator.h"
 
 namespace plaits {
   
-class VirtualAnalogEngine : public Engine {
+class WaveTerrainEngine : public Engine {
  public:
-  VirtualAnalogEngine() { }
-  ~VirtualAnalogEngine() { }
+  WaveTerrainEngine() { }
+  ~WaveTerrainEngine() { }
   
   virtual void Init(stmlib::BufferAllocator* allocator);
   virtual void Reset();
+  virtual void LoadUserData(const uint8_t* user_data) {
+    user_terrain_ = (const int8_t*)(user_data);
+  }
   virtual void Render(const EngineParameters& parameters,
       float* out,
       float* aux,
@@ -51,21 +58,18 @@ class VirtualAnalogEngine : public Engine {
       bool* already_enveloped);
   
  private:
-  float ComputeDetuning(float detune) const;
+  float Terrain(float x, float y, int terrain_index);
   
-  VariShapeOscillator primary_;
-  VariShapeOscillator auxiliary_;
-
-  VariShapeOscillator sync_;
-  VariableSawOscillator variable_saw_;
-
-  float auxiliary_amount_;
-  float xmod_amount_;
+  FastSineOscillator path_;
+  float offset_;
+  float terrain_;
+  
   float* temp_buffer_;
+  const int8_t* user_terrain_;
   
-  DISALLOW_COPY_AND_ASSIGN(VirtualAnalogEngine);
+  DISALLOW_COPY_AND_ASSIGN(WaveTerrainEngine);
 };
 
 }  // namespace plaits
 
-#endif  // PLAITS_DSP_ENGINE_VIRTUAL_ANALOG_ENGINE_H_
+#endif  // PLAITS_DSP_ENGINE_WAVE_TERRAIN_ENGINE_H_

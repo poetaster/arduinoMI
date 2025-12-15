@@ -54,6 +54,7 @@
 #include "plaits/dsp/oscillator/string_synth_oscillator.h"
 #include "plaits/dsp/oscillator/variable_saw_oscillator.h"
 #include "plaits/dsp/oscillator/variable_shape_oscillator.h"
+#include "plaits/dsp/oscillator/variable_shape_oscillator_one.h"
 #include "plaits/dsp/oscillator/vosim_oscillator.h"
 #include "plaits/dsp/oscillator/wavetable_oscillator.h"
 #include "plaits/dsp/oscillator/z_oscillator.h"
@@ -62,5 +63,7 @@
 #include "plaits/dsp/physical_modelling/resonator.h"
 #include "plaits/dsp/physical_modelling/string.h"
 #include "plaits/dsp/physical_modelling/string_voice.h"
+
+#include "plaits/dsp/engine/virtual_analog_vcf_engine.h"
 
 #endif // PLAITS_ARDUINO_H_

@@ -24,48 +24,55 @@
 //
 // -----------------------------------------------------------------------------
 //
-// 2 variable shape oscillators with sync and crossfading.
+// 808 and synthetic snare drum generators.
 
-#ifndef PLAITS_DSP_ENGINE_VIRTUAL_ANALOG_ENGINE_H_
-#define PLAITS_DSP_ENGINE_VIRTUAL_ANALOG_ENGINE_H_
+#include "plaits/dsp/engine/snare_drum_engine.h"
 
-#include "plaits/dsp/engine/engine.h"
-#include "plaits/dsp/oscillator/variable_saw_oscillator.h"
-#include "plaits/dsp/oscillator/variable_shape_oscillator_one.h"
-
-#define VA_VARIANT 2
+#include <algorithm>
 
 namespace plaits {
-  
-class VirtualAnalogEngine : public Engine {
- public:
-  VirtualAnalogEngine() { }
-  ~VirtualAnalogEngine() { }
-  
-  virtual void Init(stmlib::BufferAllocator* allocator);
-  virtual void Reset();
-  virtual void Render(const EngineParameters& parameters,
-      float* out,
-      float* aux,
-      size_t size,
-      bool* already_enveloped);
-  
- private:
-  float ComputeDetuning(float detune) const;
-  
-  VariShapeOscillator primary_;
-  VariShapeOscillator auxiliary_;
 
-  VariShapeOscillator sync_;
-  VariableSawOscillator variable_saw_;
+using namespace std;
+using namespace stmlib;
 
-  float auxiliary_amount_;
-  float xmod_amount_;
-  float* temp_buffer_;
+void SnareDrumEngine::Init(BufferAllocator* allocator) {
+  analog_snare_drum_.Init();
+  synthetic_snare_drum_.Init();
+}
+
+void SnareDrumEngine::Reset() {
   
-  DISALLOW_COPY_AND_ASSIGN(VirtualAnalogEngine);
-};
+}
+
+void SnareDrumEngine::Render(
+    const EngineParameters& parameters,
+    float* out,
+    float* aux,
+    size_t size,
+    bool* already_enveloped) {
+  const float f0 = NoteToFrequency(parameters.note);
+  
+  analog_snare_drum_.Render(
+      parameters.trigger & TRIGGER_UNPATCHED,
+      parameters.trigger & TRIGGER_RISING_EDGE,
+      parameters.accent,
+      f0,
+      parameters.timbre,
+      parameters.morph,
+      parameters.harmonics,
+      out,
+      size);
+  
+  synthetic_snare_drum_.Render(
+      parameters.trigger & TRIGGER_UNPATCHED,
+      parameters.trigger & TRIGGER_RISING_EDGE,
+      parameters.accent,
+      f0,
+      parameters.timbre,
+      parameters.morph,
+      parameters.harmonics,
+      aux,
+      size);
+}
 
 }  // namespace plaits
-
-#endif  // PLAITS_DSP_ENGINE_VIRTUAL_ANALOG_ENGINE_H_

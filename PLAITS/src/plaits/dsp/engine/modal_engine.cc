@@ -24,48 +24,52 @@
 //
 // -----------------------------------------------------------------------------
 //
-// 2 variable shape oscillators with sync and crossfading.
+// One voice of modal synthesis.
 
-#ifndef PLAITS_DSP_ENGINE_VIRTUAL_ANALOG_ENGINE_H_
-#define PLAITS_DSP_ENGINE_VIRTUAL_ANALOG_ENGINE_H_
+#include "plaits/dsp/engine/modal_engine.h"
 
-#include "plaits/dsp/engine/engine.h"
-#include "plaits/dsp/oscillator/variable_saw_oscillator.h"
-#include "plaits/dsp/oscillator/variable_shape_oscillator_one.h"
-
-#define VA_VARIANT 2
+#include <algorithm>
 
 namespace plaits {
-  
-class VirtualAnalogEngine : public Engine {
- public:
-  VirtualAnalogEngine() { }
-  ~VirtualAnalogEngine() { }
-  
-  virtual void Init(stmlib::BufferAllocator* allocator);
-  virtual void Reset();
-  virtual void Render(const EngineParameters& parameters,
-      float* out,
-      float* aux,
-      size_t size,
-      bool* already_enveloped);
-  
- private:
-  float ComputeDetuning(float detune) const;
-  
-  VariShapeOscillator primary_;
-  VariShapeOscillator auxiliary_;
 
-  VariShapeOscillator sync_;
-  VariableSawOscillator variable_saw_;
+using namespace std;
+using namespace stmlib;
 
-  float auxiliary_amount_;
-  float xmod_amount_;
-  float* temp_buffer_;
+void ModalEngine::Init(BufferAllocator* allocator) {
+  temp_buffer_ = allocator->Allocate<float>(kMaxBlockSize);
+  harmonics_lp_ = 0.0f;
+  Reset();
+}
+
+void ModalEngine::Reset() {
+  voice_.Init();
+}
+
+void ModalEngine::Render(
+    const EngineParameters& parameters,
+    float* out,
+    float* aux,
+    size_t size,
+    bool* already_enveloped) {
+  fill(&out[0], &out[size], 0.0f);
+  fill(&aux[0], &aux[size], 0.0f);
   
-  DISALLOW_COPY_AND_ASSIGN(VirtualAnalogEngine);
-};
+//  ONE_POLE(harmonics_lp_, parameters.harmonics, 0.01f);
+    // vb, reduce interpolation time a little
+    ONE_POLE(harmonics_lp_, parameters.harmonics, 0.2f);
+  
+  voice_.Render(
+      parameters.trigger & TRIGGER_UNPATCHED,
+      parameters.trigger & TRIGGER_RISING_EDGE,
+      parameters.accent,
+      NoteToFrequency(parameters.note),
+      harmonics_lp_,
+      parameters.timbre,
+      parameters.morph,
+      temp_buffer_,
+      out,
+      aux,
+      size);
+}
 
 }  // namespace plaits
-
-#endif  // PLAITS_DSP_ENGINE_VIRTUAL_ANALOG_ENGINE_H_

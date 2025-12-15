@@ -32,3 +32,6 @@
 #include "plaits/dsp/physical_modelling/resonator.inc"
 #include "plaits/dsp/physical_modelling/string.inc"
 #include "plaits/dsp/physical_modelling/string_voice.inc"
+
+#include "plaits/dsp/engine/virtual_analog_vcf_engine.inc"
+

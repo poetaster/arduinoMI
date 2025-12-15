@@ -1,4 +1,4 @@
-// Copyright 2016 Emilie Gillet.
+// Copyright 2021 Emilie Gillet.
 //
 // Author: Emilie Gillet (emilie.o.gillet@gmail.com)
 //
@@ -24,26 +24,27 @@
 //
 // -----------------------------------------------------------------------------
 //
-// 2 variable shape oscillators with sync and crossfading.
+// Virtual analog oscillator with VCF.
 
-#ifndef PLAITS_DSP_ENGINE_VIRTUAL_ANALOG_ENGINE_H_
-#define PLAITS_DSP_ENGINE_VIRTUAL_ANALOG_ENGINE_H_
+#ifndef PLAITS_DSP_ENGINE_VIRTUAL_ANALOG_VCF_ENGINE_H_
+#define PLAITS_DSP_ENGINE_VIRTUAL_ANALOG_VCF_ENGINE_H_
+
+#include "stmlib/dsp/filter.h"
 
 #include "plaits/dsp/engine/engine.h"
 #include "plaits/dsp/oscillator/variable_saw_oscillator.h"
-#include "plaits/dsp/oscillator/variable_shape_oscillator_one.h"
-
-#define VA_VARIANT 2
+#include "plaits/dsp/oscillator/variable_shape_oscillator.h"
 
 namespace plaits {
   
-class VirtualAnalogEngine : public Engine {
+class VirtualAnalogVCFEngine : public Engine {
  public:
-  VirtualAnalogEngine() { }
-  ~VirtualAnalogEngine() { }
+  VirtualAnalogVCFEngine() { }
+  ~VirtualAnalogVCFEngine() { }
   
   virtual void Init(stmlib::BufferAllocator* allocator);
   virtual void Reset();
+  virtual void LoadUserData(const uint8_t* user_data) { }
   virtual void Render(const EngineParameters& parameters,
       float* out,
       float* aux,
@@ -51,21 +52,20 @@ class VirtualAnalogEngine : public Engine {
       bool* already_enveloped);
   
  private:
-  float ComputeDetuning(float detune) const;
+  stmlib::Svf svf_[2];
+  VariableShapeOscillator oscillator_;
+  VariableShapeOscillator sub_oscillator_;
   
-  VariShapeOscillator primary_;
-  VariShapeOscillator auxiliary_;
-
-  VariShapeOscillator sync_;
-  VariableSawOscillator variable_saw_;
-
-  float auxiliary_amount_;
-  float xmod_amount_;
-  float* temp_buffer_;
+  float previous_cutoff_;
+  float previous_stage2_gain_;
+  float previous_q_;
+  float previous_gain_;
+  float previous_sub_gain_;
   
-  DISALLOW_COPY_AND_ASSIGN(VirtualAnalogEngine);
+  DISALLOW_COPY_AND_ASSIGN(VirtualAnalogVCFEngine);
 };
 
 }  // namespace plaits
 
-#endif  // PLAITS_DSP_ENGINE_VIRTUAL_ANALOG_ENGINE_H_
+#endif  // PLAITS_DSP_ENGINE_VIRTUAL_ANALOG_VCF_ENGINE_H_
+
