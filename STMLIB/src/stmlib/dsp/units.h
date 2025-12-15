@@ -46,16 +46,21 @@ inline float SemitonesToRatio(float semitones) {
 }
 
 inline float SemitonesToRatioSafe(float semitones) {
-    float scale = 1.0f;
-    while (semitones > 120.0f) {
-        semitones -= 120.0f;
-        scale *= 1024.0f;
-    }
-    while (semitones < -120.0f) {
-        semitones += 120.0f;
-        scale *= 1.0f / 1024.0f;
-    }
-    return scale * SemitonesToRatio(semitones);
+  float scale = 1.0f;
+  while (semitones > 120.0f) {
+    semitones -= 120.0f;
+    scale *= 1024.0f;
+  }
+  while (semitones < -120.0f) {
+    semitones += 120.0f;
+    scale *= 1.0f / 1024.0f;
+  }
+  return scale * SemitonesToRatio(semitones);
+}
+
+
+inline float Exp2Safe(float value) {
+  return SemitonesToRatioSafe(value * 12.0f);
 }
 
 }  // namespace stmlib
