@@ -31,8 +31,6 @@
 
 #include "stmlib/stmlib.h"
 
-#include "rings/drivers/adc.h"
-
 namespace rings {
 
 struct CalibrationData {
