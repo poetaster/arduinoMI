@@ -114,7 +114,7 @@ void Voice::Render(
   if (engine_index != previous_engine_index_ || reload_user_data_) {
     const uint8_t* data = nullptr;
 
-    if (engine_index >= 2 && engine_index <= 4) {
+    if (engine_index >= 2 && engine_index <= 4) ) { // old engine FM?
       data = plaits::fm_patches_table[engine_index - 2];
     }
 
@@ -158,7 +158,7 @@ void Voice::Render(
 
   float internal_env_amp = 1.0f;
   float internal_env_amp_timbre = 1.0f;
-  if (engine_index == 15) {
+  if (engine_index == 7) {
     internal_env_amp = 2.0f - p.harmonics * 6.0f;
     CONSTRAIN(internal_env_amp, 0.0f, 1.0f);
     speech_engine_.set_prosody_amount(!modulations.trigger_patched || modulations.frequency_patched ? 0.0f : patch.frequency_modulation_amount);
