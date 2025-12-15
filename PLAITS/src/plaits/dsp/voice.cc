@@ -33,7 +33,6 @@ using namespace stmlib;
 void Voice::Init(BufferAllocator* allocator) {
   engines_.Init();
 
-
   engines_.RegisterInstance(&virtual_analog_engine_, false, 0.8f, 0.8f);
   engines_.RegisterInstance(&waveshaping_engine_, false, 0.7f, 0.6f);
   engines_.RegisterInstance(&fm_engine_, false, 0.6f, 0.6f);
@@ -52,7 +51,6 @@ void Voice::Init(BufferAllocator* allocator) {
   engines_.RegisterInstance(&snare_drum_engine_, true, 0.8f, 0.8f);
   engines_.RegisterInstance(&hi_hat_engine_, true, 0.8f, 0.8f);
 
-  // Register all 18 engines
   // engines_.RegisterInstance(&virtual_analog_vcf_engine_, false, 1.0f, 1.0f);
   // engines_.RegisterInstance(&phase_distortion_engine_, false, 0.7f, 0.7f);
   engines_.RegisterInstance(&six_op_engine_0, true, 1.0f, 1.0f);
