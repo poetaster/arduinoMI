@@ -1,3 +1,6 @@
 [submodule "STMLIB"]
 	path = STMLIB
 	url = git@github.com:poetaster/STMLIB.git
+[submodule "PLAITS"]
+	path = PLAITS
+	url = git@github.com:poetaster/PLAITS.git
