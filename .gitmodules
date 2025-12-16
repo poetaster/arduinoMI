@@ -10,3 +10,6 @@
 [submodule "TIDES"]
 	path = TIDES
 	url = git@github.com:poetaster/TIDES.git
+[submodule "ELEMENTS"]
+	path = ELEMENTS
+	url = git@github.com:poetaster/ELEMENTS.git
