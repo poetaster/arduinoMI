@@ -4,3 +4,6 @@
 [submodule "PLAITS"]
 	path = PLAITS
 	url = git@github.com:poetaster/PLAITS.git
+[submodule "BRAIDS"]
+	path = BRAIDS
+	url = git@github.com:poetaster/BRAIDS.git
