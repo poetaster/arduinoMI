@@ -7,3 +7,6 @@
 [submodule "BRAIDS"]
 	path = BRAIDS
 	url = git@github.com:poetaster/BRAIDS.git
+[submodule "TIDES"]
+	path = TIDES
+	url = git@github.com:poetaster/TIDES.git
