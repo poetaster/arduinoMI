@@ -1,0 +1,7 @@
+.DS_Store
+/build
+*.o
+*.elf
+*.hex
+*.bin
+Arduino15
