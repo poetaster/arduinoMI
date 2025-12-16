@@ -59,12 +59,12 @@ void Voice::Init(BufferAllocator* allocator) {
 =======
   // Register all 18 engines
 >>>>>>> Stashed changes
-  // engines_.RegisterInstance(&virtual_analog_vcf_engine_, false, 1.0f, 1.0f);
-  // engines_.RegisterInstance(&phase_distortion_engine_, false, 0.7f, 0.7f);
+  engines_.RegisterInstance(&virtual_analog_vcf_engine_, false, 1.0f, 1.0f);
+  engines_.RegisterInstance(&phase_distortion_engine_, false, 0.7f, 0.7f);
   engines_.RegisterInstance(&six_op_engine_0, true, 1.0f, 1.0f);
   engines_.RegisterInstance(&six_op_engine_1, true, 1.0f, 1.0f);
   engines_.RegisterInstance(&six_op_engine_2, true, 1.0f, 1.0f);
-  // engines_.RegisterInstance(&wave_terrain_engine_, false, 0.7f, 0.7f);
+  engines_.RegisterInstance(&wave_terrain_engine_, false, 0.7f, 0.7f);
   // engines_.RegisterInstance(&string_machine_engine_, false, 0.8f, 0.8f);
   //engines_.RegisterInstance(&chiptune_engine_, false, 0.5f, 0.5f);
 
