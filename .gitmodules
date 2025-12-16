@@ -13,3 +13,6 @@
 [submodule "ELEMENTS"]
 	path = ELEMENTS
 	url = git@github.com:poetaster/ELEMENTS.git
+[submodule "CLOUDS"]
+	path = CLOUDS
+	url = git@github.com:poetaster/CLOUDS.git
