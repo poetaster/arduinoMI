@@ -16,3 +16,6 @@
 [submodule "CLOUDS"]
 	path = CLOUDS
 	url = git@github.com:poetaster/CLOUDS.git
+[submodule "RINGS"]
+	path = RINGS
+	url = git@github.com:poetaster/RINGS.git
