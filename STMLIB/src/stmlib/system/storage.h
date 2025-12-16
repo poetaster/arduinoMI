@@ -24,13 +24,15 @@
 //
 // -----------------------------------------------------------------------------
 //
-// Random number generator.
+// Helper functions for storing user data in flash.
 
-#include "stmlib/utils/random.h"
+#ifndef STMLIB_SYSTEM_STORAGE_H_
+#define STMLIB_SYSTEM_STORAGE_H_
 
-namespace stmlib {
+#ifdef STM32F4XX
+  #include "stmlib/system/sector_storage.h"
+#else
+  #include "stmlib/system/page_storage.h"
+#endif
 
-/* static */
-uint32_t Random::rng_state_ = 0x21;
-
-}  // namespace stmlib
+#endif  // STMLIB_SYSTEM_STORAGE_H_

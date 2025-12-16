@@ -54,9 +54,7 @@ void ModalEngine::Render(
   fill(&out[0], &out[size], 0.0f);
   fill(&aux[0], &aux[size], 0.0f);
   
-//  ONE_POLE(harmonics_lp_, parameters.harmonics, 0.01f);
-    // vb, reduce interpolation time a little
-    ONE_POLE(harmonics_lp_, parameters.harmonics, 0.2f);
+  ONE_POLE(harmonics_lp_, parameters.harmonics, 0.01f);
   
   voice_.Render(
       parameters.trigger & TRIGGER_UNPATCHED,

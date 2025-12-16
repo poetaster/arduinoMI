@@ -34,7 +34,11 @@
 
 namespace plaits {
 
+<<<<<<< Updated upstream
 const uint8_t syx_bank_0[] = {
+=======
+const uint8_t syx_bank_1[] = {
+>>>>>>> Stashed changes
       99,     58,     99,     60,
       99,      0,      0,      0,
        0,      0,      0,      0,
@@ -1060,7 +1064,11 @@ const uint8_t syx_bank_0[] = {
      117,    110,     99,    101,
       32,     52,     32,     32,
 };
+<<<<<<< Updated upstream
 const uint8_t syx_bank_1[] = {
+=======
+const uint8_t syx_bank_2[] = {
+>>>>>>> Stashed changes
       95,     29,     20,     50,
       99,     95,      0,      0,
       41,      0,     19,      0,
@@ -2086,7 +2094,11 @@ const uint8_t syx_bank_1[] = {
       68,     82,     77,     45,
       83,     78,     65,     82,
 };
+<<<<<<< Updated upstream
 const uint8_t syx_bank_2[] = {
+=======
+const uint8_t syx_bank_0[] = {
+>>>>>>> Stashed changes
       97,     99,     85,     68,
       99,     99,      0,      0,
       56,     20,      0,      2,
