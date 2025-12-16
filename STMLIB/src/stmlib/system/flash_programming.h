@@ -1,4 +1,4 @@
-// Copyright 2014 Emilie Gillet.
+// Copyright 2012 Emilie Gillet.
 //
 // Author: Emilie Gillet (emilie.o.gillet@gmail.com)
 //
@@ -24,59 +24,23 @@
 //
 // -----------------------------------------------------------------------------
 //
-// Stream buffer for serialization.
+// Helper functions for flash programming.
 
-#ifndef STMLIB_UTILS_BUFFER_ALLOCATOR_H_
-#define STMLIB_UTILS_BUFFER_ALLOCATOR_H_
+#ifndef STMLIB_SYSTEM_FLASH_PROGRAMMING_H_
+#define STMLIB_SYSTEM_FLASH_PROGRAMMING_H_
 
-#include "stmlib/stmlib.h"
+#if defined (STM32F37X)
 
-namespace stmlib {
+  #define PAGE_SIZE (uint16_t)0x800
 
-class BufferAllocator {
- public:
-  BufferAllocator() { }
-  ~BufferAllocator() { }
-  
-  BufferAllocator(void* buffer, size_t size) {
-    Init(buffer, size);
-  }
-  
-  inline void Init(void* buffer, size_t size) {
-    buffer_ = static_cast<uint8_t*>(buffer);
-    size_ = size;
-    Free();
-  }
-  
-  template<typename T>
-  inline T* Allocate(size_t size) {
-    size_t size_bytes = sizeof(T) * size;
-    if (size_bytes <= free_) {
-      T* start = static_cast<T*>(static_cast<void*>(next_));
-      next_ += size_bytes;
-      free_ -= size_bytes;
-      return start;
-    } else {
-      return NULL;
-    }
-  }
-  
-  inline void Free() {
-    next_ = buffer_;
-    free_ = size_;
-  }
-  
-  inline size_t free() const { return free_; }
+#else
 
- private:
-  uint8_t* next_;
-  uint8_t* buffer_;
-  size_t free_;
-  size_t size_;
+  #if defined (STM32F10X_LD) || defined (STM32F10X_MD) || defined (STM32F0XX)
+    #define PAGE_SIZE  (uint16_t)0x400  /* Page size = 1KByte */
+  #elif defined (STM32F10X_HD) || defined (STM32F10X_CL)
+    #define PAGE_SIZE  (uint16_t)0x800  /* Page size = 2KByte */
+  #endif
 
-  DISALLOW_COPY_AND_ASSIGN(BufferAllocator);
-};
+#endif
 
-}  // namespace stmlib
-
-#endif   // STMLIB_UTILS_STREAM_BUFFER_H_
+#endif  // STMLIB_SYSTEM_FLASH_PROGRAMMING_H_

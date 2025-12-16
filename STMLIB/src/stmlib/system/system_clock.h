@@ -1,4 +1,4 @@
-// Copyright 2014 Emilie Gillet.
+// Copyright 2012 Emilie Gillet.
 //
 // Author: Emilie Gillet (emilie.o.gillet@gmail.com)
 //
@@ -24,59 +24,36 @@
 //
 // -----------------------------------------------------------------------------
 //
-// Stream buffer for serialization.
+// System time.
 
-#ifndef STMLIB_UTILS_BUFFER_ALLOCATOR_H_
-#define STMLIB_UTILS_BUFFER_ALLOCATOR_H_
+#ifndef STMLIB_SYSTEM_SYSTEM_CLOCK_H_
+#define STMLIB_SYSTEM_SYSTEM_CLOCK_H_
 
 #include "stmlib/stmlib.h"
 
 namespace stmlib {
 
-class BufferAllocator {
+class SystemClock {
  public:
-  BufferAllocator() { }
-  ~BufferAllocator() { }
+  SystemClock() { }
+  ~SystemClock() { }
   
-  BufferAllocator(void* buffer, size_t size) {
-    Init(buffer, size);
+  inline void Init() { count_ = 0; }
+  inline void Tick() { ++count_; }
+  inline volatile uint32_t milliseconds() const { return count_; }
+  inline void Delay(uint32_t ms) {
+    uint32_t target = milliseconds() + ms;
+    while (milliseconds() <= target);
   }
-  
-  inline void Init(void* buffer, size_t size) {
-    buffer_ = static_cast<uint8_t*>(buffer);
-    size_ = size;
-    Free();
-  }
-  
-  template<typename T>
-  inline T* Allocate(size_t size) {
-    size_t size_bytes = sizeof(T) * size;
-    if (size_bytes <= free_) {
-      T* start = static_cast<T*>(static_cast<void*>(next_));
-      next_ += size_bytes;
-      free_ -= size_bytes;
-      return start;
-    } else {
-      return NULL;
-    }
-  }
-  
-  inline void Free() {
-    next_ = buffer_;
-    free_ = size_;
-  }
-  
-  inline size_t free() const { return free_; }
 
  private:
-  uint8_t* next_;
-  uint8_t* buffer_;
-  size_t free_;
-  size_t size_;
+  volatile uint32_t count_;
 
-  DISALLOW_COPY_AND_ASSIGN(BufferAllocator);
+  DISALLOW_COPY_AND_ASSIGN(SystemClock);
 };
+
+extern SystemClock system_clock;
 
 }  // namespace stmlib
 
-#endif   // STMLIB_UTILS_STREAM_BUFFER_H_
+#endif  // STMLIB_SYSTEM_SYSTEM_CLOCK_H_

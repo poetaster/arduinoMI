@@ -220,14 +220,24 @@ class Voice {
   SnareDrumEngine snare_drum_engine_;
   HiHatEngine hi_hat_engine_;
   
+<<<<<<< Updated upstream
 //  VirtualAnalogVCFEngine virtual_analog_vcf_engine_;
+=======
+// VirtualAnalogVCFEngine virtual_analog_vcf_engine_;
+>>>>>>> Stashed changes
 // PhaseDistortionEngine phase_distortion_engine_;
 SixOpEngine six_op_engine_0;
 SixOpEngine six_op_engine_1;
 SixOpEngine six_op_engine_2;
+<<<<<<< Updated upstream
  // WaveTerrainEngine wave_terrain_engine_;
 //  StringMachineEngine string_machine_engine_;
  // ChiptuneEngine chiptune_engine_;
+=======
+// WaveTerrainEngine wave_terrain_engine_;
+//StringMachineEngine string_machine_engine_;
+// ChiptuneEngine chiptune_engine_;
+>>>>>>> Stashed changes
 
   stmlib::HysteresisQuantizer2 engine_quantizer_;
   
