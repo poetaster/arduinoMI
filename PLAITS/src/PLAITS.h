@@ -82,11 +82,11 @@
 
 // ==================== ENGINE2 / FM7 / DX7 / PD / WT / SM ====================
 #include "plaits/dsp/engine2/six_op_engine.h"             // DX7 / 6-op FM
-//#include "plaits/dsp/engine2/phase_distortion_engine.h"   // Phase Distortion
-//#include "plaits/dsp/engine2/wave_terrain_engine.h"      // Wave Terrain
+#include "plaits/dsp/engine2/phase_distortion_engine.h"   // Phase Distortion
+#include "plaits/dsp/engine2/wave_terrain_engine.h"      // Wave Terrain
 //#include "plaits/dsp/engine2/string_machine_engine.h"    // String Machine / Chorus
 //#include "plaits/dsp/engine2/chiptune_engine.h"          // Chiptune
-//#include "plaits/dsp/engine2/virtual_analog_vcf_engine.h" // VA + VCF
+#include "plaits/dsp/engine2/virtual_analog_vcf_engine.h" // VA + VCF
 
 // ==================== FM HELPERS ====================
 #include "plaits/dsp/fm/operator.h"
