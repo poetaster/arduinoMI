@@ -53,11 +53,7 @@ void ChordEngine::Reset() {
 }
 
 const float fade_point[kChordNumVoices] = {
-<<<<<<< Updated upstream
-  0.55f, //0.47f, 0.49f, 0.51f, 0.53f
-=======
   0.55f, 0.47f, 0.49f, 0.51f, 0.53f
->>>>>>> Stashed changes
 };
 
 const int kRegistrationTableSize = 8;
