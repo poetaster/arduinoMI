@@ -248,6 +248,9 @@ void setup() {
   DAC.begin();
 
 
+  // lets seee
+  analogReadResolution(12);
+  
   // Additions
   // ENCODER
   pinMode(encoderA_pin, INPUT_PULLUP);
@@ -405,8 +408,8 @@ void updateControl() {
   int p2 = potvalue[1]; // analogRead(INTS_PIN); // value is 0-4065
 
 
-  morph_in = (float)p1 / 1000.0f; //map(p1, 0, 4065, 0.0, 1.0); // IN(2);
-  harm_in = (float)p2 / 1000.0f; //map(p2, 0, 4065, 0.0, 1.0); //IN(3);
+  morph_in = (float)p1 / 4095.0f; //map(p1, 0, 4065, 0.0, 1.0); // IN(2);
+  harm_in = (float)p2 / 4095.0f; //map(p2, 0, 4065, 0.0, 1.0); //IN(3);
   CONSTRAIN(morph_in, 0.0f, 1.0f);
   CONSTRAIN(harm_in, 0.0f, 1.0f);
   scanbuttons();
@@ -570,7 +573,7 @@ void loop1() {
       //  if ((!potlock[1]) || (!potlock[2])) seq[i].trigger=euclid(16,map(potvalue[1],POT_MIN,POT_MAX,0,MAX_SEQ_STEPS),map(potvalue[2],POT_MIN,POT_MAX,0,MAX_SEQ_STEPS-1));
       if ( i == 8) {
         engineCount = engineCount + encoder_delta;
-        CONSTRAIN(engineCount, 0, 16);
+        if (engineCount > 16) engineCount = 0; // circle around
         engine_in = engineCount; // ( engine +) % voices[0].voice_.GetNumEngines();
       }
 
@@ -586,7 +589,7 @@ void loop1() {
     //RATE_value = RATE_value + encoder_delta;
     //voices[0].patch.note = voices[0].patch.note + RATE_value;
 
-    float turn = ( encoder_delta * 0.01f ) + timbre_in;
+    float turn = ( encoder_delta * 0.005f ) + timbre_in;
     CONSTRAIN(turn, 0.f, 1.0f)
     timbre_in = turn;
     //display_value(RATE_value - 50); // this is wrong, bro :)

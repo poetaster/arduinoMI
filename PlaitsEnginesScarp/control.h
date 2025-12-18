@@ -48,7 +48,7 @@ uint16_t readpot(uint8_t potnum) {
       break;
   }
   // note that Pikocore pots are wired "backwards" - max voltage is full ccw
-  for (int j = 0; j < POT_AVERAGING; ++j) val += (1024 - analogRead(input)); // read the A/D a few times and average for a more stable value
+  for (int j = 0; j < POT_AVERAGING; ++j) val += (4095 - analogRead(input)); // read the A/D a few times and average for a more stable value
   val = val / POT_AVERAGING;
   if (potlock[potnum]) {
     int delta = lastpotvalue[potnum] - val; // this needs to be done outside of the abs() function - see arduino abs() docs
