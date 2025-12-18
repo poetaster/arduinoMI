@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+
+'''
+original from ledlaux @ https://github.com/poetaster/arduinoMI/pull/12#issuecomment-3667649383
+'''
+
 import sys
 from pathlib import Path
 
