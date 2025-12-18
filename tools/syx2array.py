@@ -38,3 +38,27 @@ if __name__ == "__main__":
         sys.exit(1)
 
     syx_to_c_array(sys.argv[1], sys.argv[2])
+
+
+
+'''
+To add more dx7 banks to plaits we need to:
+
+    Add syx bank array to resources.cc
+    Add in resources.cc
+
+    const uint8_t* const fm_patches_table[] = {
+    syx_bank_0,
+    syx_bank_1,
+    syx_bank_2,
+    syx_bank_3,
+    };
+
+    Add extern const uint8_t syx_bank_3[]; in resources.h
+
+    Add case 3: return syx_bank_3; in user_data.h
+
+    Add engines_.RegisterInstance(&six_op_engine_3, true, 1.0f, 1.0f); in voice.cc
+
+    Add SixOpEngine six_op_engine_3; in voice.h
+'''
