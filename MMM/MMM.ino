@@ -446,7 +446,7 @@ void setup() {
   // now start the dac
   DAC.begin();
   //DAC2.begin();
-  
+
   // lets seee
   analogReadResolution(12);
 
@@ -459,7 +459,7 @@ void setup() {
   enc1.flip();
 
   // thi is to switch to PWM for power to avoid ripple noise
-  pinMode(23, OUTPUT); 
+  pinMode(23, OUTPUT);
   digitalWrite(23, HIGH);
 
 
@@ -554,10 +554,25 @@ void loop() {
     } else if (voice_number == 2) {
       updateBraidsAudio();
     } else if (voice_number == 3) {
+      
       // clouds, samplebuffer at same time
-      for (size_t i = 0; i < 32; ++i) {
-        sample_buffer[i] = (float) ( analogRead(CV7) ); // arbitrary +1 gain
+      // or braids into buffer directly.
+      updateBraidsAudio();
+      // copy the braids audio to the clouds input buffer
+      clouds::FloatFrame  *input = cloud[0].input;
+      
+      for (int i = 0; i < 32; i++) {
+        
+        float sample = (float) ( inst[0].pd.buffer[i] / 32768.0f ) * 0.5f;
+        //float sample = (float) ( analogRead(CV7) / 4095.0f ) * 0.9f;
+        input[i].l = sample;
+        input[i].r = sample;  // Mono input
+
       }
+      //for (size_t i = 0; i < 32; ++i) {
+      //  sample_buffer[i] = (float) ( analogRead(CV7) ); // arbitrary +1 gain
+      //}
+      
       updateCloudsAudio();
     }
     counter = 0; // increments on each pass of the timer when the timer writes
@@ -928,7 +943,7 @@ void read_encoders() {
   }
 
   if ( enc1_delta) {
-    float turn = ( enc1_delta * 0.01f ) + timbre_in;
+    float turn = ( enc1_delta * 0.003f ) + timbre_in;
     CONSTRAIN(turn, 0.f, 1.0f)
     if (debug) Serial.println(turn);
     timbre_in = turn;
@@ -947,7 +962,7 @@ void read_encoders() {
   }
 
   if (enc2_delta) {
-    float turn = ( enc2_delta * 0.01f ) + morph_in;
+    float turn = ( enc2_delta * 0.003f ) + morph_in;
     CONSTRAIN(turn, 0.f, 1.0f)
     if (debug) Serial.println(turn);
     morph_in = turn;
@@ -966,7 +981,7 @@ void read_encoders() {
   }
 
   if (enc3_delta) {
-    float turn = ( enc3_delta * 0.01f ) + harm_in;
+    float turn = ( enc3_delta * 0.0031f ) + harm_in;
     CONSTRAIN(turn, 0.f, 1.0f)
     if (debug) Serial.println(turn);
     harm_in = turn;

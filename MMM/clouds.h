@@ -57,6 +57,7 @@ struct Cloud {
   clouds::SampleRateConverter < +clouds::kDownsamplingFactor, 45, clouds::src_filter_1x_2_45 > src_up_;
 
 };
+
 struct Cloud cloud[1];
 
 void initClouds() {
@@ -65,11 +66,10 @@ void initClouds() {
   int smallBufSize =  65536 - 128;
 
   // we fixed it with static inits in the unit
-
   //cloud[0].large_buffer = (uint8_t*)malloc(largeBufSize * sizeof(uint8_t));
   //cloud[0].small_buffer = (uint8_t*)malloc(smallBufSize * sizeof(uint8_t));
 
-  cloud[0].sr = SAMPLERATE;
+  cloud[0].sr = 32000.0f ;// SAMPLERATE;
   cloud[0].processor = new clouds::GranularProcessor;
   memset(cloud[0].processor, 0, sizeof(*cloud[0].processor));
 
@@ -98,7 +98,7 @@ void initClouds() {
   cloud[0].pcount = 0;
   // have to think about this :)
   //uint16_t numAudioInputs = cloud[0].mNumInputs - kNumArgs;
-  Serial.println(F("INIT DONE"));
+  if (debug) Serial.println(F("INIT DONE"));
 
 
 
@@ -110,17 +110,29 @@ void updateCloudsAudio() {
 
   //  MiClouds.ar(input, pit: -15.0, pos: 0.5, size: 0.25,  dens: dens, tex: 0.5, drywet: 1, mode: 0);
   float timbre = (timbre_in + timb_mod);
+  float morph = (morph_in + morph_mod);
+    
+  float modulation;
+  
 
+  if (pos_mod < 0.05) {
+    modulation = 1.0f;
+  } else {
+    modulation = pos_mod;
+  }
+  float harm = (harm_in + pos_mod);
+  
+  CONSTRAIN(harm, 0.0f, 1.0f);
   float   pitch =   mapf(pitch_in, 0.0, 120.0, -48.0, 48.0);
-  float   in_gain = 0.2f; // harm_in; //IN0(6);
+  float   in_gain = 0.5f; // harm_in; //IN0(6);
   float   spread = 0.5f;// IN0(7);
   float   reverb = 0.4f; // IN0(8);
   float   fb =  0.3f; // IN0(9);
-  float   siz = constrain(harm_in, 0.f, 1.0f) ;// 0.35f;
-  float   dens = constrain(morph_in, 0.f, 1.0f);;
+  float   siz = constrain(harm, 0.f, 1.0f) ;// 0.35f;
+  float   dens = constrain(morph, 0.f, 1.0f);;
   float   tex = constrain (timbre, 0.f, 1.0f) ;
   float   posi = 0.0f; //constrain(pos_mod, 0.f, 1.f);
-  float   drywet = 1.0; // constrain(clouds_dw_in, 0.3f, 1.0f);
+  float   drywet = 1.0f; // constrain(clouds_dw_in, 0.3f, 1.0f);
   bool    freeze = freeze_in;
   short   engine = constrain(engine_in, 0, 3); // 0 -3
   bool    lofi = 0; // IN0(12) > 0.f;
@@ -133,7 +145,7 @@ void updateCloudsAudio() {
   float       *smoothed_value = cloud[0].smoothed_value_;
   float       coef = cloud[0].coef;
   clouds::GranularProcessor   *gp = cloud[0].processor;
-  clouds::Parameters   *p = gp->mutable_parameters();
+  clouds::Parameters          *p = gp->mutable_parameters();
 
   smoothed_value[PARAM_PITCH] += coef * (pitch - smoothed_value[PARAM_PITCH]);
   p->pitch =  smoothed_value[PARAM_PITCH];
@@ -151,6 +163,7 @@ void updateCloudsAudio() {
     CONSTRAIN(parameters->pitch, -48.0f, 48.0f);
 
   */
+  
   cloud[0].pot_value_[PARAM_DRYWET] = cloud[0].smoothed_value_[PARAM_DRYWET] = drywet;
 
   /* this was from the original cv input
@@ -183,10 +196,12 @@ void updateCloudsAudio() {
   gp->set_playback_mode(static_cast<clouds::PlaybackMode>(engine));
 
   // uint16_t trig_rate = INRATE(13); // A non-positive to positive transition causes a trigger to happen.
-  for (int i = 0; i < cloudsAudioBlockSize; ++i) {
+  // currently writing the input buffer in the loop
+ /* for (int i = 0; i < cloudsAudioBlockSize; ++i) {
+    
     input[i].l = (float) ( ( sample_buffer[i] / 4095.0f ) *  in_gain) ;
     input[i].r = input[i].l;
-  }
+  }*/
 
   bool trigger = false;
   if (trigger_in == 1.0f) {
@@ -203,7 +218,7 @@ void updateCloudsAudio() {
     p->trigger = false;
 
   for (int i = 0; i < cloudsAudioBlockSize; ++i) {
-    out_bufferL[i] = stmlib::Clip16( static_cast<int32_t>(  ( output[i].l * 1.5f ) * 32768.0f  ) ) ; // static 2 gain
+    out_bufferL[i] = stmlib::Clip16( static_cast<int32_t>(  (  output[i].l )  * 32768.0f  ) ) ;
 
   }
 

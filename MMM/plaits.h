@@ -3,8 +3,8 @@
 
 #include "plaits/dsp/dsp.h"
 #include "plaits/dsp/voice.h"
-#include "plaits/dsp/oscillator/variable_shape_oscillator.h"
-#include "plaits/dsp/oscillator/variable_shape_oscillator_one.h"
+//#include "plaits/dsp/oscillator/variable_shape_oscillator.h"
+//#include "plaits/dsp/oscillator/variable_shape_oscillator_one.h"
 
 
 plaits::Modulations modulations;
