@@ -47,23 +47,71 @@ if __name__ == "__main__":
 
 
 '''
-To add more dx7 banks to plaits we need to:
+============================================================
+resources.cc
+============================================================
 
-    Add syx bank array to resources.cc
-    Add in resources.cc
+1. Copy your new SYX bank array got from the script:
+   (syx_bank_3)
 
-    const uint8_t* const fm_patches_table[] = {
-    syx_bank_0,
-    syx_bank_1,
-    syx_bank_2,
-    syx_bank_3,
-    };
+2. Update the FM patches table:
 
-    Add extern const uint8_t syx_bank_3[]; in resources.h
+   const uint8_t* const fm_patches_table[] = {
+       syx_bank_0,
+       syx_bank_1,
+       syx_bank_2,
+       syx_bank_3,  
+   };
 
-    Add case 3: return syx_bank_3; in user_data.h
+============================================================
+resources.h
+============================================================
 
-    Add engines_.RegisterInstance(&six_op_engine_3, true, 1.0f, 1.0f); in voice.cc
+1. Declare the new SYX bank:
 
-    Add SixOpEngine six_op_engine_3; in voice.h
+   extern const uint8_t syx_bank_3[];
+
+============================================================
+user_data.h
+============================================================
+
+1. Add a case for the new bank:
+
+   case 3:
+       return syx_bank_3;
+
+============================================================
+voice.cc
+============================================================
+
+1. Register the new engine instance:
+
+   engines_.RegisterInstance(&six_op_engine_3, true, 1.0f, 1.0f);
+
+2. Define engine indices:
+
+   const int six_op_0_index = 16;
+   const int six_op_1_index = 17;
+   const int six_op_2_index = 18;
+   const int six_op_3_index = 19;
+
+3. Map engine indices to SYX banks:
+
+   else if (engine_index == 16) {
+       data = plaits::syx_bank_0;
+   } else if (engine_index == 17) {
+       data = plaits::syx_bank_1;
+   } else if (engine_index == 18) {
+       data = plaits::syx_bank_2;
+   } else if (engine_index == 19) {
+       data = plaits::syx_bank_3;   
+   }
+
+============================================================
+voice.h
+============================================================
+
+1. Add a new SixOpEngine instance:
+
+   SixOpEngine six_op_engine_3;
 '''
