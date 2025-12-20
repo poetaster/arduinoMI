@@ -63,29 +63,6 @@ int16_t right[AUDIO_BLOCK];
 clouds::Reverb clouds_fx;
 clouds::Oliverb oliverb_fx;
 
-// clock timer  stuff
-#include "RPi_Pico_TimerInterrupt.h"
-#define TIMER_INTERRUPT_DEBUG         0
-#define TIMER0_INTERVAL_MS 20.833333333333   // \20.833333333333running at 48Khz
-#define DEBOUNCING_INTERVAL_MS   2// 80
-#define LOCAL_DEBUG              0
-volatile int counter = 0;
-
-// Init RPI_PICO_Timer, can use any from 0-15 pseudo-hardware timers
-RPI_PICO_Timer ITimer0(0);
-bool TimerHandler0(struct repeating_timer *t) {
-  (void) t;
-  bool sync = true;
-  if ( DAC.availableForWrite() ) {
-    for (size_t i = 0; i < AUDIO_BLOCK; i++) {
-      DAC.write( left[i]);
-    }
-    counter =  1;
-  }
-  return true;
-}
-
-
 
 const char* engine_names[] = {
   "Virtual Analog", "Waveshaping", "FM", "Grain", "Additive", "Wavetable", "Chord", "Speech",
@@ -228,8 +205,8 @@ void setup() {
 
 void loop() {
 
-  static const uint32_t fxDuration = 2000;
-  static const uint32_t pauseDelay = 1000;
+  static const uint32_t fxDuration = 4000;
+  static const uint32_t pauseDelay = 500;
 
   static uint32_t lastTime = 0;
   static uint8_t playCount = 0;  // 0=Clean, 1=Clouds, 2=Oliverb
@@ -252,7 +229,7 @@ void loop() {
 
   if (now - lastTime < fxDuration) {
     bool applyClouds = (playCount == 1);
-    bool applyOliverb = (playCount == 2);
+    bool applyOliverb = false; //(playCount == 2);
     updateAudio(engine_idx, applyClouds, applyOliverb, fxJustSwitched, 0.4f);
     fxJustSwitched = false;
   } else {
