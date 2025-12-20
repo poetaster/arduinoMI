@@ -51,7 +51,7 @@
 #define SAMPLE_RATE 32000
 I2S i2s_output(OUTPUT);
 
-#define WORKSPACE_SIZE 65536
+#define WORKSPACE_SIZE 32768
 constexpr int AUDIO_BLOCK = plaits::kBlockSize;
 
 // ==================== MEMORY BUFFERS ====================

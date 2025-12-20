@@ -7,7 +7,7 @@ Program cycles through clean Plaits engines -> Clouds reverb -> Oliverb fx
 An additional **DX7 SysEx bank** has been added for the OP6 engine, making a total of **25 engines** available.
 
 ## Setup Instructions
-In your Arduino IDE library folder (~/Arduino/libraries) if you already have he libraries, just use the checkout commands.
+In your Arduino IDE library folder (~/Arduino/libraries) if you already have the libraries, just use the checkout commands.
 
 git clone git@github.com:poetaster/CLOUDS.git
 cd CLOUDS
