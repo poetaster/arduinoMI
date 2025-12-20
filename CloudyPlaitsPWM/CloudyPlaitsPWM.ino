@@ -103,7 +103,7 @@ void applyFxSettings() {
   oliverb_fx.set_hp(0.1f);
   oliverb_fx.set_input_gain(0.4f);
   oliverb_fx.set_diffusion(0.7f);
-  oliverb_fx.set_pitch_shift_amount(0.5f);
+  oliverb_fx.set_pitch_shift_amount(0.5f); 
   oliverb_fx.set_mod_amount(0.02f);
   oliverb_fx.set_mod_rate(0.1f);
 }
