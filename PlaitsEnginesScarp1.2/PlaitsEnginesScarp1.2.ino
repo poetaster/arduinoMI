@@ -473,6 +473,7 @@ void loop1() {
         engineCount = engineCount + encoder_delta;
         if (engineCount > 24) engineCount = 0; // circle around
         if (engineCount < 0) engineCount = 24;
+        if (engineCount == 23) CONSTRAIN(timbre_in, 0.f,0.33f); // string machine bug fix
         engine_in = engineCount; // ( engine +) % voices[0].voice_.GetNumEngines();
         changeEngine(engineCount);
       }
@@ -491,6 +492,9 @@ void loop1() {
 
     float turn = ( encoder_delta * 0.005f ) + timbre_in;
     CONSTRAIN(turn, 0.f, 1.0f)
+    if (engineCount == 23) {
+      CONSTRAIN(turn, 0.f,0.33f);
+    }
     timbre_in = turn;
     //display_value(RATE_value - 50); // this is wrong, bro :)
   }
