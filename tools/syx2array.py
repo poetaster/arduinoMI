@@ -45,6 +45,9 @@ if __name__ == "__main__":
     syx_to_c_array(sys.argv[1])
     
 '''
+
+Make this changes in PLAITS source files to add aditional .syx bank
+
 ============================================================
 resources.cc
 ============================================================
@@ -68,6 +71,9 @@ resources.h
 1. Declare the new SYX bank:
 
    extern const uint8_t syx_bank_3[];
+
+2. #define SYX_BANK_2_SIZE 4096
+   #define SYX_BANK_3 3
 
 ============================================================
 user_data.h
@@ -109,7 +115,10 @@ voice.cc
 voice.h
 ============================================================
 
-1. Add a new SixOpEngine instance:
+1. Default 24 engines so add + 1
+const int kMaxEngines = 25;
 
+2. Add a new SixOpEngine instance:
    SixOpEngine six_op_engine_3;
+
 '''

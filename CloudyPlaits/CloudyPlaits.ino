@@ -13,7 +13,8 @@
   Select TinyUSB stack in ArduinoIDE tools for easier adjusments test
 
 
-  Copyright (c) 2025 Vadims Maksimovs <ledlaux@gmail.com>
+  Copyright (c) 2025 Vadims Maksimovs 
+  https://github.com/ledlaux
   MIT licence
   
   --------------------------------------------------------------------------------
