@@ -39,7 +39,7 @@ def syx_to_c_array(syx_path):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python syx_to_c_array.py <file.syx>")
+        print("Usage: python syx2array.py <file.syx>")
         sys.exit(1)
 
     syx_to_c_array(sys.argv[1])
