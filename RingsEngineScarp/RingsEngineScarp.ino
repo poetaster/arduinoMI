@@ -192,16 +192,6 @@ void setup() {
     Serial.begin(57600);
     Serial.println(F("YUP"));
   }
-  // pwm timing setup
-  // we're using a pseudo interrupt for the render callback since internal dac callbacks crash
-  // Frequency in float Hz
-  //ITimer0.attachInterrupt(TIMER_FREQ_HZ, TimerHandler0);
-  if (ITimer0.attachInterruptInterval(TIMER0_INTERVAL_MS, TimerHandler0)) // that's 48kHz
-  {
-    if (debugging) Serial.print(F("Starting  ITimer0 OK, millis() = ")); Serial.println(millis());
-  }  else {
-    if (debugging) Serial.println(F("Can't set ITimer0. Select another freq. or timer"));
-  }
 
   // set up Pico PWM audio output
   DAC.setBuffers(4, 64); // DMA buffers
@@ -293,9 +283,9 @@ void updateControl() {
 
       anybuttonpressed = true;
       if (i < 8) {
-        
+
         trigger_in = 1.0f;
-        
+
         digitalWrite(led[i] , HIGH);
 
         // a track button is pressed
@@ -341,19 +331,21 @@ void updateControl() {
     }
   }
   if (! anybuttonpressed) {
-     trigger_in = 0.0f;
+    trigger_in = 0.0f;
   }
 }
 
 
 void loop() {
   // when the osc buffer has been written to PWM buffer
-  if ( counter > 0 ) {
-    updateRingsAudio();
-    counter = 0; // increments on each pass of the timer when the timer writes
-  }
 
-  
+    
+    if ( DAC.availableForWrite() ) {
+      updateRingsAudio();
+      for (size_t i = 0; i < rings::kMaxBlockSize; i++) {
+        DAC.write( voices[0].obuff[i]);
+      }
+    }
 
 }
 
