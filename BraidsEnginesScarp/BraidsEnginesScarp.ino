@@ -618,7 +618,8 @@ void loop1() {
     } else if (  encoder_delta != 0 && now - encoder_push_millis > 100 ) {
 
       engineCount = engineCount + encoder_delta;
-      CONSTRAIN(engineCount, 0, 47);
+      if (engineCount > 45) engineCount = 0;
+      if (engineCount < 0) engineCount = 45;
       engine_in = engineCount; // ( engine +) % voices[0].voice_.GetNumEngines();
       encoder_push_millis = 0;
       encoder_held = false;

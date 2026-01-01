@@ -81,7 +81,7 @@ void displayUpdate() {
   // bpm
   display.setCursor(bpm_text_pos.x, bpm_text_pos.y);
   display.print("r: ");
-  display.print(encoder_push_millis);//SETTING_OSCILLATOR_SHAPE
+  display.print(engine_in);//
 
   // transpose
   display.setCursor(trans_text_pos.x, trans_text_pos.y);
