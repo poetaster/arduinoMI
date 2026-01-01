@@ -225,12 +225,13 @@ void setup() {
   // we're using a pseudo interrupt for the render callback since internal dac callbacks crash
   // Frequency in float Hz
   //ITimer0.attachInterrupt(TIMER_FREQ_HZ, TimerHandler0);
-  if (ITimer0.attachInterruptInterval(TIMER0_INTERVAL_MS, TimerHandler0)) // that's 48kHz
-  {
+  /*
+    if (ITimer0.attachInterruptInterval(TIMER0_INTERVAL_MS, TimerHandler0)) // that's 48kHz
+    {
     if (debugging) Serial.print(F("Starting  ITimer0 OK, millis() = ")); Serial.println(millis());
-  }  else {
+    }  else {
     if (debugging) Serial.println(F("Can't set ITimer0. Select another freq. or timer"));
-  }
+    }*/
 
   // set up Pico PWM audio output
   DAC.setBuffers(4, 32); // plaits::kBlockSize); // DMA buffers
@@ -412,7 +413,30 @@ void updateControl() {
 
 void loop() {
   // when the osc buffer has been written to PWM buffer
-  if ( counter > 0 ) {
+
+  if ( DAC.availableForWrite() ) {
+    
+    updateBraidsAudio();
+    
+    // copy the braids audio to the clouds input buffer
+    clouds::FloatFrame  *input = cloud[0].input;
+    for (int i = 0; i < 32; i++) {
+      float sample = voices[0].pd.buffer[i] / 32768.0f;
+      input[i].l = sample;
+      input[i].r = sample;  // Mono input
+
+    }
+
+    updateCloudsAudio();
+
+    for (size_t i = 0; i < BLOCK_SIZE; i++) {
+      DAC.write( out_bufferL[i]);
+    }
+
+  }
+
+  /* old timer based method
+    if ( counter > 0 ) {
 
     updateBraidsAudio();
     // copy the braids audio to the clouds input buffer
@@ -428,7 +452,8 @@ void loop() {
 
     updateCloudsAudio();
     counter = 0; // increments on each pass of the timer when the timer writes
-  }
+    }
+  */
 
 
 }
@@ -508,7 +533,7 @@ void loop1() {
 
       anybuttonpressed = true;
       if (i < 8)  digitalWrite(led[i] , HIGH);
-      
+
       if (i == 0  && ! digitalRead( SHIFTBUTTON ) ) {
         freeze_in = ! freeze_in;
       }
