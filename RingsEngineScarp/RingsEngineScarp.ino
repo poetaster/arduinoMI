@@ -405,8 +405,10 @@ void loop1() {
 
       //  if ((!potlock[1]) || (!potlock[2])) seq[i].trigger=euclid(16,map(potvalue[1],POT_MIN,POT_MAX,0,MAX_SEQ_STEPS),map(potvalue[2],POT_MIN,POT_MAX,0,MAX_SEQ_STEPS-1));
       // look up drum trigger pattern encoder play modes
-
-      if ( i == 8) {
+      
+      if (i == 8 && button[7] ) {
+        easterEgg = !easterEgg;
+      } else if ( i == 8) {
         engineCount = engineCount + encoder_delta;
         CONSTRAIN(engineCount, 0, 5);
         engine_in = engineCount; // ( engine +) % voices[0].voice_.GetNumEngines();
@@ -419,9 +421,7 @@ void loop1() {
         engine_in = engineCount;
 
       }
-      if (button[0] && button[7] ) {
-        easterEgg = !easterEgg;
-      }
+
 
       // change pitch on pot 0
       if (display_mode == 0 ) { // change sample if pot has moved enough
