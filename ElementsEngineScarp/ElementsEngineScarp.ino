@@ -720,7 +720,7 @@ void updateElementsAudio() {
   for (size_t i = 0; i < size; ++i) {
     //obuff[i] = stmlib::SoftConvert(out[i]);
     //abuff[i] = stmlib::SoftConvert(aux[i]);
-    obuff[i] = stmlib::Clip16(static_cast<int16_t>(out[i] * 32768.0f));
+    obuff[i] = stmlib::Clip16(static_cast<int16_t>( out[i] * 32768.0f));
     //abuff[i] = stmlib::Clip16(static_cast<int16_t>(aux[i] * 32768.0f));
 
   }

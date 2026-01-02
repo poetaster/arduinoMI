@@ -224,8 +224,8 @@ void updateAudio(uint8_t engine_idx, bool triggerNow, float master_volume = 0.4f
     voice.modulations.trigger_patched = true;
   }
   else if (is_wave_terrain || is_chiptune || is_drum) {
-    voice.patch.decay = (is_drum ? 0.6f : 0.7f);
-    voice.modulations.trigger = triggerNow ? 1.0f : 0.0f;
+    voice.patch.decay = (is_drum ? 0.7f : 0.8f);
+    voice.modulations.trigger = triggerNow ; // ? 1.0f : 0.0f;
     voice.modulations.trigger_patched = true;
     voice.modulations.level = 1.0f;
     voice.modulations.level_patched = true;

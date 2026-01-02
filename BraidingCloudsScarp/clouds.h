@@ -111,7 +111,7 @@ void updateCloudsAudio() {
 
   //  MiClouds.ar(input, pit: -15.0, pos: 0.5, size: 0.25,  dens: dens, tex: 0.5, drywet: 1, mode: 0);
 
-  float   pitch =   mapf(pitch_in, 0.0, 120.0, -48.0, 48.0);
+  float   pitch =   mapf(pitch_in, 0.0, 104.0, -48.0, 48.0);
   float   in_gain = .5f; // harm_in; //IN0(6);
   float   spread = 0.5f;// IN0(7);
 
