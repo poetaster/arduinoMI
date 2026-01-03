@@ -76,15 +76,12 @@ int pitch_in = 60;
 
 #include "rings.h"
 
-// clock timer  stuff
-
+/* clock timer  stuff no longer used, here for reference.
 #define TIMER_INTERRUPT_DEBUG         0
 #define _TIMERINTERRUPT_LOGLEVEL_     4
-
 // Can be included as many times as necessary, without `Multiple Definitions` Linker Error
 #include "RPi_Pico_TimerInterrupt.h"
-
-//unsigned int SWPin = CLOCKIN;
+unsigned int SWPin = CLOCKIN;
 
 #define TIMER0_INTERVAL_MS 20.833333333333   // \20.833333333333running at 48Khz
 #define DEBOUNCING_INTERVAL_MS   2// 80
@@ -107,6 +104,7 @@ bool TimerHandler0(struct repeating_timer *t) {
   }
   return true;
 }
+*/
 
 // GPIO, pots
 const int INTS_PIN = 26; // set the analog input for fm_intensity
