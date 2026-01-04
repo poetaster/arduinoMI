@@ -76,15 +76,12 @@ int pitch_in = 60;
 
 #include "rings.h"
 
-// clock timer  stuff
-
+/* clock timer  stuff no longer used, here for reference.
 #define TIMER_INTERRUPT_DEBUG         0
 #define _TIMERINTERRUPT_LOGLEVEL_     4
-
 // Can be included as many times as necessary, without `Multiple Definitions` Linker Error
 #include "RPi_Pico_TimerInterrupt.h"
-
-//unsigned int SWPin = CLOCKIN;
+unsigned int SWPin = CLOCKIN;
 
 #define TIMER0_INTERVAL_MS 20.833333333333   // \20.833333333333running at 48Khz
 #define DEBOUNCING_INTERVAL_MS   2// 80
@@ -107,6 +104,7 @@ bool TimerHandler0(struct repeating_timer *t) {
   }
   return true;
 }
+*/
 
 // GPIO, pots
 const int INTS_PIN = 26; // set the analog input for fm_intensity
@@ -191,16 +189,6 @@ void setup() {
   if (debugging) {
     Serial.begin(57600);
     Serial.println(F("YUP"));
-  }
-  // pwm timing setup
-  // we're using a pseudo interrupt for the render callback since internal dac callbacks crash
-  // Frequency in float Hz
-  //ITimer0.attachInterrupt(TIMER_FREQ_HZ, TimerHandler0);
-  if (ITimer0.attachInterruptInterval(TIMER0_INTERVAL_MS, TimerHandler0)) // that's 48kHz
-  {
-    if (debugging) Serial.print(F("Starting  ITimer0 OK, millis() = ")); Serial.println(millis());
-  }  else {
-    if (debugging) Serial.println(F("Can't set ITimer0. Select another freq. or timer"));
   }
 
   // set up Pico PWM audio output
@@ -293,9 +281,9 @@ void updateControl() {
 
       anybuttonpressed = true;
       if (i < 8) {
-        
+
         trigger_in = 1.0f;
-        
+
         digitalWrite(led[i] , HIGH);
 
         // a track button is pressed
@@ -341,19 +329,21 @@ void updateControl() {
     }
   }
   if (! anybuttonpressed) {
-     trigger_in = 0.0f;
+    trigger_in = 0.0f;
   }
 }
 
 
 void loop() {
   // when the osc buffer has been written to PWM buffer
-  if ( counter > 0 ) {
-    updateRingsAudio();
-    counter = 0; // increments on each pass of the timer when the timer writes
-  }
 
-  
+    
+    if ( DAC.availableForWrite() ) {
+      updateRingsAudio();
+      for (size_t i = 0; i < rings::kMaxBlockSize; i++) {
+        DAC.write( voices[0].obuff[i]);
+      }
+    }
 
 }
 
@@ -413,8 +403,10 @@ void loop1() {
 
       //  if ((!potlock[1]) || (!potlock[2])) seq[i].trigger=euclid(16,map(potvalue[1],POT_MIN,POT_MAX,0,MAX_SEQ_STEPS),map(potvalue[2],POT_MIN,POT_MAX,0,MAX_SEQ_STEPS-1));
       // look up drum trigger pattern encoder play modes
-
-      if ( i == 8) {
+      
+      if (i == 8 && button[7] ) {
+        easterEgg = !easterEgg;
+      } else if ( i == 8) {
         engineCount = engineCount + encoder_delta;
         CONSTRAIN(engineCount, 0, 5);
         engine_in = engineCount; // ( engine +) % voices[0].voice_.GetNumEngines();
@@ -427,9 +419,7 @@ void loop1() {
         engine_in = engineCount;
 
       }
-      if (button[0] && button[7] ) {
-        easterEgg = !easterEgg;
-      }
+
 
       // change pitch on pot 0
       if (display_mode == 0 ) { // change sample if pot has moved enough

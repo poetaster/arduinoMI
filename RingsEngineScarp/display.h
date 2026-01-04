@@ -96,7 +96,11 @@ void displayUpdate() {
   // name
   display.setCursor(seq_info_pos.x, seq_info_pos.y);
   display.print("P: ");
-  display.print(modelnames[engine_in]);
+  if (easterEgg) {
+    display.print(FXnames[engine_in]);
+  } else {
+    display.print(modelnames[engine_in]);
+  }
 
   // color
   display.setCursor(trans_text_pos.x, play_text_pos.y);

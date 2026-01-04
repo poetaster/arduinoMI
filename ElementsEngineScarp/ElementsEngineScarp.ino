@@ -243,19 +243,9 @@ void setup() {
     Serial.begin(57600);
     Serial.println(F("YUP"));
   }
-  // pwm timing setup
-  // we're using a pseudo interrupt for the render callback since internal dac callbacks crash
-  // Frequency in float Hz
-  //ITimer0.attachInterrupt(TIMER_FREQ_HZ, TimerHandler0);
-  if (ITimer0.attachInterruptInterval(TIMER0_INTERVAL_MS, TimerHandler0)) // that's 48kHz
-  {
-    if (debugging) Serial.print(F("Starting  ITimer0 OK, millis() = ")); Serial.println(millis());
-  }  else {
-    if (debugging) Serial.println(F("Can't set ITimer0. Select another freq. or timer"));
-  }
 
   // set up Pico PWM audio output
-  DAC.setBuffers(4, 32); // DMA buffers
+  DAC.setBuffers(8, 32); // DMA buffers
   //DAC.onTransmit(cb);
   DAC.setFrequency(SAMPLERATE);
   DAC.begin();
@@ -543,7 +533,7 @@ void changeProgram(int prog) {
       blow_level = 0.0f;
       strike_level = 0.5f;
       voices[0].strike_in = voices[0].silence;
-       voices[0].blow_in = voices[0].silence;
+      voices[0].blow_in = voices[0].silence;
       flow = 0.5f;
       mallet = 0.7f;
       damping = 0.85f;
@@ -561,7 +551,7 @@ void changeProgram(int prog) {
       blow_level = 0.0f;
       strike_level = 0.5f;
       voices[0].strike_in = voices[0].silence;
-       voices[0].blow_in = voices[0].silence;
+      voices[0].blow_in = voices[0].silence;
       flow = 0.5f;
       mallet = 1;
       damping = 0.7f;
@@ -584,7 +574,7 @@ void updateElementsAudio() {
   float   *in1;// = IN(1);
   float   *gate_in;// = IN(2);
   float   voct_in = pitch_in; // IN0(3);
-  
+
   // set params as per program
   changeProgram(engine_in);
 
@@ -592,7 +582,7 @@ void updateElementsAudio() {
   geometry = harm_in; // IN0(14);
   space = morph_in + 0.01f; //IN0(18);
   model = 0.0f ; //IN0(19);
-  
+
   easter_egg = false; //0.f; //IN0(20) > 0.f;
 
 
@@ -613,7 +603,7 @@ void updateElementsAudio() {
       voices[0].ps.gate = 0;*/
 
   size_t  size = elements::kMaxBlockSize;
-  
+
   float   *blow_in = voices[0].blow_in;
   float   *strike_in = voices[0].strike_in;
   float   *out = voices[0].out;
@@ -683,7 +673,7 @@ void updateElementsAudio() {
 
   // gate input
   ps.gate = trigger_in > 0.f; // gate_in[0] > 0.f;
-  
+
   /*
     if(INRATE(2) == calc_FullRate) {
       float sum = 0.f;
@@ -697,7 +687,7 @@ void updateElementsAudio() {
   */
 
 
-  
+
   // check input rates
   /*
     if(INRATE(0) == calc_FullRate)
@@ -730,7 +720,7 @@ void updateElementsAudio() {
   for (size_t i = 0; i < size; ++i) {
     //obuff[i] = stmlib::SoftConvert(out[i]);
     //abuff[i] = stmlib::SoftConvert(aux[i]);
-    obuff[i] = stmlib::Clip16(static_cast<int16_t>(out[i] * 32768.0f));
+    obuff[i] = stmlib::Clip16(static_cast<int16_t>( out[i] * 32768.0f));
     //abuff[i] = stmlib::Clip16(static_cast<int16_t>(aux[i] * 32768.0f));
 
   }
@@ -740,12 +730,16 @@ void updateElementsAudio() {
 }
 
 void loop() {
-  // when the osc buffer has been written to PWM buffer
-  if ( counter > 0 ) {
-    updateElementsAudio();
-    counter = 0; // increments on each pass of the timer when the timer writes
-  }
+  
+  // write to dac if it's possible
 
+  if ( DAC.availableForWrite() ) {
+    updateElementsAudio();
+
+    for (size_t i = 0; i < kBlockSize; i++) {
+      DAC.write( voices[0].obuff[i] );
+    }
+  }
 
 }
 
@@ -836,14 +830,14 @@ void loop1() {
 
   // encoder button handling
   if (button[8]) {
-      if ( (encoder_pos != encoder_pos_last ) ) {
-        engineCount = engineCount + encoder_delta;
-        CONSTRAIN(engineCount, 0, 6);
-        engine_in = engineCount;
-        
-      }
+    if ( (encoder_pos != encoder_pos_last ) ) {
+      engineCount = engineCount + encoder_delta;
+      CONSTRAIN(engineCount, 0, 6);
+      engine_in = engineCount;
+
+    }
   }
-  
+
   if (anybuttonpressed) {
     trigger_in = 1.0f;
   } else {
@@ -881,8 +875,8 @@ void loop1() {
     readpot(0);
     readpot(1);
     pot_timer = now;
-    
-//    create some noise input
+
+    //    create some noise input
     for (size_t i = 0; i < 32; ++i) {
       CV1_buffer[i] = (float) randomDouble(0.0, 1.0); // arbitrary +1 gain
     }
