@@ -61,7 +61,7 @@ constexpr int AUDIO_BLOCK = plaits::kBlockSize;
 // ==================== MEMORY BUFFERS ====================
 static uint8_t shared_plaits_workspace[WORKSPACE_SIZE] __attribute__((aligned(4)));
 static uint16_t clouds_buffer[65536];
-static uint16_t oliverb_buffer[131072];
+static uint16_t oliverb_buffer[65536];
 
 int16_t left[AUDIO_BLOCK];
 int16_t right[AUDIO_BLOCK];
