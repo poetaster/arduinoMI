@@ -1,21 +1,25 @@
 /* 
   This program cycles through MI Plaits 1.2 engines on ESP32-S3 with IS2 DAC.
 
-  Copyright (c) 2025 Vadims Maksimovs 
-  https://github.com/ledlaux
-  MIT licence
-  --------------------------------------------------------------------------------
-  Arduino Port 
-  --------------------------------------------------------------------------------
-  This code is part of the porting project of Mutable Instruments eurorack modules to Arduino by Mark Washeim
-  Main repository: https://github.com/poetaster/arduinoMI
-  --------------------------------------------------------------------------------
-  Original Mutable Instruments Code
-  --------------------------------------------------------------------------------
-  Copyright (c) 2020 Emilie O. Gillet 
-  stmlib, Plaits, Clouds libraries
-  MIT licence
-  --------------------------------------------------------------------------------
+  - disable PSRAM
+  - events run on Core1
+
+  Check repository to get PLAITS and STMLIB libraries branch for 1.2 firmware
+
+  (c) 2025 Vadims Maksimovs 
+  github.com/ledlaux
+  MIT
+
+  ---------------------------------------------------------------------------
+
+  Porting project of MI eurorack modules to Arduino by Mark Washeim.
+  github.com/poetaster/arduinoMI
+
+  ---------------------------------------------------------------------------
+  
+  (c) 2020 Emilie O. Gillet 
+  Mutable Instruments - stmlib, Plaits libraries
+  MIT 
 */
 
 #include <Arduino.h>
@@ -23,40 +27,33 @@
 #include <STMLIB.h>
 #include <PLAITS.h>
 
-// ================= CONFIG =================
-#define SAMPLE_RATE        48000
-#define ENGINE_SWITCH_MS   3000
-#define WORKSPACE_SIZE     49152   
-#define AUDIO_STACK_SIZE   16384   
-#define PLAITS_ENGINES      24      
-
-constexpr int AUDIO_BLOCK = plaits::kBlockSize;
-
 #define I2S_BCLK_PIN   5
 #define I2S_LRCLK_PIN  7
 #define I2S_DATA_PIN   6
+#define SAMPLE_RATE    48000
 
-// ================= GLOBAL STATE =================
+#define ENGINE_SWITCH_MS   3000
+#define PLAITS_ENGINES      24      
+
 volatile int engine_idx = 1;     
 float master_volume = 0.3f;      
-float current_pitch = 48.0f;     
 
-TaskHandle_t audioTaskHandle = NULL;
+constexpr int AUDIO_BLOCK = plaits::kBlockSize;
+static int16_t stereo[AUDIO_BLOCK * 2];
+static uint8_t plaits_workspace[49152];
 
 plaits::Voice voice;
 plaits::Patch patch;
 plaits::Modulations modulations;
 plaits::Voice::Frame out_buffer[AUDIO_BLOCK];
-uint8_t* plaits_workspace = nullptr; 
+TaskHandle_t audioTaskHandle = NULL;
 
-static int16_t stereo[AUDIO_BLOCK * 2];
-
-// ================= AUDIO ENGINE =================
 void renderAudio() {
+
     bool triggerActive = (ulTaskNotifyTake(pdTRUE, 0) > 0);
 
     patch.engine = engine_idx - 1; 
-    patch.note = current_pitch;
+    patch.note = 48.0f; // C3
     
     patch.harmonics = 0.4f;
     patch.timbre = 0.4f;
@@ -105,6 +102,7 @@ void renderAudio() {
 void audioTask(void* pvParameters) {
     while(true) {
         renderAudio();
+        taskYIELD();  // Very important line!
     }
 }
 
@@ -121,7 +119,7 @@ void demoTask(void* pvParameters) {
             if (engine_idx > PLAITS_ENGINES) {
                 engine_idx = 1;
             }
-            Serial.printf("Engine: %d\n", engine_idx);
+            ESP_LOGI("PLAITS1.2", "Engine: %d", engine_idx);
         }
 
         if ((engine_idx >= 14 && engine_idx <= 16) || (engine_idx == 23) || (engine_idx == 24)) {
@@ -132,7 +130,7 @@ void demoTask(void* pvParameters) {
                 }
             }
         }
-        vTaskDelay(pdMS_TO_TICKS(10)); 
+        vTaskDelay(pdMS_TO_TICKS(10)); // Don't remove or esp watchdog will not like that 
     }
 }
 
@@ -140,10 +138,7 @@ void setup() {
     Serial.begin(115200);
     delay(1000); 
 
-    plaits_workspace = (uint8_t*) heap_caps_malloc(WORKSPACE_SIZE, MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);
-    if (!plaits_workspace) plaits_workspace = (uint8_t*) malloc(WORKSPACE_SIZE);
-
-    stmlib::BufferAllocator alloc(plaits_workspace, WORKSPACE_SIZE);
+    stmlib::BufferAllocator alloc(plaits_workspace, sizeof(plaits_workspace));
     voice.Init(&alloc);
 
     i2s_config_t cfg = {
@@ -153,8 +148,8 @@ void setup() {
         .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,
         .communication_format = I2S_COMM_FORMAT_STAND_I2S,
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
-        .dma_buf_count = 8,
-        .dma_buf_len = 256,
+        .dma_buf_count = 8,   
+        .dma_buf_len = 512,
         .use_apll = false,
         .tx_desc_auto_clear = true
     };
@@ -167,10 +162,10 @@ void setup() {
     i2s_driver_install(I2S_NUM_0, &cfg, 0, NULL);
     i2s_set_pin(I2S_NUM_0, &pins);
 
-    xTaskCreatePinnedToCore(audioTask, "audio_loop", AUDIO_STACK_SIZE, NULL, 24, &audioTaskHandle, 1);
+    xTaskCreatePinnedToCore(audioTask, "audio_loop", 32768, NULL, 5, &audioTaskHandle, 1);
     xTaskCreatePinnedToCore(demoTask, "demo_loop", 4096, NULL, 1, NULL, 0);
 
-    Serial.printf("System Ready. Engine: %d\n", engine_idx);
+    ESP_LOGI("PLAITS1.2", "System Ready. Engine: %d\n", engine_idx);
 }
 
 void loop() {
