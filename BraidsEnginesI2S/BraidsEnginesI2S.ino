@@ -19,7 +19,12 @@ bool debugging = true;
 #define WS (BCK+1) // CANNOT BE CHANGED, HAS TO BE NEXT TO pBCLK, i.e. default is 21
 #define DATA 22
 
-I2S DAC(OUTPUT);  // 16 bit PWM audio
+#define pBCLK 8
+#define pWS (pBCLK+1)
+#define pDOUT 10
+
+
+I2S DAC(OUTPUT, pBCLK, pDOUT);
 
 // braids dsp
 
