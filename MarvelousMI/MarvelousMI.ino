@@ -99,23 +99,23 @@ int enc3_delta = 0;
 
 #include <RotaryEncoder.h>
 // Setup a RotaryEncoder with 2 steps per latch for the 2 signal input pins:
-RotaryEncoder enc3(32, 33, RotaryEncoder::LatchMode::TWO03);
+RotaryEncoder enc1(32, 33, RotaryEncoder::LatchMode::TWO03);
 RotaryEncoder enc2(36, 37, RotaryEncoder::LatchMode::TWO03);
-RotaryEncoder enc1(39, 40, RotaryEncoder::LatchMode::TWO03);
+RotaryEncoder enc3(39, 40, RotaryEncoder::LatchMode::TWO03);
 
 
 
 // cv input
-#define CV1 (A0)
-#define CV2 (A1)
-#define CV3 (A2)
-#define CV4 (A3)
-#define CV5 (44u)
-#define CV6 (45u)
-#define CV7 (46u)
-#define CV8 (47u)
+#define CV1 (41u)
+#define CV2 (42u)
+#define CV3 (43u)
+#define CV4 (44u)
+#define CV5 (45u)
+#define CV6 (46u)
+#define CV7 (47u)
 
-int cv_ins[8] = {CV1, CV2, CV3, CV4, CV5, CV6, CV7, CV8};
+
+int cv_ins[7] = {CV1, CV2, CV3, CV4, CV5, CV6, CV7};
 int cv_avg = 5;
 
 // buffer for input to rings exciter
@@ -486,7 +486,6 @@ void setup() {
   pinMode(CV5, INPUT);
   pinMode(CV6, INPUT);
   pinMode(CV7, INPUT);
-  pinMode(CV8, INPUT);
 
   // DISPLAY
 
@@ -534,9 +533,9 @@ void setup() {
   // init the plaits voices
 
   initPlaits();
-  delay(100);
+  delay(200);
   // prefill buffer
-  voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
+  //voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
   delay(100);
   initRings();
   delay(100);
@@ -634,8 +633,8 @@ void loop1() {
     unsigned long now = millis();
 
     if ( now - update_timer > 5 ) {
-      //voct_midi(CV1);
-      //read_trigger();
+      voct_midi(CV1);
+      read_trigger();
       read_cv();
       
       read_encoders();
@@ -917,7 +916,7 @@ void read_cv() {
 
     timb_mod = mapf(timb_mod, 0.0f, 1.0f, 0.0f, 0.8f);
 
-    if (debug) Serial.print(timb_mod);
+    //if (debug) Serial.print(timb_mod);
 
     //voices[0].modulations.timbre_patched = true;
     //voices[0].modulations.timbre_patched = false;
@@ -1031,7 +1030,7 @@ void read_encoders() {
   if ( enc1_pos != enc1_pos_last ) {
     float turn = ( (float) (enc1.getDirection() ) * 0.01f )  + timbre_in;
     constrain(turn, 0.f, 1.0f);
-    if (debug) Serial.println(turn);
+    //if (debug) Serial.println(turn);
     timbre_in = turn;
     enc1_pos_last = enc1_pos;
   }
@@ -1041,7 +1040,7 @@ void read_encoders() {
   if ( enc2_pos != enc2_pos_last ) {
     float turn = ( (float)(enc2.getDirection()) * 0.01f ) + morph_in;
     constrain(turn, 0.f, 1.0f);
-    if (debug) Serial.println(turn);
+    //if (debug) Serial.println(turn);
     morph_in = turn;
     enc2_pos_last = enc2_pos;
   }
@@ -1051,7 +1050,7 @@ void read_encoders() {
   if  ( enc3_pos != enc3_pos_last ){
     float turn = ( (float)(enc3.getDirection()) * 0.01f ) + harm_in;
     constrain(turn, 0.f, 1.0f);
-    if (debug) Serial.println(turn);
+    //if (debug) Serial.println(turn);
     harm_in = turn;
     enc3_pos_last = enc3_pos;
   }

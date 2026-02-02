@@ -16,7 +16,7 @@ plaits::Voice voice;
 //UserData user_data;
 //UserDataReceiver user_data_receiver;
 
-stmlib::BufferAllocator allocator;
+//stmlib::BufferAllocator allocator;
 
 //float a0 = (440.0 / 8.0) / kSampleRate; //48000.00;
 const size_t   kBlockSize = plaits::kBlockSize;
@@ -77,9 +77,9 @@ void initPlaits() {
 
   // start with no CV input
   voices[0].prev_trig = false;
-  voices[0].modulations.timbre_patched = true;  //(INRATE(3) != calc_ScalarRate);
-  voices[0].modulations.morph_patched = true;   // (INRATE(4) != calc_ScalarRate);
-  voices[0].modulations.trigger_patched = true; //(INRATE(5) != calc_ScalarRate);
+  voices[0].modulations.timbre_patched = false;  //(INRATE(3) != calc_ScalarRate);
+  voices[0].modulations.morph_patched = false;   // (INRATE(4) != calc_ScalarRate);
+  voices[0].modulations.trigger_patched = false; //(INRATE(5) != calc_ScalarRate);
   voices[0].modulations.level_patched = false;   // (INRATE(6) != calc_ScalarRate);
   // TODO: we don't have an fm input yet.
   voices[0].modulations.frequency_patched = false;
