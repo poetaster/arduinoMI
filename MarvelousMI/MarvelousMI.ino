@@ -61,15 +61,15 @@ float mapf(float value, float fromLow, float fromHigh, float toLow, float toHigh
 // based onhttps://little-scale.blogspot.com/2018/05/pitch-cv-to-frequency-conversion-via.html
 float data;
 float pitch;
-float pitch_offset = 36;
+float pitch_offset = 0; // 36 in mmm 10volt input
 float freq;
 
 float max_voltage_of_adc = 3.3;
 float voltage_division_ratio = 0.3333333333333;
 float notes_per_octave = 12;
 float volts_per_octave = 1;
-float mapping_upper_limit = 120.0; //(max_voltage_of_adc / voltage_division_ratio) * notes_per_octave * volts_per_octave;
-float mapping_lower_limit = 0.0;
+float mapping_upper_limit = 60.0; //(max_voltage_of_adc / voltage_division_ratio) * notes_per_octave * volts_per_octave;
+float mapping_lower_limit = 12.0;
 
 // rotator encoders buttons elsewhere
 
@@ -103,19 +103,19 @@ RotaryEncoder enc1(32, 33, RotaryEncoder::LatchMode::TWO03);
 RotaryEncoder enc2(36, 37, RotaryEncoder::LatchMode::TWO03);
 RotaryEncoder enc3(39, 40, RotaryEncoder::LatchMode::TWO03);
 
-
+// trigger is on gp0
 
 // cv input
-#define CV1 (41u)
-#define CV2 (42u)
-#define CV3 (43u)
-#define CV4 (44u)
-#define CV5 (45u)
-#define CV6 (46u)
-#define CV7 (47u)
+#define CV1 (42u)
+#define CV2 (43u)
+#define CV3 (44u)
+#define CV4 (45u)
+#define CV5 (46u)
+#define CV6 (47u)
 
 
-int cv_ins[7] = {CV1, CV2, CV3, CV4, CV5, CV6, CV7};
+
+int cv_ins[6] = {CV1, CV2, CV3, CV4, CV5, CV6};
 int cv_avg = 5;
 
 // buffer for input to rings exciter
@@ -479,14 +479,15 @@ void setup() {
   */
 
   // CV
-  pinMode(CV1, INPUT);
-  pinMode(CV2, INPUT);
-  pinMode(CV3, INPUT);
-  pinMode(CV4, INPUT);
-  pinMode(CV5, INPUT);
-  pinMode(CV6, INPUT);
-  pinMode(CV7, INPUT);
-
+  pinMode(CV1, INPUT_PULLUP);
+  pinMode(CV2, INPUT_PULLUP);
+  pinMode(CV3, INPUT_PULLUP);
+  pinMode(CV4, INPUT_PULLUP);
+  pinMode(CV5, INPUT_PULLUP);
+  pinMode(CV6, INPUT_PULLUP);
+  // trigger in
+  pinMode(0, INPUT);
+  
   // DISPLAY
 
   Wire.setSDA(oled_sda_pin);
@@ -859,6 +860,11 @@ void voct_midi(int cv_in) {
   int val = 0;
   for (int j = 0; j < cv_avg; ++j) val += analogRead(cv_in); // read the A/D a few times and average for a more stable value
   val = val / cv_avg;
+  if (val < 200) { 
+    val = 0; // noise on the olmex
+  } else {
+    val = val - 200;
+  }
   data = (float) val * 1.0f;
   pitch = map(data, 0.0, 4095.0, mapping_upper_limit, mapping_lower_limit); // convert pitch CV data value to a MIDI note number
 
@@ -874,9 +880,11 @@ void voct_midi(int cv_in) {
   }
 }
 
+// in marvelous, moved to digital pin tx/gp0
 void read_trigger() {
-  int16_t trig = analogRead(CV2);
-  if (trig > 2048 ) {
+  int16_t trig = digitalRead(0);
+  
+  if (trig > HIGH ) {
     trigger_in = 1.0f;
     if (voice_number == 0) updateVoicetrigger();
 
@@ -897,18 +905,18 @@ void read_cv() {
 
 
   //plaits and rings cv
-  int16_t timbre = analogRead(CV3);
+  int16_t timbre = avg_cv(CV2);
   timb_mod = (float)timbre / 4095.0f;
 
-  int16_t morph = analogRead(CV4) ;
+  int16_t morph = avg_cv(CV3) ;
   morph_mod = (float) morph / 4095.0f;
 
 
   // don't remember if this was important
-  int16_t pos = analogRead(CV5) ; // f&d noise floor
+  int16_t pos = avg_cv(CV4) ; // f&d noise floor
   if (pos > 50) pos_mod = (float) pos / 4095.0f;
 
-  int16_t lpgColor = (float) ( analogRead(CV6) ) / 4095.f ;
+  int16_t lpgColor = (float) ( avg_cv(CV5) ) / 4095.f ;
   lpg_in = lpgColor;
 
   if (voice_number == 0 || voice_number == 1) {
@@ -931,7 +939,7 @@ void read_cv() {
   if (voice_number == 1 && timb_mod > 0.05f) {
     //rings
     for (size_t i = 0; i < 32; ++i) {
-      CV1_buffer[i] = (float) ( analogRead(CV3) / 4095.0f) ; // arbitrary +1 gain
+      CV1_buffer[i] = (float) ( avg_cv(CV6) / 4095.0f) ; // arbitrary +1 gain
     }
   }
 
@@ -948,13 +956,16 @@ void read_cv() {
 int16_t avg_cv(int cv_in) {
 
   //std::vector<int> data;
+  
   int16_t val = 0;
 
   //for (int j = 0; j < cv_avg; ++j) data.push_back(analogRead(cv_in)); // val += analogRead(cv_in); // read the A/D a few times and average for a more stable value
   for (int j = 0; j < cv_avg; ++j) val += analogRead(cv_in); // read the A/D a few times and average for a more stable value
   val = val / cv_avg;
+  if (val < 150) val = 0;
 
   //return median(data);
+  
   return val;
 }
 
@@ -1018,8 +1029,6 @@ void read_encoders2() {
 
    
 void read_encoders() {
-
-  
   enc1.tick();
   enc2.tick();
   enc3.tick();
