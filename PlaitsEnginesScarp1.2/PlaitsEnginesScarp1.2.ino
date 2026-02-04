@@ -233,8 +233,8 @@ void updateAudio(uint8_t engine_idx, bool triggerNow, float master_volume = 0.4f
     voice.modulations.trigger_patched = true;
   }
   else if (is_wave_terrain || is_chiptune || is_drum) {
-    voice.patch.decay = (is_drum ? 0.7f : 0.8f);
-    voice.modulations.trigger = triggerNow ; // ? 1.0f : 0.0f;
+    voice.patch.decay = (is_drum ? 0.3f : 0.4f);
+    voice.modulations.trigger = triggerNow ? 1.0f : 0.0f;
     voice.modulations.trigger_patched = true;
     voice.modulations.level = 1.0f;
     voice.modulations.level_patched = true;
@@ -562,48 +562,4 @@ void loop1() {
   updateAudio(engine_in, (trigger_in > 0.1), 0.4f);
 
 
-}
-
-
-
-void automatic() {
-  if (engineCount > 16) engineCount = 0;
-
-  /*
-    float trigger = randomDouble(0.0, 2.0); // Dust.kr( LFNoise2.kr(0.1).range(0.1, 7) );
-    float harmonics = randomDouble(0.2, .7); // SinOsc.kr(0.03, 0, 0.5, 0.5).range(0.0, 1.0);
-    float timbre = randomDouble(0.1, .6); //LFTri.kr(0.07, 0, 0.5, 0.5).range(0.0, 1.0);
-    float morph = randomDouble(0.2, 0.6) ; //LFTri.kr(0.11, 0, 0.5, 0.5).squared;
-    float pitch = abs(randomDouble(34, 60)); // TIRand.kr(24, 48, trigger);
-    float octave = randomDouble(0.3, 0.5);
-    float decay = randomDouble(0.05, 0.2);
-    float fm_mod = randomDouble(0.05, 0.2);
-    float lpg = randomDouble(0.05, 0.2);
-
-    //voices[0].patch.frequency_modulation_amount = fm_mod;
-    voices[0].patch.engine = engineCount;
-    //voices[0].transposition_ = 0.;
-    voices[0].octave_ = 0.3;
-    //voices[0].patch.note = pitch;
-    //voices[0].patch.harmonics = harmonics;
-    //voices[0].patch.morph = morph;
-    //voices[0].patch.timbre = timbre;
-    voices[0].patch.decay = decay; //0.5f;
-    voices[0].patch.lpg_colour = lpg;
-
-    if (trigger > 0.2 ) {
-    voices[0].modulations.trigger = trigger;
-    voices[0].modulations.trigger_patched = true;
-    } else {
-    voices[0].modulations.trigger = 0.0f;
-    voices[0].modulations.trigger_patched = false;
-    }
-
-    engineInc++ ;
-    if (engineInc > 5) {
-    engineCount ++; // don't switch engine so often :)
-    engineInc = 0;
-    }
-
-  */
 }
