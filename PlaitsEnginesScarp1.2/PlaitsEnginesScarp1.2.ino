@@ -21,6 +21,14 @@ bool debug = false;
 #define PWMOUT 22
 PWMAudio DAC(PWMOUT);  // 16 bit PWM audio
 
+// create ADSR env
+#include "ADSR.h"
+ADSR *env = new ADSR();
+bool envRelease = false;
+long envTimer = 0;
+
+
+
 #include "Midier.h"
 #include "names.h"
 
@@ -65,6 +73,7 @@ static uint16_t oliverb_buffer[65536];
 
 int16_t left[AUDIO_BLOCK];
 int16_t right[AUDIO_BLOCK];
+int16_t shared_buffer[AUDIO_BLOCK];
 
 const char* engine_names[] = {
   "Virtual Analog", "Waveshaping", "FM", "Grain", "Additive", "Wavetable", "Chord", "Speech",
@@ -235,6 +244,11 @@ void updateAudio(uint8_t engine_idx, bool triggerNow, float master_volume = 0.4f
     voice.modulations.level = 1.0f;
     voice.modulations.level_patched = true;
   }
+  if (envTimer > 2000 && triggerNow != 1.0f ) {
+    env->gate(false);
+    envTimer = 0;
+
+  }
 
 }
 
@@ -248,19 +262,19 @@ void setup() {
   DAC.setBuffers(4, 32); //plaits::kBlockSize * 4); // DMA buffers
   //DAC.onTransmit(cb);
   DAC.setFrequency(SAMPLERATE);
-    // now start the dac
+  // now start the dac
   DAC.begin();
 
   // 4096
   analogReadResolution(12);
-  
+
   // Additions
   // ENCODER
   pinMode(encoderA_pin, INPUT_PULLUP);
   pinMode(encoderB_pin, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(encoderA_pin), checkEncoderPosition, CHANGE);
   attachInterrupt(digitalPinToInterrupt(encoderB_pin), checkEncoderPosition, CHANGE);
-  
+
   // DISPLAY
   Wire.setSDA(oled_sda_pin);
   Wire.setSCL(oled_scl_pin);
@@ -303,10 +317,16 @@ void setup() {
 
   // init the plaits voices
 
+  // initialize enveloope settings
+  env->setAttackRate(.01 * SAMPLERATE);  // .01 second
+  env->setDecayRate(.3 * SAMPLERATE);
+  env->setReleaseRate(4 * SAMPLERATE);
+  env->setSustainLevel(.8);
+
   // initialize a mode to play
   mode = midier::Mode::Ionian;
   makeScale( roots[scaleRoot], mode);
-  
+
   voice.voice_ = new plaits::Voice;
   voice.pitch = 48;
   delay(2000);
@@ -318,11 +338,21 @@ void setup() {
 
 
 void loop() {
-    // first render some audio
-    voice.voice_->Render(voice.patch, voice.modulations, voice.out_buffer, AUDIO_BLOCK);
-    // push it to the dac.
-    for (int i = 0; i < AUDIO_BLOCK; i++)
-      DAC.write(voice.out_buffer[i].out);
+  
+  // first render some audio
+  voice.voice_->Render(voice.patch, voice.modulations, voice.out_buffer, AUDIO_BLOCK);
+  
+  
+  // now apply the envelope
+  for (size_t i = 0; i < AUDIO_BLOCK; ++i) {
+    int16_t sample =   (int16_t) ( (float) voice.out_buffer[i].out * env->process() ) ;
+    shared_buffer[i] = sample;
+  }
+  
+  // push it to the dac.
+  for (int i = 0; i < AUDIO_BLOCK; i++)
+    DAC.write(shared_buffer[i]);
+    
 }
 
 
@@ -361,6 +391,8 @@ void updateControl() {
           if (button[8]) scaleRoot = i; // change scaleroot if both encoder and another button is pressed.
           pitch_in = currentMode[i]; //freqs[i];
           aNoteOn( pitch_in, 100 );
+          envTimer = now;
+          env->gate(true);
         }
         pressedB = i;
       } else {
@@ -471,9 +503,9 @@ void loop1() {
       //  if ((!potlock[1]) || (!potlock[2])) seq[i].trigger=euclid(16,map(potvalue[1],POT_MIN,POT_MAX,0,MAX_SEQ_STEPS),map(potvalue[2],POT_MIN,POT_MAX,0,MAX_SEQ_STEPS-1));
       if ( i == 8 && encoder_delta != 0) {
         engineCount = engineCount + encoder_delta;
-        if (engineCount > 24) engineCount = 0; // circle around
-        if (engineCount < 0) engineCount = 24;
-        if (engineCount == 23) CONSTRAIN(timbre_in, 0.f,0.33f); // string machine bug fix
+        if (engineCount > 21) engineCount = 0; // circle around
+        if (engineCount < 0) engineCount = 21;
+        //if (engineCount == 23) CONSTRAIN(timbre_in, 0.f, 0.33f); // string machine bug fix
         engine_in = engineCount; // ( engine +) % voices[0].voice_.GetNumEngines();
         changeEngine(engineCount);
       }
@@ -493,7 +525,7 @@ void loop1() {
     float turn = ( encoder_delta * 0.005f ) + timbre_in;
     CONSTRAIN(turn, 0.f, 1.0f)
     if (engineCount == 23) {
-      CONSTRAIN(turn, 0.f,0.33f);
+      CONSTRAIN(turn, 0.f, 0.33f);
     }
     timbre_in = turn;
     //display_value(RATE_value - 50); // this is wrong, bro :)
@@ -526,7 +558,7 @@ void loop1() {
   displayUpdate();
   // don't know why here :)
   voice.patch.engine = engine_in;
-  
+
   updateAudio(engine_in, (trigger_in > 0.1), 0.4f);
 
 
