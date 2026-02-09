@@ -7,7 +7,7 @@
       Copyright (c)  2020 (emilie.o.gillet@gmail.com)
 */
 
-bool debug = true;
+bool debug = false;
 
 #include <Arduino.h>
 #include <math.h>
@@ -23,6 +23,20 @@ bool debug = true;
 #include <vector>
 #include <algorithm>
 #include <Wire.h>
+
+#include <MIDI.h>
+
+
+
+struct Serial1MIDISettings : public midi::DefaultSettings
+{
+  static const long BaudRate = 31250;
+  static const int8_t TxPin  = 0;
+  static const int8_t RxPin  = 1;
+};
+
+MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, Serial1, MIDI, Serial1MIDISettings);
+
 
 #include <I2S.h>
 #define SAMPLERATE 48000
@@ -58,7 +72,7 @@ float mapf(float value, float fromLow, float fromHigh, float toLow, float toHigh
 
 
 // volts to octave for 3.3 volts
-// based onhttps://little-scale.blogspot.com/2018/05/pitch-cv-to-frequency-conversion-via.html
+// based on https://little-scale.blogspot.com/2018/05/pitch-cv-to-frequency-conversion-via.html
 float data;
 float pitch;
 float pitch_offset = 0; // 36 in mmm 10volt input
@@ -69,8 +83,8 @@ float voltage_division_ratio = 0.3333333333333;
 float notes_per_octave = 12;
 float volts_per_octave = 1;
 float mapping_upper_limit = 60.0; //(max_voltage_of_adc / voltage_division_ratio) * notes_per_octave * volts_per_octave;
-float mapping_lower_limit = 12.0;
-
+float mapping_lower_limit = 0.0;
+                                                                                                                                                                 
 // rotator encoders buttons elsewhere
 
 
@@ -116,7 +130,7 @@ RotaryEncoder enc3(39, 40, RotaryEncoder::LatchMode::TWO03);
 
 
 int cv_ins[6] = {CV1, CV2, CV3, CV4, CV5, CV6};
-int cv_avg = 5;
+int cv_avg = 15;
 
 // buffer for input to rings exciter
 float CV1_buffer[32];
@@ -202,6 +216,24 @@ int   voice_in = 4;
 
 int max_engines = 18; // varies per backend
 
+// midi routines/callbacks
+
+void HandleMidiNoteOn(byte channel, byte note, byte velocity) {
+  pitch_in = note;
+  trigger_in = velocity / 127.0;
+
+  //aSin.setFreq(mtof(float(note)));
+  //envelope.noteOn();
+  digitalWrite(LED_BUILTIN, HIGH);
+}
+void HandleMidiNoteOff(byte channel, byte note, byte velocity) {
+
+  trigger_in = 0.0f;
+
+  //aSin.setFreq(mtof(float(note)));
+  //envelope.noteOn();
+  digitalWrite(LED_BUILTIN, LOW);
+}
 
 
 #include <STMLIB.h> // 
@@ -468,6 +500,8 @@ void setup() {
   // mute
   pinMode(11, OUTPUT);
   digitalWrite(11, LOW);
+  
+  pinMode(LED_BUILTIN, OUTPUT);
   // digital input pins encoder
   /*
      const int enc2A_pin = 36;
@@ -493,7 +527,13 @@ void setup() {
   Wire.setSDA(oled_sda_pin);
   Wire.setSCL(oled_scl_pin);
   Wire.begin();
-
+  
+  MIDI.setHandleNoteOn(HandleMidiNoteOn);  // Put only the name of the function
+  MIDI.setHandleNoteOff(HandleMidiNoteOff);  // Put only the name of the function
+  // Initiate MIDI communications, listen to all channels (not needed with Teensy usbMIDI)
+  
+  MIDI.begin(MIDI_CHANNEL_OMNI);
+  
   // SSD1306 --  or SH1106 in this case
   if (!display.begin(SSD1306_SWITCHCAPVCC, oled_i2c_addr)) {
     //if (!display.begin( oled_i2c_addr)) {
@@ -617,7 +657,8 @@ void loop1() {
   if (! writing) { // don't do shit when eeprom is being written
    
    
-
+    MIDI.read();
+    
     // we need these on boot so the second loop can catch the startup button.
     btn_one.update();
     btn_two.update();
@@ -634,7 +675,7 @@ void loop1() {
     unsigned long now = millis();
 
     if ( now - update_timer > 5 ) {
-      voct_midi(CV1);
+      //voct_midi(CV1);
       read_trigger();
       read_cv();
       

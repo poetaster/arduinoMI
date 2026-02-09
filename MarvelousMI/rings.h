@@ -86,7 +86,7 @@ void updateRingsControl() {
 
   short   model = engine_in;
   short   polyphony = 3;
-  bool    intern_exciter = false;
+  bool    intern_exciter = true;
   bool    easter_egg = easterEgg;
   bool    bypass = false;
 
@@ -97,8 +97,10 @@ void updateRingsControl() {
   size_t  size = rings::kMaxBlockSize;
 
   // check input rates for excitation input
+  
+  
 
-  if ( timb_mod > 0.08f ) {
+  if ( timb_mod > 0.5f ) {
     // input on CV3
     // intern_exciter should be off, but user can override
     instance[0].input = CV1_buffer;
@@ -194,10 +196,10 @@ void initRings() {
   instance[0].part.Init(instance[0].reverb_buffer);
   instance[0].string_synth.Init(instance[0].reverb_buffer);
 
-  instance[0].part.set_polyphony(2);
+  instance[0].part.set_polyphony(3);
   instance[0].part.set_model(rings::RESONATOR_MODEL_MODAL);
 
-  instance[0].string_synth.set_polyphony(2);
+  instance[0].string_synth.set_polyphony(4);
   instance[0].string_synth.set_fx(rings::FX_FORMANT);
   instance[0].prev_poly = 1;
 
@@ -205,10 +207,10 @@ void initRings() {
   instance[0].prev_trig = false;
 
   // we're fixing this for the moment until we can test with input
-  instance[0].performance_state.internal_exciter = false;
+  instance[0].performance_state.internal_exciter = true;
 
   // let's see
-  instance[0].performance_state.internal_strum = false;
+  instance[0].performance_state.internal_strum = true;
 
   updateRingsAudio() ;
 
