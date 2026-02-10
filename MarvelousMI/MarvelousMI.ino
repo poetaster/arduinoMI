@@ -31,7 +31,7 @@ bool debug = false;
 struct Serial1MIDISettings : public midi::DefaultSettings
 {
   static const long BaudRate = 31250;
-  static const int8_t TxPin  = 0;
+  static const int8_t TxPin  = 3;
   static const int8_t RxPin  = 1;
 };
 
@@ -98,6 +98,8 @@ const int enc1B_pin = 33;
 const int enc3A_pin = 39;
 const int enc3B_pin = 40;
 
+/* 4, 8, 9 */
+
 const int encoderSW_pin = 28;
 
 // encoder related // 2,3 8,9
@@ -113,13 +115,16 @@ int enc2_pos_last = 0;
 int enc2_delta = 0;
 int enc3_pos_last = 0;
 int enc3_delta = 0;
+int enc4_pos_last = 0;
+int enc4_delta = 0;
+
 
 #include <RotaryEncoder.h>
 // Setup a RotaryEncoder with 2 steps per latch for the 2 signal input pins:
-RotaryEncoder enc1(32, 33, RotaryEncoder::LatchMode::TWO03);
-RotaryEncoder enc2(36, 37, RotaryEncoder::LatchMode::TWO03);
-RotaryEncoder enc3(39, 40, RotaryEncoder::LatchMode::TWO03);
-
+RotaryEncoder enc2( 32, 33, RotaryEncoder::LatchMode::TWO03);
+RotaryEncoder enc3( 36, 37, RotaryEncoder::LatchMode::TWO03);
+RotaryEncoder enc1( 39, 40, RotaryEncoder::LatchMode::TWO03);
+RotaryEncoder enc4( 6,  7,  RotaryEncoder::LatchMode::TWO03);
 // trigger is on gp0
 
 // cv input
@@ -141,9 +146,12 @@ float CV1_buffer[32];
 // button inputs
 #define SW1 34
 #define SW2 35
+#define SW3 2
+
 #include <Bounce2.h>
 Bounce2::Button btn_one = Bounce2::Button();
 Bounce2::Button btn_two = Bounce2::Button();
+Bounce2::Button btn_four = Bounce2::Button();
 
 // Generic pin state variable
 byte pinState;
@@ -454,7 +462,7 @@ bool button_state = true;
 // last time btn_one release
 unsigned long btnOneLastTime;
 unsigned long btnTwoLastTime;
-
+unsigned long btnFourLastTime;
 int32_t previous_pitch = 40;
 
 bool just_booting = false;
@@ -550,6 +558,10 @@ void setup() {
 
   // buttons
 
+  btn_four.attach( SW3 , INPUT_PULLUP);
+  btn_four.interval(5);
+  btn_four.setPressedState(LOW);
+
   btn_one.attach( SW1 , INPUT_PULLUP);
   btn_one.interval(5);
   btn_one.setPressedState(LOW);
@@ -595,6 +607,7 @@ void setup() {
   just_booting = true;
   btn_one.update();
   btn_two.update();
+  btn_four.update();
 
   // let's see, seems to be too slow
   //LittleFS.begin();
@@ -622,8 +635,11 @@ void loop() {
       }
 
       updateRingsAudio();
+
     } else if (voice_number == 2) {
+
       updateBraidsAudio();
+
     } else if (voice_number == 3) {
 
       // clouds, samplebuffer at same time
@@ -676,6 +692,7 @@ void loop1() {
     // we need these on boot so the second loop can catch the startup button.
     btn_one.update();
     btn_two.update();
+    btn_four.update();
 
 
 
@@ -688,6 +705,13 @@ void loop1() {
 
     unsigned long now = millis();
 
+    // first control elements
+    if (voice_number == 0) {
+      updatePlaitsControl();
+    } else if (voice_number == 1) {
+      updateRingsControl();
+    }
+    // need faster updates
     read_encoders();
 
     if ( now - update_timer > 5 ) {
@@ -696,30 +720,31 @@ void loop1() {
       }
       read_trigger();
       read_cv();
-
-      displayUpdate();
       read_buttons();
       update_timer = now;
-    }
 
-    if (voice_number == 0) {
-      updatePlaitsControl();
-    } else if (voice_number == 1) {
-      updateRingsControl();
+      // display updates
+      if (voice_number == 0) {
+        displayPlaits();
+      } else if (voice_number == 1) {
+        displayRings();
+      } else if (voice_number == 2) {
+        displayBraids();
+      } else {
+        displayUpdate();
+      }
     }
   }
-
 }
 
-
-
 void read_buttons() {
-
 
   bool doublePressMode = false;
   bool longPress = false;
   int oneState = btn_one.read();
   int twoState = btn_two.read();
+  int fourState = btn_four.read();
+  
 
   // if button one was held for more than 300 millis and we're in rings toggle easteregg
   if ( btn_one.rose() ) {
@@ -744,11 +769,7 @@ void read_buttons() {
 
   }
 
-  if (btn_two.rose()) {
-    btnTwoLastTime = btn_two.previousDuration();
-    if ( btnTwoLastTime > 350 && ! btn_one.pressed()) {
-
-    } else {
+  if (btn_four.rose()) {
 
       // first record our last settings
       if (voice_number == 0) {
@@ -776,9 +797,7 @@ void read_buttons() {
         clouds_pos = pos_mod;
         clouds_engine = engine_in;
       }
-
       voice_number++;
-
       if (voice_number > 3) voice_number = 0;
 
       if (voice_number == 0) {
@@ -810,8 +829,6 @@ void read_buttons() {
         harm_in = clouds_harm;
 
       }
-    }
-
   }
 
   if (btn_one.pressed() && btn_two.pressed()) {
@@ -822,82 +839,6 @@ void read_buttons() {
 
   if (!doublePressMode && !longPress) {
     // being tripple shure :)
-    /*
-        if (btn_one.pressed() && ! btn_two.pressed() ) {
-          engineCount ++;
-          if (engineCount > max_engines) {
-            engineCount = 0;
-          }
-          engine_in = engineCount;
-        }
-
-
-        if (btn_two.pressed() &&  ! btn_one.pressed() ) {
-
-          // first record our last settings
-          if (voice_number == 0) {
-            plaits_morph = morph_in;
-            plaits_timbre = timbre_in;
-            plaits_harm = harm_in;
-            plaits_engine = engine_in;
-          }
-          if (voice_number == 1) {
-            rings_morph = morph_in;
-            rings_timbre = timbre_in;
-            rings_harm = harm_in;
-            rings_pos = pos_mod;
-            rings_engine = engine_in;
-          }
-          if (voice_number == 2) {
-            braids_morph = morph_in;
-            braids_timbre = timbre_in;
-            braids_engine = engine_in;
-          }
-          if (voice_number == 3) {
-            clouds_morph = morph_in;
-            clouds_timbre = timbre_in;
-            clouds_harm = harm_in;
-            clouds_pos = pos_mod;
-            clouds_engine = engine_in;
-          }
-
-          voice_number++;
-
-          if (voice_number > 3) voice_number = 0;
-
-          if (voice_number == 0) {
-            engine_in = plaits_engine; // engine_in % 17;
-            max_engines = 15;
-            morph_in = plaits_morph;
-            timbre_in = plaits_timbre;
-            harm_in = plaits_harm;
-
-          } else if (voice_number == 1) {
-            engine_in = rings_engine; // % 6;
-            max_engines = 5;
-            morph_in = rings_morph;
-            harm_in = rings_harm;
-            timbre_in = rings_timbre;
-            //pos_mod = rings_pos;
-
-          } else if (voice_number == 2 ) {
-            engine_in = braids_engine; // engine_in % 46;
-            max_engines = 45;
-            morph_in = braids_morph;
-            timbre_in = braids_timbre;
-
-          } else if (voice_number == 3 ) {
-            engine_in = clouds_engine; // engine_in % 46;
-            max_engines = 4;
-            morph_in = clouds_morph;
-            timbre_in = clouds_timbre;
-            harm_in = clouds_harm;
-
-          }
-          // sadly, this breaks badly
-          //writing = true;
-        }
-    */
 
   }
 }
@@ -936,7 +877,7 @@ void voct_midi(int cv_in) {
 // in marvelous, moved to digital pin tx/gp0
 void read_trigger() {
   int16_t trig = digitalRead(0);
-  
+
   if ( midi_switch == false && midi_switch_setting == false ) {
     if (trig > HIGH ) {
       trigger_in = 1.0f;
@@ -988,17 +929,12 @@ void read_cv() {
     //voices[0].modulations.morph_patched = true;
 
   }
-
-
   if (voice_number == 3) {
 
   }
 
-
-
-
-
 }
+
 // either avg or median, both suck :)
 int16_t avg_cv(int cv_in) {
 
@@ -1077,6 +1013,23 @@ void read_encoders() {
   enc1.tick();
   enc2.tick();
   enc3.tick();
+  enc4.tick();
+  // meta encoder
+
+  int enc4_pos = enc4.getPosition();
+
+  if ( enc4_pos != enc4_pos_last ) {
+    engineCount =  (int) enc4.getDirection()  + engineCount ;
+    if (engineCount > max_engines) {
+      engineCount = 0;
+    } 
+    if (engineCount < 0 ) {
+      engineCount = max_engines;
+    }
+    engine_in = engineCount;
+  }
+  enc4_pos_last = enc4_pos;
+
 
   // first encoder
   int enc1_pos = enc1.getPosition() ;

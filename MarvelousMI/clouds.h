@@ -123,7 +123,7 @@ void updateCloudsAudio() {
   float harm = (harm_in + pos_mod);
   
   CONSTRAIN(harm, 0.0f, 1.0f);
-  float   pitch =   mapf(pitch_in, 0.0, 120.0, -48.0, 48.0);
+  float   pitch =   mapf(pitch_in, 0.0, 60.0, -48.0, 48.0);
   float   in_gain = 0.5f; // harm_in; //IN0(6);
   float   spread = 0.5f;// IN0(7);
   float   reverb = 0.4f; // IN0(8);
@@ -131,7 +131,7 @@ void updateCloudsAudio() {
   float   siz = constrain(harm, 0.f, 1.0f) ;// 0.35f;
   float   dens = constrain(morph, 0.f, 1.0f);;
   float   tex = constrain (timbre, 0.f, 1.0f) ;
-  float   posi = 0.0f; //constrain(pos_mod, 0.f, 1.f);
+  float   posi = constrain(pos_mod, 0.f, 1.f);
   float   drywet = 1.0f; // constrain(clouds_dw_in, 0.3f, 1.0f);
   bool    freeze = freeze_in;
   short   engine = constrain(engine_in, 0, 3); // 0 -3

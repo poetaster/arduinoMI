@@ -49,6 +49,112 @@ const pos_t edit_text_offset = { .x = 3, .y = 22,  .str = "" };
 const int gate_bar_width = 14;
 const int gate_bar_height = 4;
 
+void displayPlaits() {
+  display.clearDisplay();
+  // // name
+  display.setCursor(line_1_1.x, line_1_1.y);
+  display.print(engine_in);
+  display.print(" ");
+  display.print(oscnames[engine_in]);
+  //display.setCursor(line_1_2.x, line_1_2.y);
+  //display.print(oscnames[engine_in]);
+  // morph
+  display.setCursor(line_2_1.x, line_2_1.y);
+  display.print("M: ");
+  display.print(morph_in);
+  // harmonics
+  display.setCursor(line_2_2.x, line_2_2.y);
+  display.print("H: ");
+  display.print(harm_in);  // user sees 1-8
+  // timber
+  display.setCursor(line_2_3.x, line_2_3.y);
+  display.print("T: ");
+  display.print(timbre_in);
+
+  //display.setCursor(line_1_2.x, line_2_1.y);
+  //display.print("P:");
+  //display.print(voices[0].patch.note);
+
+  // play/pause
+  //display.setCursor(line_2_3.x, line_2_3.y);
+  //display.print("m: ");
+  //display.print(display_mode);
+
+  display.display();
+}
+
+void displayRings() {
+  display.clearDisplay();
+  // // name
+  display.setCursor(line_1_1.x, line_1_1.y);
+  display.print(engine_in);
+  display.print(" ");
+  if (easterEgg) {
+    display.print(FXnames[engine_in]);
+  } else {
+    display.print(modelnames[engine_in]);
+  }
+  //display.setCursor(line_1_2.x, line_1_2.y);
+  //display.print(oscnames[engine_in]);
+  // morph
+  display.setCursor(line_2_1.x, line_2_1.y);
+  display.print("M: ");
+  display.print(morph_in);
+  // harmonics
+  display.setCursor(line_2_2.x, line_2_2.y);
+  display.print("H: ");
+  display.print(harm_in);  // user sees 1-8
+  // timber
+  display.setCursor(line_2_3.x, line_2_3.y);
+  display.print("T: ");
+  display.print(timbre_in);
+
+  //display.setCursor(line_1_2.x, line_2_1.y);
+  //display.print("P:");
+  //display.print(voices[0].patch.note);
+
+  // play/pause
+  //display.setCursor(line_2_3.x, line_2_3.y);
+  //display.print("m: ");
+  //display.print(display_mode);
+
+  display.display();
+}
+
+/* original generic */
+void displayBraids() {
+  display.clearDisplay();
+  // // name
+  display.setCursor(line_1_1.x, line_1_1.y);
+  display.print(engine_in);
+  display.print(" ");
+  display.print(braidsnames[engine_in]);
+ //display.setCursor(line_1_2.x, line_1_2.y);
+  //display.print(oscnames[engine_in]);
+  // morph
+  display.setCursor(line_2_1.x, line_2_1.y);
+  display.print("C: ");
+  display.print(morph_in);
+  // harmonics
+  //display.setCursor(line_2_2.x, line_2_2.y);
+  //display.print("H: ");
+  //display.print(harm_in);  // user sees 1-8
+  // timber
+  display.setCursor(line_2_3.x, line_2_3.y);
+  display.print("T: ");
+  display.print(timbre_in);
+  //display.setCursor(line_1_2.x, line_2_1.y);
+  //display.print("P:");
+  //display.print(voices[0].patch.note);
+  // play/pause
+  //display.setCursor(line_2_3.x, line_2_3.y);
+  //display.print("m: ");
+  //display.print(display_mode);
+
+  display.display();
+}
+
+/* original generic */
 void displayUpdate() {
   display.clearDisplay();
   // // name
@@ -106,6 +212,6 @@ void displaySplash() {
   display.setTextColor(WHITE, 0);
   display.drawRect(0, 0, dw - 1, dh - 1, WHITE);
   display.setCursor(15, 32);
-  display.print("MMM Plaits");
+  display.print("MarvelousMI");
   display.display();
 }

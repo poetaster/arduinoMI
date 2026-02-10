@@ -105,7 +105,7 @@ void updatePlaitsControl() {
   CONSTRAIN(morph, 0.0f, 1.0f);
   
 
-  if (pos_mod < 0.05) {
+  if (pos_mod < 0.02) {
     modulation = 1.0f;
   } else {
     modulation = pos_mod;

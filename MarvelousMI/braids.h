@@ -88,11 +88,11 @@ void updateBraidsAudio() {
   float modulation;
   
 
-  modulation = timb_mod;
+  modulation = timb_mod; // timbre
   float timbre = (timbre_in + modulation);
   CONSTRAIN(timbre, 0.0f, 1.0f);
 
-  modulation = morph_mod;
+  modulation = morph_mod; // color
   float morph = (morph_in + modulation);
   CONSTRAIN(morph, 0.0f, 1.0f);
   

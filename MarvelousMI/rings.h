@@ -85,7 +85,7 @@ void updateRingsControl() {
   float   pos_in = pos_mod;
 
   short   model = engine_in;
-  short   polyphony = 3;
+  short   polyphony = 4;
   bool    intern_exciter = true;
   bool    easter_egg = easterEgg;
   bool    bypass = false;
