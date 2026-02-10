@@ -37,6 +37,9 @@ struct Serial1MIDISettings : public midi::DefaultSettings
 
 MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, Serial1, MIDI, Serial1MIDISettings);
 
+// start with CV input, switch on midi in or setting.
+bool midi_switch = false;
+bool midi_switch_setting = false;
 
 #include <I2S.h>
 #define SAMPLERATE 48000
@@ -84,7 +87,7 @@ float notes_per_octave = 12;
 float volts_per_octave = 1;
 float mapping_upper_limit = 60.0; //(max_voltage_of_adc / voltage_division_ratio) * notes_per_octave * volts_per_octave;
 float mapping_lower_limit = 0.0;
-                                                                                                                                                                 
+
 // rotator encoders buttons elsewhere
 
 
@@ -130,7 +133,7 @@ RotaryEncoder enc3(39, 40, RotaryEncoder::LatchMode::TWO03);
 
 
 int cv_ins[6] = {CV1, CV2, CV3, CV4, CV5, CV6};
-int cv_avg = 15;
+int cv_avg = 20;
 
 // buffer for input to rings exciter
 float CV1_buffer[32];
@@ -166,11 +169,11 @@ int voice_number = 0; // for switching  between modules
 
 // we are reusing the plaits nomenclature for all modules
 // Plaits modulation vars
-float morph_in = 0.6f; // IN(4);
+float morph_in = 0.5f; // IN(4);
 float trigger_in = 0.0f; //IN(5);
 float level_in = 0.0f; //IN(6);
-float harm_in = 0.5f;
-float timbre_in = 0.5f;
+float harm_in = 0.3f;
+float timbre_in = 0.3f;
 int engine_in;
 char engine_name;
 
@@ -225,6 +228,7 @@ void HandleMidiNoteOn(byte channel, byte note, byte velocity) {
   //aSin.setFreq(mtof(float(note)));
   //envelope.noteOn();
   digitalWrite(LED_BUILTIN, HIGH);
+  midi_switch = true;
 }
 void HandleMidiNoteOff(byte channel, byte note, byte velocity) {
 
@@ -481,17 +485,17 @@ void setup() {
 
 
   // lets seee
-  analogReadResolution(12);
+  //analogReadResolution(12);
 
   // ENCODER old, not needed now
-  /*
-    enc1.begin();
-    enc2.begin();
-    enc3.begin();
-    enc3.flip();
-    enc2.flip();
-    enc1.flip();
-  */
+
+  //enc1.begin();
+  //enc2.begin();
+  //enc3.begin();
+  // enc3.flip();
+  // enc2.flip();
+  // enc1.flip();
+
 
   // thi is to switch to PWM for power to avoid ripple noise
   pinMode(23, OUTPUT);
@@ -500,7 +504,7 @@ void setup() {
   // mute
   pinMode(11, OUTPUT);
   digitalWrite(11, LOW);
-  
+
   pinMode(LED_BUILTIN, OUTPUT);
   // digital input pins encoder
   /*
@@ -513,27 +517,28 @@ void setup() {
   */
 
   // CV
-  pinMode(CV1, INPUT_PULLUP);
-  pinMode(CV2, INPUT_PULLUP);
-  pinMode(CV3, INPUT_PULLUP);
-  pinMode(CV4, INPUT_PULLUP);
-  pinMode(CV5, INPUT_PULLUP);
-  pinMode(CV6, INPUT_PULLUP);
+  pinMode(CV1, INPUT);
+  pinMode(CV2, INPUT);
+  pinMode(CV3, INPUT);
+  pinMode(CV4, INPUT);
+  pinMode(CV5, INPUT);
+  pinMode(CV6, INPUT);
+
   // trigger in
   pinMode(0, INPUT);
-  
+
   // DISPLAY
 
   Wire.setSDA(oled_sda_pin);
   Wire.setSCL(oled_scl_pin);
   Wire.begin();
-  
+
   MIDI.setHandleNoteOn(HandleMidiNoteOn);  // Put only the name of the function
   MIDI.setHandleNoteOff(HandleMidiNoteOff);  // Put only the name of the function
   // Initiate MIDI communications, listen to all channels (not needed with Teensy usbMIDI)
-  
+
   MIDI.begin(MIDI_CHANNEL_OMNI);
-  
+
   // SSD1306 --  or SH1106 in this case
   if (!display.begin(SSD1306_SWITCHCAPVCC, oled_i2c_addr)) {
     //if (!display.begin( oled_i2c_addr)) {
@@ -600,13 +605,22 @@ void setup() {
 
 
 void loop() {
-  
+
   // if the timer has pushed ouput, calculate next samples
   if (counter == 1) {
-    
+
     if (voice_number == 0) {
       updatePlaitsAudio();
     } else if (voice_number == 1) {
+
+      // gather input for rings not for now
+      if (timb_mod > 0.99f) {
+        //rings
+        for (size_t i = 0; i < 32; ++i) {
+          CV1_buffer[i] = (float) ( avg_cv(CV6) / 1023.0f) ;
+        }
+      }
+
       updateRingsAudio();
     } else if (voice_number == 2) {
       updateBraidsAudio();
@@ -615,14 +629,14 @@ void loop() {
       // clouds, samplebuffer at same time
       // or braids into buffer directly.
       updateBraidsAudio();
-      
+
       // copy the braids audio to the clouds input buffer
       clouds::FloatFrame  *input = cloud[0].input;
 
       for (int i = 0; i < 32; i++) {
 
         float sample = (float) ( inst[0].pd.buffer[i] / 32768.0f ) * 0.5f;
-        //float sample = (float) ( analogRead(CV7) / 4095.0f ) * 0.9f;
+        //float sample = (float) ( analogRead(CV7) / 1023.0f ) * 0.9f;
         input[i].l = sample;
         input[i].r = sample;  // Mono input
 
@@ -655,16 +669,16 @@ void setup1() {
 void loop1() {
 
   if (! writing) { // don't do shit when eeprom is being written
-   
-   
+
+
     MIDI.read();
-    
+
     // we need these on boot so the second loop can catch the startup button.
     btn_one.update();
     btn_two.update();
-    
-    
-    
+
+
+
     // at boot permit octave down
     if (just_booting && btn_one.pressed()) {
       pitch_offset = 36;
@@ -674,13 +688,15 @@ void loop1() {
 
     unsigned long now = millis();
 
+    read_encoders();
+
     if ( now - update_timer > 5 ) {
-      //voct_midi(CV1);
+      if ( midi_switch == false && midi_switch_setting == false ) {
+        voct_midi(CV1);
+      }
       read_trigger();
       read_cv();
-      
-      read_encoders();
-      
+
       displayUpdate();
       read_buttons();
       update_timer = now;
@@ -891,7 +907,7 @@ float voct_midiBraids(int cv_in) {
   int val = 0;
   for (int j = 0; j < cv_avg; ++j) val += analogRead(cv_in); // read the A/D a few times and average for a more stable value
   val = val / cv_avg;
-  pitch = pitch_offset + map(val, 0.0, 4095.0, mapping_upper_limit, 0.0); // convert pitch CV data value to a MIDI note number
+  pitch = pitch_offset + map(val, 0.0, 1023.0, mapping_upper_limit, 0.0); // convert pitch CV data value to a MIDI note number
   return pitch - 37; // don't know why, probably tuned to A so -5 + -36 to drop two octaves
 }
 
@@ -901,13 +917,9 @@ void voct_midi(int cv_in) {
   int val = 0;
   for (int j = 0; j < cv_avg; ++j) val += analogRead(cv_in); // read the A/D a few times and average for a more stable value
   val = val / cv_avg;
-  if (val < 200) { 
-    val = 0; // noise on the olmex
-  } else {
-    val = val - 200;
-  }
+
   data = (float) val * 1.0f;
-  pitch = map(data, 0.0, 4095.0, mapping_upper_limit, mapping_lower_limit); // convert pitch CV data value to a MIDI note number
+  pitch = map(data, 0.0, 1023.0, mapping_upper_limit, mapping_lower_limit); // convert pitch CV data value to a MIDI note number
 
   pitch = pitch - pitch_offset;
 
@@ -925,16 +937,17 @@ void voct_midi(int cv_in) {
 void read_trigger() {
   int16_t trig = digitalRead(0);
   
-  if (trig > HIGH ) {
-    trigger_in = 1.0f;
-    if (voice_number == 0) updateVoicetrigger();
+  if ( midi_switch == false && midi_switch_setting == false ) {
+    if (trig > HIGH ) {
+      trigger_in = 1.0f;
+      if (voice_number == 0) updateVoicetrigger();
 
-  } else  {
-    //don't turn off here?
-    trigger_in = 0.0f;
+    } else  {
+      //don't turn off here?
+      trigger_in = 0.0f;
+    }
+
   }
-
-
 
 }
 
@@ -942,23 +955,22 @@ void read_cv() {
   // CV updates
   // braids wants 0 - 32767, plaits 0-1
 
-  // this should be worked out into calls for the engines instead of conditionals ....
-
-
   //plaits and rings cv
   int16_t timbre = avg_cv(CV2);
-  timb_mod = (float)timbre / 4095.0f;
+  timb_mod = (float)timbre;
+  timb_mod = mapf( timb_mod, 180.0f, 1023.0f, 0.00f, 1.00f);
 
   int16_t morph = avg_cv(CV3) ;
-  morph_mod = (float) morph / 4095.0f;
-
+  morph_mod = (float) morph;
+  morph_mod = mapf ( (float) morph_mod, 180.0f, 1023.0f, 0.00f, 1.000f);
 
   // don't remember if this was important
   int16_t pos = avg_cv(CV4) ; // f&d noise floor
-  if (pos > 50) pos_mod = (float) pos / 4095.0f;
+  pos_mod = (float) pos;
+  pos_mod = mapf ( pos_mod, 180.0f, 1023.0f, 0.00f, 1.000f);
 
-  int16_t lpgColor = (float) ( avg_cv(CV5) ) / 4095.f ;
-  lpg_in = lpgColor;
+  int16_t lpgColor =  avg_cv(CV5);
+  lpg_in = mapf( (float) lpgColor, 180.0f, 1023.0f, 0.00f, 1.000f);
 
   if (voice_number == 0 || voice_number == 1) {
     // plaits
@@ -977,12 +989,6 @@ void read_cv() {
 
   }
 
-  if (voice_number == 1 && timb_mod > 0.05f) {
-    //rings
-    for (size_t i = 0; i < 32; ++i) {
-      CV1_buffer[i] = (float) ( avg_cv(CV6) / 4095.0f) ; // arbitrary +1 gain
-    }
-  }
 
   if (voice_number == 3) {
 
@@ -997,83 +1003,81 @@ void read_cv() {
 int16_t avg_cv(int cv_in) {
 
   //std::vector<int> data;
-  
   int16_t val = 0;
 
   //for (int j = 0; j < cv_avg; ++j) data.push_back(analogRead(cv_in)); // val += analogRead(cv_in); // read the A/D a few times and average for a more stable value
   for (int j = 0; j < cv_avg; ++j) val += analogRead(cv_in); // read the A/D a few times and average for a more stable value
   val = val / cv_avg;
-  if (val < 150) val = 0;
 
   //return median(data);
-  
+
   return val;
 }
 
 void read_encoders2() {
-/*
-  // first encoder
-  int enc1_pos = enc1.getCount() / 4;
+  /*
+    // first encoder
+    int enc1_pos = enc1.getCount() / 4;
 
-  if ( enc1_pos != enc1_pos_last ) {
-    enc1_delta = (enc1_pos - enc1_pos_last) ;
-  }
+    if ( enc1_pos != enc1_pos_last ) {
+      enc1_delta = (enc1_pos - enc1_pos_last) ;
+    }
 
-  if ( enc1_delta) {
-    float turn = ( enc1_delta * 0.003f ) + timbre_in;
-    CONSTRAIN(turn, 0.f, 1.0f)
-    if (debug) Serial.println(turn);
-    timbre_in = turn;
-  }
-
-
-  /// only set new pos last after buttons have had a chance to use the delta
-  enc1_delta = 0;
-  enc1_pos_last = enc1_pos;
+    if ( enc1_delta) {
+      float turn = ( enc1_delta * 0.003f ) + timbre_in;
+      CONSTRAIN(turn, 0.f, 1.0f)
+      if (debug) Serial.println(turn);
+      timbre_in = turn;
+    }
 
 
-  // second encoder
-  int enc2_pos = enc2.getCount() / 4;
-  if ( enc2_pos != enc2_pos_last ) {
-    enc2_delta = (enc2_pos - enc2_pos_last) ;
-  }
+    /// only set new pos last after buttons have had a chance to use the delta
+    enc1_delta = 0;
+    enc1_pos_last = enc1_pos;
 
-  if (enc2_delta) {
-    float turn = ( enc2_delta * 0.003f ) + morph_in;
-    CONSTRAIN(turn, 0.f, 1.0f)
-    if (debug) Serial.println(turn);
-    morph_in = turn;
 
-  }
-  enc2_pos_last = enc2_pos;
-  enc2_delta = 0;
+    // second encoder
+    int enc2_pos = enc2.getCount() / 4;
+    if ( enc2_pos != enc2_pos_last ) {
+      enc2_delta = (enc2_pos - enc2_pos_last) ;
+    }
 
-  // third encoder
+    if (enc2_delta) {
+      float turn = ( enc2_delta * 0.003f ) + morph_in;
+      CONSTRAIN(turn, 0.f, 1.0f)
+      if (debug) Serial.println(turn);
+      morph_in = turn;
 
-  int enc3_pos = enc3.getCount() / 4;
+    }
+    enc2_pos_last = enc2_pos;
+    enc2_delta = 0;
 
-  if ( enc3_pos != enc3_pos_last ) {
-    enc3_delta = (enc3_pos - enc3_pos_last);
+    // third encoder
 
-  }
+    int enc3_pos = enc3.getCount() / 4;
 
-  if (enc3_delta) {
-    float turn = ( enc3_delta * 0.0031f ) + harm_in;
-    CONSTRAIN(turn, 0.f, 1.0f)
-    if (debug) Serial.println(turn);
-    harm_in = turn;
-  }
-  enc3_pos_last = enc3_pos;
-  enc3_delta = 0;
-*/
+    if ( enc3_pos != enc3_pos_last ) {
+      enc3_delta = (enc3_pos - enc3_pos_last);
+
+    }
+
+    if (enc3_delta) {
+      float turn = ( enc3_delta * 0.0031f ) + harm_in;
+      CONSTRAIN(turn, 0.f, 1.0f)
+      if (debug) Serial.println(turn);
+      harm_in = turn;
+    }
+    enc3_pos_last = enc3_pos;
+    enc3_delta = 0;
+  */
 }
 
-   
+
 void read_encoders() {
   enc1.tick();
   enc2.tick();
   enc3.tick();
-  
+
   // first encoder
   int enc1_pos = enc1.getPosition() ;
 
@@ -1097,7 +1101,7 @@ void read_encoders() {
 
   // third encoder
   int enc3_pos = enc3.getPosition();
-  if  ( enc3_pos != enc3_pos_last ){
+  if  ( enc3_pos != enc3_pos_last ) {
     float turn = ( (float)(enc3.getDirection()) * 0.01f ) + harm_in;
     constrain(turn, 0.f, 1.0f);
     //if (debug) Serial.println(turn);

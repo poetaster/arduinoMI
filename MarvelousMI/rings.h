@@ -46,7 +46,7 @@ void updateRingsAudio() {
   } else {
     ps->strum = false;
   }
-  instance[0].prev_trig = trigger;
+  instance[0].prev_trig = trigger_flag;
 
   if (easterEgg) {
     instance[0].strummer.Process(NULL, size, ps);
@@ -100,11 +100,11 @@ void updateRingsControl() {
   
   
 
-  if ( timb_mod > 0.5f ) {
+  if ( timb_mod > 0.99f ) {
     // input on CV3
     // intern_exciter should be off, but user can override
     instance[0].input = CV1_buffer;
-    ps->internal_exciter = intern_exciter;
+    ps->internal_exciter = false;//intern_exciter;
   } else {
     // if there's no audio input, set input to zero...
     instance[0].input = instance[0].silence;
