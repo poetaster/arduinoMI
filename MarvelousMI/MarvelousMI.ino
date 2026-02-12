@@ -23,10 +23,7 @@ bool debug = false;
 #include <vector>
 #include <algorithm>
 #include <Wire.h>
-
 #include <MIDI.h>
-
-
 
 struct Serial1MIDISettings : public midi::DefaultSettings
 {
@@ -52,6 +49,7 @@ bool midi_switch_setting = false;
 
 
 I2S DAC(OUTPUT, pBCLK, pDOUT);
+
 
 
 
@@ -88,43 +86,7 @@ float volts_per_octave = 1;
 float mapping_upper_limit = 60.0; //(max_voltage_of_adc / voltage_division_ratio) * notes_per_octave * volts_per_octave;
 float mapping_lower_limit = 0.0;
 
-// rotator encoders buttons elsewhere
 
-
-const int enc2A_pin = 36;
-const int enc2B_pin = 37;
-const int enc1A_pin = 32;
-const int enc1B_pin = 33;
-const int enc3A_pin = 39;
-const int enc3B_pin = 40;
-
-/* 4, 8, 9 */
-
-const int encoderSW_pin = 28;
-
-// encoder related // 2,3 8,9
-//#include "pio_encoder.h"
-
-//PioEncoder enc1(32);
-//PioEncoder enc2(36);
-//PioEncoder enc3(39);
-
-int enc1_pos_last = 0;
-int enc1_delta = 0;
-int enc2_pos_last = 0;
-int enc2_delta = 0;
-int enc3_pos_last = 0;
-int enc3_delta = 0;
-int enc4_pos_last = 0;
-int enc4_delta = 0;
-
-
-#include <RotaryEncoder.h>
-// Setup a RotaryEncoder with 2 steps per latch for the 2 signal input pins:
-RotaryEncoder enc2( 32, 33, RotaryEncoder::LatchMode::TWO03);
-RotaryEncoder enc3( 36, 37, RotaryEncoder::LatchMode::TWO03);
-RotaryEncoder enc1( 39, 40, RotaryEncoder::LatchMode::TWO03);
-RotaryEncoder enc4( 6,  7,  RotaryEncoder::LatchMode::TWO03);
 // trigger is on gp0
 
 // cv input
@@ -260,8 +222,8 @@ void HandleMidiNoteOff(byte channel, byte note, byte velocity) {
 #include "braids.h"
 
 // clouds dsp
-#include <CLOUDS.h>
-#include "clouds.h"
+//#include <CLOUDS.h>
+//#include "clouds.h"
 
 #include "Midier.h"
 // midi related functions
@@ -315,6 +277,25 @@ int wrote = 0;
 bool writing = false;
 bool reading = false;
 
+const int encoderSW_pin = 28;
+
+// encoder related // 2,3 8,9
+#include "pio_encoder.h"
+
+PioEncoder enc4(6);
+PioEncoder enc2(32);
+PioEncoder enc3(36);
+PioEncoder enc1(39);
+
+
+int enc1_pos_last = 0;
+int enc1_delta = 0;
+int enc2_pos_last = 0;
+int enc2_delta = 0;
+int enc3_pos_last = 0;
+int enc3_delta = 0;
+int enc4_pos_last = 0;
+int enc4_delta = 0;
 
 // called at voice chage to save current values of all voices.
 // using the eeprom fake, we have the last 512 bytes, much more than we need
@@ -447,17 +428,12 @@ Adafruit_SSD1306 display(dw, dh, &Wire, OLED_RESET);
 
 // audio related defines
 
-//float freqs[12] = { 261.63f, 277.18f, 293.66f, 311.13f, 329.63f, 349.23f, 369.99f, 392.00f, 415.30f, 440.00f, 466.16f, 493.88f};
-float freqs[12] = { 42.0f, 44.0f, 46.0f, 48.0f, 50.0f, 52.0f, 54.0f, 56.0f, 58.0f, 60.0f, 62.0f, 64.0f};
-int carrier_freq;
-
 int current_track;
 int32_t update_timer;
 int32_t button_timer;
 int update_interval = 30;
 int engineCount = 0;
 bool button_state = true;
-
 
 // last time btn_one release
 unsigned long btnOneLastTime;
@@ -475,6 +451,17 @@ void setup() {
     Serial.begin(57600);
     Serial.println(F("YUP"));
   }
+  
+  // start encoders MUST be first because of PIO init?
+  enc4.begin(); /// MUST be first
+  enc1.begin();
+  enc2.begin();
+  enc3.begin();
+
+  //enc3.flip();
+  //enc2.flip();
+  //enc1.flip();
+  //enc4.flip();
 
 
   if (ITimer0.attachInterruptInterval(TIMER0_INTERVAL_MS, TimerHandler0)) // that's 48kHz
@@ -495,14 +482,6 @@ void setup() {
   // lets seee
   //analogReadResolution(12);
 
-  // ENCODER old, not needed now
-
-  //enc1.begin();
-  //enc2.begin();
-  //enc3.begin();
-  // enc3.flip();
-  // enc2.flip();
-  // enc1.flip();
 
 
   // thi is to switch to PWM for power to avoid ripple noise
@@ -514,15 +493,7 @@ void setup() {
   digitalWrite(11, LOW);
 
   pinMode(LED_BUILTIN, OUTPUT);
-  // digital input pins encoder
-  /*
-     const int enc2A_pin = 36;
-    const int enc2B_pin = 37;
-    const int enc1A_pin = 32;
-    const int enc1B_pin = 33;
-    const int enc3A_pin = 39;
-    const int enc3B_pin = 40;
-  */
+
 
   // CV
   pinMode(CV1, INPUT);
@@ -574,6 +545,7 @@ void setup() {
       //sw2.interval(5);
       //sw2.setPressedState(LOW);
   */
+  
 
 
   // initialize a mode to play
@@ -598,8 +570,8 @@ void setup() {
   initRings();
   delay(100);
   initBraids();
-  delay(100);
-  initClouds();
+  //delay(100);
+  // initClouds();
 
   // Initialize wave switch states
   update_timer = millis();
@@ -640,7 +612,9 @@ void loop() {
 
       updateBraidsAudio();
 
-    } else if (voice_number == 3) {
+    } 
+    
+    /*else if (voice_number == 3) {
 
       // clouds, samplebuffer at same time
       // or braids into buffer directly.
@@ -662,7 +636,8 @@ void loop() {
       //}
 
       updateCloudsAudio();
-    }
+    }*/
+    
     counter = 0; // increments on each pass of the timer when the timer writes
   }
 
@@ -679,7 +654,7 @@ void setup1() {
   delay (1000); // wait for main core to start up perhipherals
 }
 
-// encoder
+
 
 // second core deals with ui / control rate updates
 void loop1() {
@@ -744,7 +719,7 @@ void read_buttons() {
   int oneState = btn_one.read();
   int twoState = btn_two.read();
   int fourState = btn_four.read();
-  
+
 
   // if button one was held for more than 300 millis and we're in rings toggle easteregg
   if ( btn_one.rose() ) {
@@ -771,64 +746,67 @@ void read_buttons() {
 
   if (btn_four.rose()) {
 
-      // first record our last settings
-      if (voice_number == 0) {
-        plaits_morph = morph_in;
-        plaits_timbre = timbre_in;
-        plaits_harm = harm_in;
-        plaits_engine = engine_in;
-      }
-      if (voice_number == 1) {
-        rings_morph = morph_in;
-        rings_timbre = timbre_in;
-        rings_harm = harm_in;
-        rings_pos = pos_mod;
-        rings_engine = engine_in;
-      }
-      if (voice_number == 2) {
-        braids_morph = morph_in;
-        braids_timbre = timbre_in;
-        braids_engine = engine_in;
-      }
-      if (voice_number == 3) {
-        clouds_morph = morph_in;
-        clouds_timbre = timbre_in;
-        clouds_harm = harm_in;
-        clouds_pos = pos_mod;
-        clouds_engine = engine_in;
-      }
-      voice_number++;
-      if (voice_number > 3) voice_number = 0;
+    // first record our last settings
+    if (voice_number == 0) {
+      plaits_morph = morph_in;
+      plaits_timbre = timbre_in;
+      plaits_harm = harm_in;
+      plaits_engine = engine_in;
+    }
+    if (voice_number == 1) {
+      rings_morph = morph_in;
+      rings_timbre = timbre_in;
+      rings_harm = harm_in;
+      rings_pos = pos_mod;
+      rings_engine = engine_in;
+    }
+    if (voice_number == 2) {
+      braids_morph = morph_in;
+      braids_timbre = timbre_in;
+      braids_engine = engine_in;
+    }
+    /* not used */
+    if (voice_number == 3) {
+      clouds_morph = morph_in;
+      clouds_timbre = timbre_in;
+      clouds_harm = harm_in;
+      clouds_pos = pos_mod;
+      clouds_engine = engine_in;
+    }
+    
+    voice_number++;
+    
+    if (voice_number > 2) voice_number = 0;
 
-      if (voice_number == 0) {
-        engine_in = plaits_engine; // engine_in % 17;
-        max_engines = 18; // was 15
-        morph_in = plaits_morph;
-        timbre_in = plaits_timbre;
-        harm_in = plaits_harm;
+    if (voice_number == 0) {
+      engine_in = plaits_engine; // engine_in % 17;
+      max_engines = 18; // was 15
+      morph_in = plaits_morph;
+      timbre_in = plaits_timbre;
+      harm_in = plaits_harm;
 
-      } else if (voice_number == 1) {
-        engine_in = rings_engine; // % 6;
-        max_engines = 5;
-        morph_in = rings_morph;
-        harm_in = rings_harm;
-        timbre_in = rings_timbre;
-        //pos_mod = rings_pos;
+    } else if (voice_number == 1) {
+      engine_in = rings_engine; // % 6;
+      max_engines = 5;
+      morph_in = rings_morph;
+      harm_in = rings_harm;
+      timbre_in = rings_timbre;
+      //pos_mod = rings_pos;
 
-      } else if (voice_number == 2 ) {
-        engine_in = braids_engine; // engine_in % 46;
-        max_engines = 45;
-        morph_in = braids_morph;
-        timbre_in = braids_timbre;
+    } else if (voice_number == 2 ) {
+      engine_in = braids_engine; // engine_in % 46;
+      max_engines = 45;
+      morph_in = braids_morph;
+      timbre_in = braids_timbre;
 
-      } else if (voice_number == 3 ) {
-        engine_in = clouds_engine; // engine_in % 46;
-        max_engines = 3;
-        morph_in = clouds_morph;
-        timbre_in = clouds_timbre;
-        harm_in = clouds_harm;
+    } else if (voice_number == 3 ) { // not used
+      engine_in = clouds_engine; // engine_in % 46;
+      max_engines = 3;
+      morph_in = clouds_morph;
+      timbre_in = clouds_timbre;
+      harm_in = clouds_harm;
 
-      }
+    }
   }
 
   if (btn_one.pressed() && btn_two.pressed()) {
@@ -950,116 +928,137 @@ int16_t avg_cv(int cv_in) {
   return val;
 }
 
-void read_encoders2() {
-  /*
-    // first encoder
-    int enc1_pos = enc1.getCount() / 4;
+void read_encoders() {
 
-    if ( enc1_pos != enc1_pos_last ) {
-      enc1_delta = (enc1_pos - enc1_pos_last) ;
+  // first encoder
+  int enc1_pos = enc1.getCount() / 4;
+
+  if ( enc1_pos != enc1_pos_last ) {
+    enc1_delta = (enc1_pos - enc1_pos_last) ;
+  }
+
+  if ( enc1_delta) {
+    float turn = ( enc1_delta * 0.003f ) + timbre_in;
+    CONSTRAIN(turn, 0.f, 1.0f)
+    if (debug) Serial.println(turn);
+    timbre_in = turn;
+  }
+
+
+  /// only set new pos last after buttons have had a chance to use the delta
+  enc1_delta = 0;
+  enc1_pos_last = enc1_pos;
+
+
+  // second encoder
+  int enc2_pos = enc2.getCount() / 4;
+  if ( enc2_pos != enc2_pos_last ) {
+    enc2_delta = (enc2_pos - enc2_pos_last) ;
+  }
+
+  if (enc2_delta) {
+    float turn = ( enc2_delta * 0.003f ) + morph_in;
+    CONSTRAIN(turn, 0.f, 1.0f)
+    if (debug) Serial.println(turn);
+    morph_in = turn;
+
+  }
+  enc2_pos_last = enc2_pos;
+  enc2_delta = 0;
+
+  // third encoder
+
+  int enc3_pos = enc3.getCount() / 4;
+
+  if ( enc3_pos != enc3_pos_last ) {
+    enc3_delta = (enc3_pos - enc3_pos_last);
+
+  }
+
+  if (enc3_delta) {
+    float turn = ( enc3_delta * 0.0031f ) + harm_in;
+    CONSTRAIN(turn, 0.f, 1.0f)
+    if (debug) Serial.println(turn);
+    harm_in = turn;
+  }
+  enc3_pos_last = enc3_pos;
+  enc3_delta = 0;
+
+
+  int enc4_pos = enc4.getCount() / 4;
+
+  if ( enc4_pos != enc4_pos_last ) {
+   
+    engineCount =   enc4_pos;
+    
+    if (engineCount > max_engines) {
+      engineCount = 0;
+      enc4.reset();
     }
-
-    if ( enc1_delta) {
-      float turn = ( enc1_delta * 0.003f ) + timbre_in;
-      CONSTRAIN(turn, 0.f, 1.0f)
-      if (debug) Serial.println(turn);
-      timbre_in = turn;
+    if (engineCount < 0 ) {
+      engineCount = max_engines;
+     
     }
+    engine_in = engineCount;
+  }
 
+  enc4_pos_last = enc4_pos;
 
-    /// only set new pos last after buttons have had a chance to use the delta
-    enc1_delta = 0;
-    enc1_pos_last = enc1_pos;
-
-
-    // second encoder
-    int enc2_pos = enc2.getCount() / 4;
-    if ( enc2_pos != enc2_pos_last ) {
-      enc2_delta = (enc2_pos - enc2_pos_last) ;
-    }
-
-    if (enc2_delta) {
-      float turn = ( enc2_delta * 0.003f ) + morph_in;
-      CONSTRAIN(turn, 0.f, 1.0f)
-      if (debug) Serial.println(turn);
-      morph_in = turn;
-
-    }
-    enc2_pos_last = enc2_pos;
-    enc2_delta = 0;
-
-    // third encoder
-
-    int enc3_pos = enc3.getCount() / 4;
-
-    if ( enc3_pos != enc3_pos_last ) {
-      enc3_delta = (enc3_pos - enc3_pos_last);
-
-    }
-
-    if (enc3_delta) {
-      float turn = ( enc3_delta * 0.0031f ) + harm_in;
-      CONSTRAIN(turn, 0.f, 1.0f)
-      if (debug) Serial.println(turn);
-      harm_in = turn;
-    }
-    enc3_pos_last = enc3_pos;
-    enc3_delta = 0;
-  */
 }
 
 
-void read_encoders() {
-  enc1.tick();
-  enc2.tick();
-  enc3.tick();
-  enc4.tick();
-  // meta encoder
+void read_encoders2() {
+  /*
+    enc1.tick();
+    enc2.tick();
+    enc3.tick();
+    enc4.tick();
+    // meta encoder
 
-  int enc4_pos = enc4.getPosition();
+    int enc4_pos = enc4.getPosition();
 
-  if ( enc4_pos != enc4_pos_last ) {
+    if ( enc4_pos != enc4_pos_last ) {
     engineCount =  (int) enc4.getDirection()  + engineCount ;
     if (engineCount > max_engines) {
       engineCount = 0;
-    } 
+    }
     if (engineCount < 0 ) {
       engineCount = max_engines;
     }
     engine_in = engineCount;
-  }
-  enc4_pos_last = enc4_pos;
+    }
+    enc4_pos_last = enc4_pos;
 
 
-  // first encoder
-  int enc1_pos = enc1.getPosition() ;
+    // first encoder
+    int enc1_pos = enc1.getPosition() ;
 
-  if ( enc1_pos != enc1_pos_last ) {
+    if ( enc1_pos != enc1_pos_last ) {
     float turn = ( (float) (enc1.getDirection() ) * 0.01f )  + timbre_in;
     constrain(turn, 0.f, 1.0f);
     //if (debug) Serial.println(turn);
     timbre_in = turn;
     enc1_pos_last = enc1_pos;
-  }
+    }
 
-  // second encoder
-  int enc2_pos = enc2.getPosition();
-  if ( enc2_pos != enc2_pos_last ) {
+    // second encoder
+    int enc2_pos = enc2.getPosition();
+    if ( enc2_pos != enc2_pos_last ) {
     float turn = ( (float)(enc2.getDirection()) * 0.01f ) + morph_in;
     constrain(turn, 0.f, 1.0f);
     //if (debug) Serial.println(turn);
     morph_in = turn;
     enc2_pos_last = enc2_pos;
-  }
+    }
 
-  // third encoder
-  int enc3_pos = enc3.getPosition();
-  if  ( enc3_pos != enc3_pos_last ) {
+    // third encoder
+    int enc3_pos = enc3.getPosition();
+    if  ( enc3_pos != enc3_pos_last ) {
     float turn = ( (float)(enc3.getDirection()) * 0.01f ) + harm_in;
     constrain(turn, 0.f, 1.0f);
     //if (debug) Serial.println(turn);
     harm_in = turn;
     enc3_pos_last = enc3_pos;
-  }
-
+    }
+  */
 }
