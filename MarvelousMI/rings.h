@@ -46,7 +46,7 @@ void updateRingsAudio() {
   } else {
     ps->strum = false;
   }
-  instance[0].prev_trig = trigger_flag;
+  instance[0].prev_trig = trigger;
 
   if (easterEgg) {
     instance[0].strummer.Process(NULL, size, ps);
@@ -57,15 +57,17 @@ void updateRingsAudio() {
     instance[0].part.Process(*ps, *patch, instance[0].input, instance[0].out, instance[0].aux, size);
   }
   float gain;
-  if (engine_in == 5) {
-    gain = 1.1;
-  } else {
+  if (engine_in == 3) {
     gain = 1.0;
+  } else if (engine_in == 5) {
+    gain = 1.4;
+  } else {
+    gain = 1.1;
   }
 
   for (size_t i = 0; i < size; ++i) {
     // we're reducing to mono for now. the stereo below does work..
-    out_bufferL[i] =   stmlib::Clip16(static_cast<int32_t>( ( instance[0].out[i]  + instance[0].aux[i]  ) * 32768.0f) );
+    out_bufferL[i] =   stmlib::Clip16(static_cast<int32_t>( ( ( instance[0].out[i]  + instance[0].aux[i]  )  ) * 32768.0f) );
       
     //out_bufferR[i] = stmlib::Clip16(static_cast<int32_t>((instance[0].aux[i]+.11) * 32768.0f)); // the .11 is gainwhich should be done by calibration.
     //out_bufferL[i] = stmlib::Clip16(static_cast<int32_t>((instance[0].out[i]+.11) * 32768.0f)); // was obuff
@@ -82,7 +84,7 @@ void updateRingsControl() {
   float   struct_in = harm_in;
   float   bright_in = timbre_in + timb_mod;
   float   damp_in = morph_in + morph_mod;
-  float   pos_in = pos_mod;
+  float   pos_in = 0.5f;// pos_mod;
 
   short   model = engine_in;
   short   polyphony = 4;
@@ -196,12 +198,12 @@ void initRings() {
   instance[0].part.Init(instance[0].reverb_buffer);
   instance[0].string_synth.Init(instance[0].reverb_buffer);
 
-  instance[0].part.set_polyphony(3);
+  instance[0].part.set_polyphony(4);
   instance[0].part.set_model(rings::RESONATOR_MODEL_MODAL);
 
   instance[0].string_synth.set_polyphony(4);
   instance[0].string_synth.set_fx(rings::FX_FORMANT);
-  instance[0].prev_poly = 1;
+  instance[0].prev_poly = 3;
 
   instance[0].performance_state.fm = 0.f;       // TODO: fm not used, maybe later...
   instance[0].prev_trig = false;
