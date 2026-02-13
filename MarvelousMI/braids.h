@@ -84,9 +84,9 @@ void updateBraidsAudio() {
   //osc->set_pitch( ( pitch_in - pitch_adj)  + pitch_fm ); // << 7);
   osc->set_pitch( (int)pitch_in << 7);
 
-  
+
   float modulation;
-  
+
 
   modulation = timb_mod; // timbre
   float timbre = (timbre_in + modulation);
@@ -95,7 +95,7 @@ void updateBraidsAudio() {
   modulation = morph_mod; // color
   float morph = (morph_in + modulation);
   CONSTRAIN(morph, 0.0f, 1.0f);
-  
+
   // this is the scale used in braids
   timbre = (timbre * 32767.0f);
   morph = (morph * 32767.0f);
@@ -113,7 +113,7 @@ void updateBraidsAudio() {
   bool trigger_flag = (trigger && (!inst[0].last_trig));
 
   if (trigger_flag) {
-    osc->Strike();    
+    osc->Strike();
   }
 
   inst[0].last_trig = trigger;
@@ -122,11 +122,16 @@ void updateBraidsAudio() {
   osc->Render(sync_buffer, buffer, size);
   // copy to output buffer
   for (int count = 0; count < 32; count++) {
-    out_bufferL[count] = inst[0].pd.buffer[count];
+
+    int16_t sample =   (int16_t) ( (float) inst[0].pd.buffer[count] * env->process() ) ;
+    out_bufferL[count] = sample;
+    
+    //out_bufferL[count] = inst[0].pd.buffer[count];
     //out_bufferR[count] = inst[0].pd.buffer[count];
   }
 
 }
+
 
 // initialize macro osc
 void initBraids() {

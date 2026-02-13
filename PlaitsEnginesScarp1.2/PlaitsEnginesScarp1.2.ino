@@ -344,10 +344,7 @@ void loop() {
   
   
   // now apply the envelope
-  for (size_t i = 0; i < AUDIO_BLOCK; ++i) {
-    int16_t sample =   (int16_t) ( (float) voice.out_buffer[i].out * env->process() ) ;
-    shared_buffer[i] = sample;
-  }
+ 
   
   // push it to the dac.
   for (int i = 0; i < AUDIO_BLOCK; i++)

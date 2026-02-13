@@ -46,10 +46,13 @@ bool midi_switch_setting = false;
 #define pBCLK 8
 #define pWS (pBCLK+1)
 #define pDOUT 10
-
-
 I2S DAC(OUTPUT, pBCLK, pDOUT);
 
+// create ADSR env
+#include "ADSR.h"
+ADSR *env = new ADSR();
+bool envRelease = false;
+long envTimer = 0;
 
 
 
@@ -195,10 +198,12 @@ void HandleMidiNoteOn(byte channel, byte note, byte velocity) {
   pitch_in = note;
   trigger_in = velocity / 127.0;
 
-  //aSin.setFreq(mtof(float(note)));
-  //envelope.noteOn();
+
   digitalWrite(LED_BUILTIN, HIGH);
   midi_switch = true;
+  //env->reset();
+  envTimer = millis();
+  env->gate(true);
 }
 void HandleMidiNoteOff(byte channel, byte note, byte velocity) {
 
@@ -207,6 +212,8 @@ void HandleMidiNoteOff(byte channel, byte note, byte velocity) {
   //aSin.setFreq(mtof(float(note)));
   //envelope.noteOn();
   digitalWrite(LED_BUILTIN, LOW);
+  envTimer = 0;
+  env->gate(false);
 }
 
 
@@ -221,7 +228,7 @@ void HandleMidiNoteOff(byte channel, byte note, byte velocity) {
 #include <BRAIDS.h>
 #include "braids.h"
 
-// clouds dsp
+// clouds dsp not used pushes ram
 //#include <CLOUDS.h>
 //#include "clouds.h"
 
@@ -280,13 +287,20 @@ bool reading = false;
 const int encoderSW_pin = 28;
 
 // encoder related // 2,3 8,9
+
+
+// ugly, but using both ranges does not work
 #include "pio_encoder.h"
+PioEncoder enc1(39, PIO pio1);
+PioEncoder enc2(32, PIO pio1);
+PioEncoder enc3(36, PIO pio1);
 
-PioEncoder enc4(6);
-PioEncoder enc2(32);
-PioEncoder enc3(36);
-PioEncoder enc1(39);
+// PioEncoder enc4(6, PIO pio0);
+// sadly we need a second approach.
 
+#include <RotaryEncoder.h>
+// Setup a RotaryEncoder with 2 steps per latch for the 2 signal input pins:
+RotaryEncoder enc4( 6,  7,  RotaryEncoder::LatchMode::TWO03);
 
 int enc1_pos_last = 0;
 int enc1_delta = 0;
@@ -451,18 +465,23 @@ void setup() {
     Serial.begin(57600);
     Serial.println(F("YUP"));
   }
-  
+
   // start encoders MUST be first because of PIO init?
-  enc4.begin(); /// MUST be first
+  //pio_set_gpio_base(PIO pio1, 16); this fails, do it in begin.
+  //pio_set_gpio_base(PIO pio0, 0);
+
+  //enc4.begin(); /// MUST be last???
   enc1.begin();
   enc2.begin();
   enc3.begin();
+
 
   //enc3.flip();
   //enc2.flip();
   //enc1.flip();
   //enc4.flip();
 
+  delay(100);
 
   if (ITimer0.attachInterruptInterval(TIMER0_INTERVAL_MS, TimerHandler0)) // that's 48kHz
   {
@@ -477,6 +496,8 @@ void setup() {
   DAC.setFrequency(SAMPLERATE);
   // now start the dac
   DAC.begin();
+
+  delay(100);
 
 
   // lets seee
@@ -545,7 +566,12 @@ void setup() {
       //sw2.interval(5);
       //sw2.setPressedState(LOW);
   */
-  
+
+  // initialize enveloope settings
+  env->setAttackRate(.01 * SAMPLERATE);  // .01 second
+  env->setDecayRate(.3 * SAMPLERATE);
+  env->setReleaseRate(5 * SAMPLERATE);
+  env->setSustainLevel(.8);
 
 
   // initialize a mode to play
@@ -612,8 +638,8 @@ void loop() {
 
       updateBraidsAudio();
 
-    } 
-    
+    }
+
     /*else if (voice_number == 3) {
 
       // clouds, samplebuffer at same time
@@ -636,8 +662,8 @@ void loop() {
       //}
 
       updateCloudsAudio();
-    }*/
-    
+      }*/
+
     counter = 0; // increments on each pass of the timer when the timer writes
   }
 
@@ -773,9 +799,9 @@ void read_buttons() {
       clouds_pos = pos_mod;
       clouds_engine = engine_in;
     }
-    
+
     voice_number++;
-    
+
     if (voice_number > 2) voice_number = 0;
 
     if (voice_number == 0) {
@@ -930,6 +956,9 @@ int16_t avg_cv(int cv_in) {
 
 void read_encoders() {
 
+  // enc4 is an exceptoin
+  enc4.tick();
+
   // first encoder
   int enc1_pos = enc1.getCount() / 4;
 
@@ -985,23 +1014,18 @@ void read_encoders() {
   enc3_delta = 0;
 
 
-  int enc4_pos = enc4.getCount() / 4;
+  int enc4_pos = enc4.getPosition();
 
   if ( enc4_pos != enc4_pos_last ) {
-   
-    engineCount =   enc4_pos;
-    
+    engineCount =  (int) enc4.getDirection()  + engineCount ;
     if (engineCount > max_engines) {
       engineCount = 0;
-      enc4.reset();
     }
     if (engineCount < 0 ) {
       engineCount = max_engines;
-     
     }
     engine_in = engineCount;
   }
-
   enc4_pos_last = enc4_pos;
 
 }

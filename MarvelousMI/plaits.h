@@ -88,10 +88,14 @@ void initPlaits() {
 
 void updatePlaitsAudio() {
   voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
-  for (size_t i = 0; i < plaits::kBlockSize; i++) {
-    out_bufferL[i] = outputPlaits[i].out ;
-    //out_bufferR[i] = outputPlaits[i].aux ;
+  
+    // now apply the envelope
+  for (size_t i = 0; i < plaits::kBlockSize; ++i) {
+    int16_t sample =   (int16_t) ( (float) outputPlaits[i].out * env->process() ) ;
+    out_bufferL[i] = sample;
   }
+//    out_bufferL[i] = outputPlaits[i].out ;
+//    //out_bufferR[i] = outputPlaits[i].aux ;
 }
 
 void updatePlaitsControl() {
@@ -137,9 +141,11 @@ void updateVoicetrigger() {
   if (trigger_flag) {
     voices[0].modulations.trigger = 0.9f;
     voices[0].modulations.trigger_patched = true;
+
   } else {
     voices[0].modulations.trigger_patched = false;
     voices[0].modulations.trigger = 0.0f;
+
   }
   // seem to need to do this for plaits?
   trigger_in = 0.0f;

@@ -198,10 +198,10 @@ void initRings() {
   instance[0].part.Init(instance[0].reverb_buffer);
   instance[0].string_synth.Init(instance[0].reverb_buffer);
 
-  instance[0].part.set_polyphony(4);
+  instance[0].part.set_polyphony(3);
   instance[0].part.set_model(rings::RESONATOR_MODEL_MODAL);
 
-  instance[0].string_synth.set_polyphony(4);
+  instance[0].string_synth.set_polyphony(3);
   instance[0].string_synth.set_fx(rings::FX_FORMANT);
   instance[0].prev_poly = 3;
 
