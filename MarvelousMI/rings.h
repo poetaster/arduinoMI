@@ -84,7 +84,7 @@ void updateRingsControl() {
   float   struct_in = harm_in;
   float   bright_in = timbre_in + timb_mod;
   float   damp_in = morph_in + morph_mod;
-  float   pos_in = 0.5f;// pos_mod;
+  float   pos_in = ( position_in > 0.03f) ? position_in : 0.5f ;
 
   short   model = engine_in;
   short   polyphony = 4;

@@ -53,26 +53,28 @@ void displayPlaits() {
   display.clearDisplay();
   // // name
   display.setCursor(line_1_1.x, line_1_1.y);
-  display.print(engine_in);
-  display.print(" ");
   display.print(oscnames[engine_in]);
+  
+  display.setCursor(line_1_3.x, line_1_3.y);
+  display.print("P:");
+  display.print(position_in);
+  
   //display.setCursor(line_1_2.x, line_1_2.y);
   //display.print(oscnames[engine_in]);
   // morph
   display.setCursor(line_2_1.x, line_2_1.y);
-  display.print("M: ");
+  display.print("M:");
   display.print(morph_in);
   // harmonics
   display.setCursor(line_2_2.x, line_2_2.y);
-  display.print("H: ");
+  display.print("H:");
   display.print(harm_in);  // user sees 1-8
   // timber
   display.setCursor(line_2_3.x, line_2_3.y);
-  display.print("T: ");
+  display.print("T:");
   display.print(timbre_in);
 
-  //display.setCursor(line_1_2.x, line_2_1.y);
-  //display.print("P:");
+
   //display.print(voices[0].patch.note);
 
   // play/pause
@@ -87,13 +89,15 @@ void displayRings() {
   display.clearDisplay();
   // // name
   display.setCursor(line_1_1.x, line_1_1.y);
-  display.print(engine_in);
-  display.print(" ");
   if (easterEgg) {
     display.print(FXnames[engine_in]);
   } else {
     display.print(modelnames[engine_in]);
   }
+  display.setCursor(line_1_3.x, line_1_3.y);
+  display.print("p:");
+  display.print(position_in);
+  
   //display.setCursor(line_1_2.x, line_1_2.y);
   //display.print(oscnames[engine_in]);
   // morph

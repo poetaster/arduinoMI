@@ -147,6 +147,9 @@ float trigger_in = 0.0f; //IN(5);
 float level_in = 0.0f; //IN(6);
 float harm_in = 0.3f;
 float timbre_in = 0.3f;
+float position_in = 0.5f;
+float pos_mod = 0.0f;
+
 int engine_in;
 char engine_name;
 
@@ -154,14 +157,15 @@ char engine_name;
 float plaits_morph = morph_in;
 float plaits_harm = harm_in;
 float plaits_timbre = timbre_in;
+float plaits_position = position_in;
 int   plaits_engine = 0;
 
+
 // Rings modulation
-float pos_mod = 0.25f; // position
+float rings_position = 0.25f; // position
 float rings_morph = morph_in;
 float rings_harm = harm_in;
 float rings_timbre = timbre_in;
-float rings_pos = 0.0f;
 int   rings_engine = 0;
 
 float braids_timbre = timbre_in;
@@ -181,7 +185,7 @@ float pitch_in = 32.0f;
 float clouds_morph = morph_in;
 float clouds_timbre = timbre_in;
 float clouds_harm = harm_in;
-float clouds_pos = pos_mod;
+float clouds_pos = position_in;
 float clouds_mode = engine_in;
 float clouds_dw_in = 1.0f;
 float clouds_pos_in = 0.0f;
@@ -192,29 +196,6 @@ int   voice_in = 4;
 
 int max_engines = 18; // varies per backend
 
-// midi routines/callbacks
-
-void HandleMidiNoteOn(byte channel, byte note, byte velocity) {
-  pitch_in = note;
-  trigger_in = velocity / 127.0;
-
-
-  digitalWrite(LED_BUILTIN, HIGH);
-  midi_switch = true;
-  //env->reset();
-  envTimer = millis();
-  env->gate(true);
-}
-void HandleMidiNoteOff(byte channel, byte note, byte velocity) {
-
-  trigger_in = 0.0f;
-
-  //aSin.setFreq(mtof(float(note)));
-  //envelope.noteOn();
-  digitalWrite(LED_BUILTIN, LOW);
-  envTimer = 0;
-  env->gate(false);
-}
 
 
 #include <STMLIB.h> // 
@@ -470,16 +451,9 @@ void setup() {
   //pio_set_gpio_base(PIO pio1, 16); this fails, do it in begin.
   //pio_set_gpio_base(PIO pio0, 0);
 
-  //enc4.begin(); /// MUST be last???
   enc1.begin();
   enc2.begin();
   enc3.begin();
-
-
-  //enc3.flip();
-  //enc2.flip();
-  //enc1.flip();
-  //enc4.flip();
 
   delay(100);
 
@@ -535,6 +509,7 @@ void setup() {
 
   MIDI.setHandleNoteOn(HandleMidiNoteOn);  // Put only the name of the function
   MIDI.setHandleNoteOff(HandleMidiNoteOff);  // Put only the name of the function
+  MIDI.setHandleControlChange(HandleControlChange);  // Put only the name of the function
   // Initiate MIDI communications, listen to all channels (not needed with Teensy usbMIDI)
 
   MIDI.begin(MIDI_CHANNEL_OMNI);
@@ -778,12 +753,13 @@ void read_buttons() {
       plaits_timbre = timbre_in;
       plaits_harm = harm_in;
       plaits_engine = engine_in;
+      plaits_position = position_in;
     }
     if (voice_number == 1) {
       rings_morph = morph_in;
       rings_timbre = timbre_in;
       rings_harm = harm_in;
-      rings_pos = pos_mod;
+      rings_position = position_in;
       rings_engine = engine_in;
     }
     if (voice_number == 2) {
@@ -796,7 +772,7 @@ void read_buttons() {
       clouds_morph = morph_in;
       clouds_timbre = timbre_in;
       clouds_harm = harm_in;
-      clouds_pos = pos_mod;
+      clouds_pos = position_in;
       clouds_engine = engine_in;
     }
 
@@ -810,6 +786,7 @@ void read_buttons() {
       morph_in = plaits_morph;
       timbre_in = plaits_timbre;
       harm_in = plaits_harm;
+      position_in = plaits_position;
 
     } else if (voice_number == 1) {
       engine_in = rings_engine; // % 6;
@@ -817,7 +794,7 @@ void read_buttons() {
       morph_in = rings_morph;
       harm_in = rings_harm;
       timbre_in = rings_timbre;
-      //pos_mod = rings_pos;
+      position_in = rings_position;
 
     } else if (voice_number == 2 ) {
       engine_in = braids_engine; // engine_in % 46;
@@ -910,10 +887,10 @@ void read_cv() {
   morph_mod = mapf ( (float) morph_mod, 180.0f, 1023.0f, 0.00f, 1.000f);
 
   // don't remember if this was important
-  int16_t pos = avg_cv(CV4) ; // f&d noise floor
-  pos_mod = (float) pos;
-  pos_mod = mapf ( pos_mod, 180.0f, 1023.0f, 0.00f, 1.000f);
-
+  float pos = avg_cv(CV4) * 1.0f ; // f&d noise floor
+  pos_mod = mapf (  pos, 180.0f, 1023.0f, 0.00f, 1.000f);
+  pos_mod = constrain(pos, 0.00f, 1.00f);
+  
   int16_t lpgColor =  avg_cv(CV5);
   lpg_in = mapf( (float) lpgColor, 180.0f, 1023.0f, 0.00f, 1.000f);
 
