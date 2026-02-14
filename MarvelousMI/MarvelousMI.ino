@@ -22,25 +22,18 @@ bool debug = false;
 #include <iostream>
 #include <vector>
 #include <algorithm>
-#include <Wire.h>
-#include <MIDI.h>
-
-/*struct Serial1MIDISettings : public midi::DefaultSettings
-  {
-  static const long BaudRate = 31250;
-  static const int8_t TxPin  = 3;
-  static const int8_t RxPin  = 1;
-  };*/
+//#include <Wire.h>
 
 #include <SoftwareSerial.h>
+
+#include <MIDI.h>
 using Transport = MIDI_NAMESPACE::SerialMIDI<SoftwareSerial>;
 int rxPin = 1;
 int txPin = 3;
-SoftwareSerial mySerial = SoftwareSerial(rxPin, txPin);
+SoftwareSerial mySerial = SoftwareSerial(rxPin, txPin); //thruActivated
 Transport serialMIDI(mySerial);
 MIDI_NAMESPACE::MidiInterface<Transport> MIDI((Transport&)serialMIDI);
 
-//MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, Serial1, MIDI, Serial1MIDISettings);
 
 // start with CV input, switch on midi in or setting.
 bool midi_switch = false;
@@ -423,6 +416,7 @@ Adafruit_SSD1306 display(dw, dh, &Wire, OLED_RESET);
 #include "font.h"
 #include "helvnCB6pt7b.h"
 #define myfont helvnCB6pt7b // Org_01 looks better but is small.
+#define smallfont Org_01
 #include "display.h"
 
 
@@ -552,7 +546,7 @@ void setup() {
   */
 
   // initialize enveloope settings
-  env->setAttackRate(.01 * SAMPLERATE);  // .01 second
+  env->setAttackRate(.05 * SAMPLERATE);  // .01 second
   env->setDecayRate(.3 * SAMPLERATE);
   env->setReleaseRate(5 * SAMPLERATE);
   env->setSustainLevel(.8);
@@ -672,7 +666,7 @@ void loop1() {
   if (! writing) { // don't do shit when eeprom is being written
 
 
-    MIDI.read();
+
 
     // we need these on boot so the second loop can catch the startup button.
     btn_one.update();
@@ -700,6 +694,7 @@ void loop1() {
     read_encoders();
 
     if ( now - update_timer > 5 ) {
+      MIDI.read();
       if ( midi_switch == false && midi_switch_setting == false ) {
         voct_midi(CV1);
       }
@@ -875,14 +870,19 @@ void read_trigger() {
     if (trig  == HIGH ) {
       trigger_in = 1.0f;
       //trigger_on = true;
-      envTimer = millis();
-      env->gate(true);
+      //if (millis() - envTimer > 50) {
+        envTimer = millis();
+        env->gate(true);
+      //}
 
     } else  {
       //don't turn off here?
       trigger_in = 0.0f;
-      envTimer = 0;
-      env->gate(false);
+      // don't retrigger ADSR too quickly
+      //if (millis() - envTimer > 50) {
+        envTimer = 0;
+        env->gate(false);
+      //}
       //trigger_on = false;
     }
     if (voice_number == 0) updateVoicetrigger();

@@ -22,6 +22,22 @@ void display_value(int16_t value) {
   display_timer = millis();
 }
 
+/* draw a circle gauge 8 pixels line in a half circle.
+    int data curren value, 1 - 100
+    int centerX, centerY, placement on screen assuming 128x32
+
+
+*/
+void drawCircle( int data, int centerX = 64, int centerY = 16) {
+  int pointerLength = 6;
+  int angle = map(data, 0, 100, -180, 0); // Map the data to an angle
+  float radian = DEG_TO_RAD * angle; // Convert the angle to radian
+  int x = round(centerX + (pointerLength * cos(radian)));
+  int y = round(centerY + (pointerLength * sin(radian)));
+  //drawLine(centerX, centerY, x, y);
+  display.drawLine(centerX, centerY, x, y, SSD1306_WHITE);
+  //display.display(); // Update screen with each newly-drawn
+}
 
 typedef struct {
   int x;
@@ -49,45 +65,58 @@ const pos_t edit_text_offset = { .x = 3, .y = 22,  .str = "" };
 const int gate_bar_width = 14;
 const int gate_bar_height = 4;
 
+void updateGauges() {
+
+  // morph
+  drawCircle( morph_in * 100, line_2_1.x + 16, line_2_1.y );
+  if (voice_number != 2) {
+    // harm
+    drawCircle( harm_in * 100, line_2_2.x + 16, line_2_2.y );
+    // position
+    drawCircle( position_in * 100, line_1_3.x + 16, line_1_3.y );
+  }
+  //timbre
+  drawCircle( timbre_in * 100, line_2_3.x + 16, line_2_3.y );
+}
+
 void displayPlaits() {
   display.clearDisplay();
+  display.setFont(&Org_01);
   // // name
   display.setCursor(line_1_1.x, line_1_1.y);
   display.print(oscnames[engine_in]);
-  display.print(" ");
- // display.print(midi_switch_setting);
+
   display.setCursor(line_1_3.x, line_1_3.y);
-  display.print("P:");
-  display.print(position_in);
-  
-  //display.setCursor(line_1_2.x, line_1_2.y);
-  //display.print(oscnames[engine_in]);
+  display.print("P");
+  //display.print(position_in);
+
   // morph
   display.setCursor(line_2_1.x, line_2_1.y);
-  display.print("M:");
-  display.print(morph_in);
+  display.print("M");
+  //display.print(morph_in);
+
+
   // harmonics
   display.setCursor(line_2_2.x, line_2_2.y);
-  display.print("H:");
-  display.print(harm_in);  // user sees 1-8
+  display.print("H");
+  //display.print(harm_in);  // user sees 1-8
+
   // timber
   display.setCursor(line_2_3.x, line_2_3.y);
-  display.print("T:");
-  display.print(timbre_in);
-
-
-  //display.print(voices[0].patch.note);
-
-  // play/pause
-  //display.setCursor(line_2_3.x, line_2_3.y);
-  //display.print("m: ");
-  //display.print(display_mode);
-
+  display.print("T");
+  //display.print(timbre_in);
+  updateGauges();
   display.display();
 }
 
+
+
+
+
+
 void displayRings() {
   display.clearDisplay();
+    
   // // name
   display.setCursor(line_1_1.x, line_1_1.y);
   if (easterEgg) {
@@ -95,36 +124,36 @@ void displayRings() {
   } else {
     display.print(modelnames[engine_in]);
   }
-  display.print(" ");
-  //display.print(midi_switch_setting);
+
   display.setCursor(line_1_3.x, line_1_3.y);
-  display.print("p:");
-  display.print(position_in);
-  
+  display.print("P");
+  //display.print(position_in);
+
   //display.setCursor(line_1_2.x, line_1_2.y);
   //display.print(oscnames[engine_in]);
   // morph
   display.setCursor(line_2_1.x, line_2_1.y);
-  display.print("M: ");
-  display.print(morph_in);
+  display.print("M");
+  //display.print(morph_in, 4);
   // harmonics
   display.setCursor(line_2_2.x, line_2_2.y);
-  display.print("H: ");
-  display.print(harm_in);  // user sees 1-8
+  display.print("H");
+  //display.print(harm_in, 4);  // user sees 1-8
   // timber
   display.setCursor(line_2_3.x, line_2_3.y);
-  display.print("T: ");
-  display.print(timbre_in);
+  display.print("T");
+  //display.print(timbre_in,4);
 
   //display.setCursor(line_1_2.x, line_2_1.y);
   //display.print("P:");
   //display.print(voices[0].patch.note);
 
   // play/pause
-  //display.setCursor(line_2_3.x, line_2_3.y);
-  //display.print("m: ");
+  display.setCursor(line_3_1.x, line_3_1.y);
+  display.print("FOOBAR");
   //display.print(display_mode);
 
+  updateGauges();
   display.display();
 }
 
@@ -133,23 +162,20 @@ void displayBraids() {
   display.clearDisplay();
   // // name
   display.setCursor(line_1_1.x, line_1_1.y);
-  display.print(engine_in);
-  display.print(" ");
   display.print(braidsnames[engine_in]);
- //display.setCursor(line_1_2.x, line_1_2.y);
-  //display.print(oscnames[engine_in]);
-  // morph
+
   display.setCursor(line_2_1.x, line_2_1.y);
-  display.print("C: ");
-  display.print(morph_in);
+  display.print("C");
+  //display.print(morph_in);
   // harmonics
   //display.setCursor(line_2_2.x, line_2_2.y);
   //display.print("H: ");
   //display.print(harm_in);  // user sees 1-8
   // timber
   display.setCursor(line_2_3.x, line_2_3.y);
-  display.print("T: ");
-  display.print(timbre_in);
+  display.print("T");
+
+  //display.print(timbre_in);
   //display.setCursor(line_1_2.x, line_2_1.y);
   //display.print("P:");
   //display.print(voices[0].patch.note);
@@ -158,6 +184,7 @@ void displayBraids() {
   //display.print("m: ");
   //display.print(display_mode);
 
+  updateGauges();
   display.display();
 }
 
