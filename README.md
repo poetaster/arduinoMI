@@ -19,15 +19,21 @@ BraidsEngines, PlaitsEngines, RingsEngines, are just duplicates for ease of edit
 A number of sketches for the tonetoys scarp (my button punching pico project https://github.com/poetaster/scarp) are included here as it's convenient. For me :)
 
 To use the sketch, copy (or clone the submodules) STMLIB and BRAIDS (for instance) directories to you ~/Arduino/libraries folder, open the BraidsEngines sketch change 
-
+```
 #define PWMOUT 22
-
+```
 to match whatever pin your using and
 
 choose 250mHz overclocking (well, 200 will do it too, but, 250 is stable and some require all out 276mHz) and optimize -O2 (or -O3). Then install it on your pico. 
 
 You should hear it step through the patches making small changes as it goes.
 
+### A note for Macos
+
+There appear to be a couple of ways to get this compiling on the Mac. One method is to remove the 'module_all.cpp' include files in the 'src' directory' and let the linker find the files another is a named thing which works on linux and macOs (though I don't know about windows). That method renames all .cc files to, for instance, .inc and lists those files in the 'module_all.cpp' file. I'm working on some defines to deal with that.
+
+
+## Basic usage
 
 The STMLIB, BRAIDS and PLAITS directories can be placed in your Arduino/libraries/ folder and used as follows, for braids & plaits:
 ```
