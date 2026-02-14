@@ -54,7 +54,8 @@ void displayPlaits() {
   // // name
   display.setCursor(line_1_1.x, line_1_1.y);
   display.print(oscnames[engine_in]);
-  
+  display.print(" ");
+ // display.print(midi_switch_setting);
   display.setCursor(line_1_3.x, line_1_3.y);
   display.print("P:");
   display.print(position_in);
@@ -94,6 +95,8 @@ void displayRings() {
   } else {
     display.print(modelnames[engine_in]);
   }
+  display.print(" ");
+  //display.print(midi_switch_setting);
   display.setCursor(line_1_3.x, line_1_3.y);
   display.print("p:");
   display.print(position_in);

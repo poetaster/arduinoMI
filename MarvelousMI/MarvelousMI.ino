@@ -25,14 +25,22 @@ bool debug = false;
 #include <Wire.h>
 #include <MIDI.h>
 
-struct Serial1MIDISettings : public midi::DefaultSettings
-{
+/*struct Serial1MIDISettings : public midi::DefaultSettings
+  {
   static const long BaudRate = 31250;
   static const int8_t TxPin  = 3;
   static const int8_t RxPin  = 1;
-};
+  };*/
 
-MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, Serial1, MIDI, Serial1MIDISettings);
+#include <SoftwareSerial.h>
+using Transport = MIDI_NAMESPACE::SerialMIDI<SoftwareSerial>;
+int rxPin = 1;
+int txPin = 3;
+SoftwareSerial mySerial = SoftwareSerial(rxPin, txPin);
+Transport serialMIDI(mySerial);
+MIDI_NAMESPACE::MidiInterface<Transport> MIDI((Transport&)serialMIDI);
+
+//MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, Serial1, MIDI, Serial1MIDISettings);
 
 // start with CV input, switch on midi in or setting.
 bool midi_switch = false;
@@ -193,6 +201,7 @@ int   clouds_engine = 0;
 bool  freeze_in = false;
 int   voice_in = 4;
 
+bool trigger_on = false;
 
 int max_engines = 18; // varies per backend
 
@@ -855,19 +864,28 @@ void voct_midi(int cv_in) {
   }
 }
 
+
+
 // in marvelous, moved to digital pin tx/gp0
 void read_trigger() {
   int16_t trig = digitalRead(0);
-
+  // tricky conflicts with default uarts
   if ( midi_switch == false && midi_switch_setting == false ) {
-    if (trig > HIGH ) {
+
+    if (trig  == HIGH ) {
       trigger_in = 1.0f;
-      if (voice_number == 0) updateVoicetrigger();
+      //trigger_on = true;
+      envTimer = millis();
+      env->gate(true);
 
     } else  {
       //don't turn off here?
       trigger_in = 0.0f;
+      envTimer = 0;
+      env->gate(false);
+      //trigger_on = false;
     }
+    if (voice_number == 0) updateVoicetrigger();
 
   }
 
@@ -890,7 +908,7 @@ void read_cv() {
   float pos = avg_cv(CV4) * 1.0f ; // f&d noise floor
   pos_mod = mapf (  pos, 180.0f, 1023.0f, 0.00f, 1.000f);
   pos_mod = constrain(pos, 0.00f, 1.00f);
-  
+
   int16_t lpgColor =  avg_cv(CV5);
   lpg_in = mapf( (float) lpgColor, 180.0f, 1023.0f, 0.00f, 1.000f);
 
