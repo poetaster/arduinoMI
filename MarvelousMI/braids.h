@@ -121,14 +121,15 @@ void updateBraidsAudio() {
   // render
   osc->Render(sync_buffer, buffer, size);
   // copy to output buffer
-  for (int count = 0; count < 32; count++) {
+  
+ /* for (int count = 0; count < 32; count++) {
 
     int16_t sample =   (int16_t) ( (float) inst[0].pd.buffer[count] * env->process() ) ;
     out_bufferL[count] = sample;
     
     //out_bufferL[count] = inst[0].pd.buffer[count];
     //out_bufferR[count] = inst[0].pd.buffer[count];
-  }
+  }*/
 
 }
 

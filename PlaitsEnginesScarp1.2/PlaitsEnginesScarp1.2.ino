@@ -233,7 +233,7 @@ void updateAudio(uint8_t engine_idx, bool triggerNow, float master_volume = 0.4f
     voice.modulations.trigger_patched = true;
   }
   else if (is_wave_terrain || is_chiptune || is_drum) {
-    voice.patch.decay = (is_drum ? 0.2f : 0.3f);
+    voice.patch.decay = (is_drum ? 0.3f : 0.4f);
     voice.modulations.trigger = triggerNow ? 1.0f : 0.0f;
     //voice.modulations.trigger_patched = true;
     voice.modulations.level = 1.0f;
@@ -344,7 +344,10 @@ void loop() {
   
   
   // now apply the envelope
- 
+  for (size_t i = 0; i < AUDIO_BLOCK; ++i) {
+    int16_t sample =   (int16_t) ( (float) voice.out_buffer[i].out * env->process() ) ;
+    shared_buffer[i] = sample;
+  }
   
   // push it to the dac.
   for (int i = 0; i < AUDIO_BLOCK; i++)

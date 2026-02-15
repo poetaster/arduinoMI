@@ -459,14 +459,14 @@ void setup() {
   enc3.begin();
 
   delay(100);
-
-  if (ITimer0.attachInterruptInterval(TIMER0_INTERVAL_MS, TimerHandler0)) // that's 48kHz
-  {
-    if (debug) Serial.print(F("Starting  ITimer0 OK, millis() = ")); Serial.println(millis());
-  }  else {
-    if (debug) Serial.println(F("Can't set ITimer0. Select another freq. or timer"));
-  }
-
+  /*
+    if (ITimer0.attachInterruptInterval(TIMER0_INTERVAL_MS, TimerHandler0)) // that's 48kHz
+    {
+      if (debug) Serial.print(F("Starting  ITimer0 OK, millis() = ")); Serial.println(millis());
+    }  else {
+      if (debug) Serial.println(F("Can't set ITimer0. Select another freq. or timer"));
+    }
+  */
   // set up Pico PWM audio output the DAC2 stereo approach works./
   DAC.setBuffers(4, 32); //plaits::kBlockSize * 4); // DMA buffers
   //DAC.onTransmit(cb);
@@ -595,46 +595,41 @@ void setup() {
 
 void loop() {
 
-  // if the timer has pushed ouput, calculate next samples
-  if (counter == 1) {
+  if ( DAC.availableForWrite()) {
+    // if the timer has pushed ouput, calculate next samples
+    //if (counter == 1) {
 
     if (voice_number == 0) {
       updatePlaitsAudio();
+      // now apply the envelope
+
+      for (size_t i = 0; i < plaits::kBlockSize; ++i) {
+        int16_t sampleL = (int16_t) ( (float) outputPlaits[i].out * env->process() ) ;
+        int16_t sampleR = (int16_t) ( (float) outputPlaits[i].aux * env->process() ) ;
+        //out_bufferL[i] = sample;
+        DAC.write( sampleL );
+        DAC.write( sampleR );
+      }
     } else if (voice_number == 1) {
-
       updateRingsAudio();
-
+      for (size_t i = 0; i < 32; i++) {
+        DAC.write( out_bufferL[i] );
+        DAC.write( out_bufferL[i] );
+      }
     } else if (voice_number == 2) {
 
       updateBraidsAudio();
-
+      for (size_t i = 0; i < 32; i++) {
+        int16_t sample =   (int16_t) ( (float) inst[0].pd.buffer[i] * env->process() ) ;
+        //int32_t sample = static_cast<int32_t>(out_bufferL[i] * env->process() );
+        DAC.write( sample );
+        DAC.write( sample );
+      }
     }
 
-    /*else if (voice_number == 3) {
 
-      // clouds, samplebuffer at same time
-      // or braids into buffer directly.
-      updateBraidsAudio();
 
-      // copy the braids audio to the clouds input buffer
-      clouds::FloatFrame  *input = cloud[0].input;
-
-      for (int i = 0; i < 32; i++) {
-
-        float sample = (float) ( inst[0].pd.buffer[i] / 32768.0f ) * 0.5f;
-        //float sample = (float) ( analogRead(CV7) / 1023.0f ) * 0.9f;
-        input[i].l = sample;
-        input[i].r = sample;  // Mono input
-
-      }
-      //for (size_t i = 0; i < 32; ++i) {
-      //  sample_buffer[i] = (float) ( analogRead(CV7) ); // arbitrary +1 gain
-      //}
-
-      updateCloudsAudio();
-      }*/
-
-    counter = 0; // increments on each pass of the timer when the timer writes
+    //counter = 0; // increments on each pass of the timer when the timer writes
   }
 
   /*
@@ -642,6 +637,32 @@ void loop() {
       writeSettings(); // after switching, save this state to flash.
     }
   */
+
+  /*
+     disabled clouds
+     else if (voice_number == 3) {
+
+    // clouds, samplebuffer at same time
+    // or braids into buffer directly.
+    updateBraidsAudio();
+
+    // copy the braids audio to the clouds input buffer
+    clouds::FloatFrame  *input = cloud[0].input;
+
+    for (int i = 0; i < 32; i++) {
+
+    float sample = (float) ( inst[0].pd.buffer[i] / 32768.0f ) * 0.5f;
+    //float sample = (float) ( analogRead(CV7) / 1023.0f ) * 0.9f;
+    input[i].l = sample;
+    input[i].r = sample;  // Mono input
+
+    }
+    //for (size_t i = 0; i < 32; ++i) {
+    //  sample_buffer[i] = (float) ( analogRead(CV7) ); // arbitrary +1 gain
+    //}
+
+    updateCloudsAudio();
+    }*/
 }
 
 
@@ -774,7 +795,7 @@ void read_buttons() {
 
     if (voice_number == 0) {
       engine_in = plaits_engine; // engine_in % 17;
-      max_engines = 18; // was 15
+      max_engines = 21; // was 15
       morph_in = plaits_morph;
       timbre_in = plaits_timbre;
       harm_in = plaits_harm;
@@ -858,8 +879,8 @@ void read_trigger() {
       trigger_in = 1.0f;
       //trigger_on = true;
       //if (millis() - envTimer > 50) {
-        envTimer = millis();
-        env->gate(true);
+      envTimer = millis();
+      env->gate(true);
       //}
 
     } else  {
@@ -867,8 +888,8 @@ void read_trigger() {
       trigger_in = 0.0f;
       // don't retrigger ADSR too quickly
       //if (millis() - envTimer > 50) {
-        envTimer = 0;
-        env->gate(false);
+      envTimer = 0;
+      env->gate(false);
       //}
       //trigger_on = false;
     }
@@ -896,8 +917,9 @@ void read_cv() {
   pos_mod = mapf (  pos, 180.0f, 1023.0f, 0.00f, 1.000f);
   pos_mod = constrain(pos, 0.00f, 1.00f);
 
-  int16_t lpgColor =  avg_cv(CV5);
-  lpg_in = mapf( (float) lpgColor, 180.0f, 1023.0f, 0.00f, 1.000f);
+  // plaits
+  //int16_t lpgColor =  avg_cv(CV5);
+  //lpg_in = mapf( (float) lpgColor, 180.0f, 1023.0f, 0.00f, 1.000f);
 
   if (voice_number == 0 || voice_number == 1) {
     // plaits
@@ -1005,6 +1027,10 @@ void read_encoders() {
     }
     if (engineCount < 0 ) {
       engineCount = max_engines;
+    }
+    // plaits is tricky
+    if (voice_number == 0) {
+      //changePlaitsEngine(engineCount);
     }
     engine_in = engineCount;
   }
