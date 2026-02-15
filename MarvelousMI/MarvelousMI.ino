@@ -602,14 +602,6 @@ void loop() {
       updatePlaitsAudio();
     } else if (voice_number == 1) {
 
-      // gather input for rings not for now
-      if (timb_mod > 0.99f) {
-        //rings
-        for (size_t i = 0; i < 32; ++i) {
-          CV1_buffer[i] = (float) ( avg_cv(CV6) / 1023.0f) ;
-        }
-      }
-
       updateRingsAudio();
 
     } else if (voice_number == 2) {
@@ -665,14 +657,10 @@ void loop1() {
 
   if (! writing) { // don't do shit when eeprom is being written
 
-
-
-
     // we need these on boot so the second loop can catch the startup button.
     btn_one.update();
     btn_two.update();
     btn_four.update();
-
 
 
     // at boot permit octave down
@@ -839,7 +827,6 @@ float voct_midiBraids(int cv_in) {
 
 
 void voct_midi(int cv_in) {
-  // this seems sufficient with 3 reads.
   int val = 0;
   for (int j = 0; j < cv_avg; ++j) val += analogRead(cv_in); // read the A/D a few times and average for a more stable value
   val = val / cv_avg;
