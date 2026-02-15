@@ -216,11 +216,11 @@ void updateCloudsAudio() {
 
   if (p->trigger)
     p->trigger = false;
-
+/*
   for (int i = 0; i < cloudsAudioBlockSize; ++i) {
     out_bufferL[i] = stmlib::Clip16( static_cast<int32_t>(  (  output[i].l )  * 32768.0f  ) ) ;
 
   }
-
+*/
 
 }

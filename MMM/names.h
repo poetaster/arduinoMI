@@ -1,28 +1,8 @@
 const char* const oscnames[] = {
-  "V-Analog",
-  "Wv-Shape",
-  "FM",
-  "Grains",
-  "Add",
-  "Wv-Table",
-  "Chord",
-  "Speech",
-  "Swarm",
-  "Noise",
-  "Partcl",
-  "String",
-  "Modal",
-  "Wv-Terain",
-  "VA-VCF",
-  "PhaseDist",
-  "BASSD",
-  "SNARED",
-  "HI-HAT",
-}; 
-
-//   "6op1",
-//  "6op2",
-//  "6op3",
+   "Virtual Analog", "Waveshaping", "FM", "Grain", "Additive", "Wavetable", "Chord", "Speech",
+  "Swarm", "Noise", "Particle", "String", "Modal", "Bass Drum", "Snare Drum", "Hi-Hat", 
+  "Six OP 0", "Six OP 1", "Six OP 2","Virtual Analog VCF", "Phase Distortion", "Wave Terrain"
+  };
 
 const size_t nameslength = sizeof(oscnames) / sizeof(oscnames[0]);
 

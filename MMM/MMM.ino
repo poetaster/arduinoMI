@@ -68,6 +68,10 @@ float mapping_lower_limit = 0.0;
 // encoder related // 2,3 8,9
 #include "pio_encoder.h"
 
+PioEncoder enc1(18);
+PioEncoder enc2(2);
+PioEncoder enc3(8);
+
 const int enc1A_pin = 18;
 const int enc1B_pin = 19;
 const int enc2A_pin = 2;
@@ -76,10 +80,6 @@ const int enc3A_pin = 8;
 const int enc3B_pin = 9;
 
 const int encoderSW_pin = 28;
-
-PioEncoder enc1(18);
-PioEncoder enc2(2);
-PioEncoder enc3(8);
 
 
 // cv input
@@ -202,6 +202,11 @@ int max_engines = 18; // varies per backend
 
 #include "names.h"
 
+int addr = 0; // for writing to flash
+int wrote = 0;
+bool writing = false;
+bool reading = false;
+
 // clock timer  stuff
 
 #define TIMER_INTERRUPT_DEBUG         0
@@ -241,21 +246,6 @@ bool TimerHandler0(struct repeating_timer *t) {
 
   return true;
 }
-
-// callback for pwm method. we're not using it
-void cb() {
-  bool sync = true;
-  if ( DAC.availableForWrite() > 32) {
-    for (size_t i = 0; i < plaits::kBlockSize; i++) {
-      DAC.write( outputPlaits[i].out); // 244 is mozzi audio bias
-    }
-    counter = 1;
-  }
-}
-int addr = 0; // for writing to flash
-int wrote = 0;
-bool writing = false;
-bool reading = false;
 
 
 // called at voice chage to save current values of all voices.
@@ -424,18 +414,13 @@ void setup() {
     Serial.begin(57600);
     Serial.println(F("YUP"));
   }
-  // pwm timing setup
-  // we're using a pseudo interrupt for the render callback since internal dac callbacks crash
-  // Frequency in float Hz
-  //ITimer0.attachInterrupt(TIMER_FREQ_HZ, TimerHandler0);
-
+  /*
   if (ITimer0.attachInterruptInterval(TIMER0_INTERVAL_MS, TimerHandler0)) // that's 48kHz
   {
     if (debug) Serial.print(F("Starting  ITimer0 OK, millis() = ")); Serial.println(millis());
   }  else {
     if (debug) Serial.println(F("Can't set ITimer0. Select another freq. or timer"));
-  }
-
+  }*/
 
   // set up Pico PWM audio output the DAC2 stereo approach works./
   DAC.setBuffers(4, 32); //plaits::kBlockSize * 4); // DMA buffers
@@ -543,18 +528,39 @@ void setup() {
 }
 
 
-
 void loop() {
 
-  if (counter == 1) {
+  if ( DAC.availableForWrite()) {
+
     if (voice_number == 0) {
+
       updatePlaitsAudio();
+      // now apply the envelope
+      for (size_t i = 0; i < plaits::kBlockSize; ++i) {
+        int16_t sampleL = (int16_t) ( (float) outputPlaits[i].out  ) ;
+        //int16_t sampleR = (int16_t) ( (float) outputPlaits[i].aux  ) ;
+        //out_bufferL[i] = sample;
+        DAC.write( sampleL );
+        //DAC.write( sampleR );
+      }
+
     } else if (voice_number == 1) {
+      // we're not doing stereo because we get neat poly output with note ins like this
       updateRingsAudio();
+      for (size_t i = 0; i < 32; i++) {
+        DAC.write( out_bufferL[i] );
+        //DAC.write( out_bufferL[i] );
+      }
+
     } else if (voice_number == 2) {
+      // just mono for now
       updateBraidsAudio();
+      for (size_t i = 0; i < 32; i++) {
+        int16_t sample =   (int16_t) ( (float) inst[0].pd.buffer[i] ) ;
+        DAC.write( sample );
+        //DAC.write( sample );
+      }
     } else if (voice_number == 3) {
-      
       // clouds, samplebuffer at same time
       // or braids into buffer directly.
       updateBraidsAudio();
@@ -562,20 +568,20 @@ void loop() {
       clouds::FloatFrame  *input = cloud[0].input;
       
       for (int i = 0; i < 32; i++) {
-        
         float sample = (float) ( inst[0].pd.buffer[i] / 32768.0f ) * 0.5f;
         //float sample = (float) ( analogRead(CV7) / 4095.0f ) * 0.9f;
         input[i].l = sample;
         input[i].r = sample;  // Mono input
 
       }
-      //for (size_t i = 0; i < 32; ++i) {
-      //  sample_buffer[i] = (float) ( analogRead(CV7) ); // arbitrary +1 gain
-      //}
-      
       updateCloudsAudio();
+      clouds::FloatFrame  *output = cloud[0].output;
+      for (int i = 0; i < 32; i++) {
+        int16_t sampleL =  stmlib::Clip16( static_cast<int32_t>(  (  output[i].l )  * 32768.0f  ) ) ;
+        DAC.write( sampleL );
+        //DAC.write( sampleR );
+      }
     }
-    counter = 0; // increments on each pass of the timer when the timer writes
   }
 
   /*
@@ -614,9 +620,20 @@ void loop1() {
       read_trigger();
       read_cv();
       read_encoders();
-      displayUpdate();
       read_buttons();
+
       update_timer = now;
+
+      // display updates
+      if (voice_number == 0) {
+        displayPlaits();
+      } else if (voice_number == 1) {
+        displayRings();
+      } else if (voice_number == 2) {
+        displayBraids();
+      } else {
+        displayUpdate();
+      }
     }
 
     if (voice_number == 0) {

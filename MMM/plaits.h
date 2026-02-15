@@ -66,9 +66,7 @@ void initPlaits() {
   voices[0].shared_buffer = (char*)malloc(32756);
   // init with zeros
   memset(voices[0].shared_buffer, 0, 32756);
-
   stmlib::BufferAllocator allocator(voices[0].shared_buffer, 32756);
-
   voices[0].voice_ = new plaits::Voice;
   voices[0].voice_->Init(&allocator);
 
@@ -77,21 +75,20 @@ void initPlaits() {
 
   // start with no CV input
   voices[0].prev_trig = false;
-  voices[0].modulations.timbre_patched = true;  //(INRATE(3) != calc_ScalarRate);
-  voices[0].modulations.morph_patched = true;   // (INRATE(4) != calc_ScalarRate);
-  voices[0].modulations.trigger_patched = true; //(INRATE(5) != calc_ScalarRate);
-  voices[0].modulations.level_patched = false;   // (INRATE(6) != calc_ScalarRate);
+  //voices[0].modulations.timbre_patched = true;  //(INRATE(3) != calc_ScalarRate);
+  //voices[0].modulations.morph_patched = true;   // (INRATE(4) != calc_ScalarRate);
+  //voices[0].modulations.trigger_patched = true; //(INRATE(5) != calc_ScalarRate);
+  //voices[0].modulations.level_patched = false;   // (INRATE(6) != calc_ScalarRate);
   // TODO: we don't have an fm input yet.
   voices[0].modulations.frequency_patched = false;
+    voices[0].patch.lpg_colour = 0.2f;//lpg_in;
+  voices[0].patch.decay = 0.5f;
 
 }
 
 void updatePlaitsAudio() {
   voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
-  for (size_t i = 0; i < plaits::kBlockSize; i++) {
-    out_bufferL[i] = outputPlaits[i].out ;
-    //out_bufferR[i] = outputPlaits[i].aux ;
-  }
+
 }
 
 void updatePlaitsControl() {
@@ -110,7 +107,7 @@ void updatePlaitsControl() {
   } else {
     modulation = pos_mod;
   }
-  float harm = (harm_in + pos_mod);
+  float harm = (harm_in);
   CONSTRAIN(harm, 0.0f, 1.0f);
   
   voices[0].patch.engine = engine_in;
@@ -118,9 +115,9 @@ void updatePlaitsControl() {
   voices[0].patch.harmonics = harm;
   voices[0].patch.morph = morph;
   voices[0].patch.timbre = timbre;
-  voices[0].patch.timbre_modulation_amount = timb_mod;
-  voices[0].patch.morph_modulation_amount = morph_mod;
-  voices[0].patch.lpg_colour = lpg_in;
+  //voices[0].patch.timbre_modulation_amount = timb_mod;
+  //voices[0].patch.morph_modulation_amount = morph_mod;
+  //voices[0].patch.lpg_colour = lpg_in;
     
   /*
     voices[0].octave_ = octave_in;
@@ -137,6 +134,8 @@ void updateVoicetrigger() {
   if (trigger_flag) {
     voices[0].modulations.trigger = 0.9f;
     voices[0].modulations.trigger_patched = true;
+    voices[0].modulations.level = 1.0f;
+    voices[0].modulations.level_patched = true; 
   } else {
     voices[0].modulations.trigger_patched = false;
     voices[0].modulations.trigger = 0.0f;
