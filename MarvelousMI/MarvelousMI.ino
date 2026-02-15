@@ -27,6 +27,9 @@ bool debug = false;
 #include <SoftwareSerial.h>
 
 #include <MIDI.h>
+// this method permits us to use arbitrary pins
+// in pico land this is also a PIO statemachine (uart)
+
 using Transport = MIDI_NAMESPACE::SerialMIDI<SoftwareSerial>;
 int rxPin = 1;
 int txPin = 3;
@@ -41,8 +44,6 @@ bool midi_switch_setting = false;
 
 #include <I2S.h>
 #define SAMPLERATE 48000
-#define PWMOUT 22
-#define PWMOUT2 30
 
 #define pBCLK 8
 #define pWS (pBCLK+1)
@@ -221,46 +222,8 @@ int max_engines = 18; // varies per backend
 
 #include "names.h"
 
-// clock timer  stuff
-
-#define TIMER_INTERRUPT_DEBUG         0
-#define _TIMERINTERRUPT_LOGLEVEL_     4
-
-// Can be included as many times as necessary, without `Multiple Definitions` Linker Error
-#include "RPi_Pico_TimerInterrupt.h"
-
-//unsigned int SWPin = CLOCKIN;
-
-#define TIMER0_INTERVAL_MS 20.833333333333 // running at 48Khz
-// 32768.0f 30.517578125
-// 24.390243902439025 // 44.1
-
-
-#define DEBOUNCING_INTERVAL_MS   u2// 80
-#define LOCAL_DEBUG              0
-
 volatile int counter = 0;
 volatile int repeat = 32;
-
-// Init RPI_PICO_Timer, can use any from 0-15 pseudo-hardware timers
-RPI_PICO_Timer ITimer0(0);
-
-bool TimerHandler0(struct repeating_timer *t) {
-  (void) t;
-  bool sync = true;
-
-  if ( DAC.availableForWrite()) {
-    for (size_t i = 0; i < 32; i++) {
-      int32_t sample = static_cast<int32_t>(out_bufferL[i]);
-      DAC.write( sample );
-      DAC.write( sample );
-    }
-
-    counter = 1;
-  }
-
-  return true;
-}
 
 int addr = 0; // for writing to flash
 int wrote = 0;
@@ -459,14 +422,7 @@ void setup() {
   enc3.begin();
 
   delay(100);
-  /*
-    if (ITimer0.attachInterruptInterval(TIMER0_INTERVAL_MS, TimerHandler0)) // that's 48kHz
-    {
-      if (debug) Serial.print(F("Starting  ITimer0 OK, millis() = ")); Serial.println(millis());
-    }  else {
-      if (debug) Serial.println(F("Can't set ITimer0. Select another freq. or timer"));
-    }
-  */
+
   // set up Pico PWM audio output the DAC2 stereo approach works./
   DAC.setBuffers(4, 32); //plaits::kBlockSize * 4); // DMA buffers
   //DAC.onTransmit(cb);
@@ -477,10 +433,8 @@ void setup() {
   delay(100);
 
 
-  // lets seee
+  // doesn't really get us anything
   //analogReadResolution(12);
-
-
 
   // thi is to switch to PWM for power to avoid ripple noise
   pinMode(23, OUTPUT);
@@ -491,7 +445,6 @@ void setup() {
   digitalWrite(11, LOW);
 
   pinMode(LED_BUILTIN, OUTPUT);
-
 
   // CV
   pinMode(CV1, INPUT);
@@ -539,13 +492,10 @@ void setup() {
   btn_two.attach( SW2 , INPUT_PULLUP);
   btn_two.interval(5);
   btn_two.setPressedState(LOW);
-  /*
-      //sw2.attach( SW2 , INPUT);
-      //sw2.interval(5);
-      //sw2.setPressedState(LOW);
-  */
+
 
   // initialize enveloope settings
+  
   env->setAttackRate(.05 * SAMPLERATE);  // .01 second
   env->setDecayRate(.3 * SAMPLERATE);
   env->setReleaseRate(5 * SAMPLERATE);
@@ -556,30 +506,20 @@ void setup() {
   //mode = midier::Mode::Ionian;
   //makeScale( roots[scaleRoot], mode);
 
-
-  // setup common output buffers
-  //out_bufferL = (int16_t*)malloc(32768 * sizeof(int16_t));
-  //memset(out_bufferL, 0, 32768 * sizeof(int16_t));
-  //out_bufferR = (int16_t*)malloc(32768 * sizeof(int16_t));
-  //memset(out_bufferR, 0, 32768 * sizeof(int16_t));
-
-
-  // init the plaits voices
+  // init synth engines
 
   initPlaits();
-  delay(200);
-  // prefill buffer
-  //voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);
-  delay(100);
+  delay(50);
   initRings();
-  delay(100);
+  delay(50);
   initBraids();
-  //delay(100);
+  //delay(100); not for now
   // initClouds();
 
   // Initialize wave switch states
   update_timer = millis();
   button_timer = millis();
+  
   just_booting = true;
   btn_one.update();
   btn_two.update();
@@ -592,17 +532,16 @@ void setup() {
 }
 
 
+// main loop for audio rendering
 
 void loop() {
 
   if ( DAC.availableForWrite()) {
-    // if the timer has pushed ouput, calculate next samples
-    //if (counter == 1) {
 
     if (voice_number == 0) {
+      
       updatePlaitsAudio();
       // now apply the envelope
-
       for (size_t i = 0; i < plaits::kBlockSize; ++i) {
         int16_t sampleL = (int16_t) ( (float) outputPlaits[i].out * env->process() ) ;
         int16_t sampleR = (int16_t) ( (float) outputPlaits[i].aux * env->process() ) ;
@@ -610,18 +549,20 @@ void loop() {
         DAC.write( sampleL );
         DAC.write( sampleR );
       }
+      
     } else if (voice_number == 1) {
+      // we're not doing stereo because we get neat poly output with note ins like this
       updateRingsAudio();
       for (size_t i = 0; i < 32; i++) {
         DAC.write( out_bufferL[i] );
         DAC.write( out_bufferL[i] );
       }
+      
     } else if (voice_number == 2) {
-
+      // just mono for now
       updateBraidsAudio();
       for (size_t i = 0; i < 32; i++) {
         int16_t sample =   (int16_t) ( (float) inst[0].pd.buffer[i] * env->process() ) ;
-        //int32_t sample = static_cast<int32_t>(out_bufferL[i] * env->process() );
         DAC.write( sample );
         DAC.write( sample );
       }
@@ -677,7 +618,9 @@ void setup1() {
 void loop1() {
 
   if (! writing) { // don't do shit when eeprom is being written
-
+    
+    MIDI.read();
+    
     // we need these on boot so the second loop can catch the startup button.
     btn_one.update();
     btn_two.update();
@@ -703,7 +646,7 @@ void loop1() {
     read_encoders();
 
     if ( now - update_timer > 5 ) {
-      MIDI.read();
+
       if ( midi_switch == false && midi_switch_setting == false ) {
         voct_midi(CV1);
       }
@@ -1036,61 +979,4 @@ void read_encoders() {
   }
   enc4_pos_last = enc4_pos;
 
-}
-
-
-void read_encoders2() {
-  /*
-    enc1.tick();
-    enc2.tick();
-    enc3.tick();
-    enc4.tick();
-    // meta encoder
-
-    int enc4_pos = enc4.getPosition();
-
-    if ( enc4_pos != enc4_pos_last ) {
-    engineCount =  (int) enc4.getDirection()  + engineCount ;
-    if (engineCount > max_engines) {
-      engineCount = 0;
-    }
-    if (engineCount < 0 ) {
-      engineCount = max_engines;
-    }
-    engine_in = engineCount;
-    }
-    enc4_pos_last = enc4_pos;
-
-
-    // first encoder
-    int enc1_pos = enc1.getPosition() ;
-
-    if ( enc1_pos != enc1_pos_last ) {
-    float turn = ( (float) (enc1.getDirection() ) * 0.01f )  + timbre_in;
-    constrain(turn, 0.f, 1.0f);
-    //if (debug) Serial.println(turn);
-    timbre_in = turn;
-    enc1_pos_last = enc1_pos;
-    }
-
-    // second encoder
-    int enc2_pos = enc2.getPosition();
-    if ( enc2_pos != enc2_pos_last ) {
-    float turn = ( (float)(enc2.getDirection()) * 0.01f ) + morph_in;
-    constrain(turn, 0.f, 1.0f);
-    //if (debug) Serial.println(turn);
-    morph_in = turn;
-    enc2_pos_last = enc2_pos;
-    }
-
-    // third encoder
-    int enc3_pos = enc3.getPosition();
-    if  ( enc3_pos != enc3_pos_last ) {
-    float turn = ( (float)(enc3.getDirection()) * 0.01f ) + harm_in;
-    constrain(turn, 0.f, 1.0f);
-    //if (debug) Serial.println(turn);
-    harm_in = turn;
-    enc3_pos_last = enc3_pos;
-    }
-  */
 }
