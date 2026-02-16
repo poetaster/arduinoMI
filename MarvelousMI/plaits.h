@@ -39,14 +39,6 @@ struct Unit {
 
 struct Unit voices[1];
 
-
-void changePlaitsEngine(uint8_t engine_idx) {
-  // Reuse workspace
-  memset(shared_plaits_workspace, 0, WORKSPACE_SIZE);
-  stmlib::BufferAllocator allocator(shared_plaits_workspace, WORKSPACE_SIZE);
-  voices[0].voice_->Init(&allocator);
-}
-
 // initialize voice parameters
 void initPlaits() {
   // init some params
@@ -75,6 +67,7 @@ void initPlaits() {
 
   // start with no CV input
   voices[0].prev_trig = false;
+  
   //voices[0].modulations.timbre_patched = false;  //(INRATE(3) != calc_ScalarRate);
   //voices[0].modulations.morph_patched = false;   // (INRATE(4) != calc_ScalarRate);
   //voices[0].modulations.trigger_patched = false; //(INRATE(5) != calc_ScalarRate);
@@ -88,8 +81,6 @@ void initPlaits() {
 
 void updatePlaitsAudio() {
   voices[0].voice_->Render(voices[0].patch, voices[0].modulations,  outputPlaits,  plaits::kBlockSize);  
-//    out_bufferL[i] = outputPlaits[i].out ;
-//    //out_bufferR[i] = outputPlaits[i].aux ;
 }
 
 void updatePlaitsControl() {

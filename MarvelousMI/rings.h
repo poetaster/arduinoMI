@@ -66,7 +66,7 @@ void updateRingsAudio() {
   }
 
   for (size_t i = 0; i < size; ++i) {
-    // we're reducing to mono for now. the stereo below does work..
+    // we're reducing to mono since we actually get polyphony for free
     out_bufferL[i] =   stmlib::Clip16(static_cast<int32_t>( ( ( instance[0].out[i]  + instance[0].aux[i]  )  ) * 32768.0f) );
 
     //out_bufferR[i] = stmlib::Clip16(static_cast<int32_t>((instance[0].aux[i]+.11) * 32768.0f)); // the .11 is gainwhich should be done by calibration.
@@ -101,7 +101,7 @@ void updateRingsControl() {
   // check input rates for excitation input
 
 
-  if ( timb_mod > 0.99f ) {
+  if ( timb_mod > 0.50f ) {
     // input on CV3
     // intern_exciter should be off, but user can override
     for (size_t i = 0; i < 32; ++i) {

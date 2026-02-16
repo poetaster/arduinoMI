@@ -87,9 +87,9 @@ float freq;
 float max_voltage_of_adc = 3.3;
 float voltage_division_ratio = 0.3333333333333;
 float notes_per_octave = 12;
-float volts_per_octave = 1;
-float mapping_upper_limit = 60.0; //(max_voltage_of_adc / voltage_division_ratio) * notes_per_octave * volts_per_octave;
-float mapping_lower_limit = 0.0;
+float volts_per_octave = 0.54;
+float mapping_upper_limit = 0; //60.0f; //(max_voltage_of_adc / voltage_division_ratio) * notes_per_octave * volts_per_octave;
+float mapping_lower_limit = 4095; //36.0f;
 
 
 // trigger is on gp0
@@ -434,7 +434,7 @@ void setup() {
 
 
   // doesn't really get us anything
-  //analogReadResolution(12);
+  analogReadResolution(12);
 
   // thi is to switch to PWM for power to avoid ripple noise
   pinMode(23, OUTPUT);
@@ -495,7 +495,7 @@ void setup() {
 
 
   // initialize enveloope settings
-  
+
   env->setAttackRate(.05 * SAMPLERATE);  // .01 second
   env->setDecayRate(.3 * SAMPLERATE);
   env->setReleaseRate(5 * SAMPLERATE);
@@ -519,7 +519,7 @@ void setup() {
   // Initialize wave switch states
   update_timer = millis();
   button_timer = millis();
-  
+
   just_booting = true;
   btn_one.update();
   btn_two.update();
@@ -528,6 +528,23 @@ void setup() {
   // let's see, seems to be too slow
   //LittleFS.begin();
   //readSettings(); // try to retrieve the voice settings from last session.
+
+  int sensorValue;
+
+  // calibrate note in CV1
+  while (millis() < 5000) {
+    sensorValue = analogRead(CV1);
+
+    // record the maximum sensor value
+    if (sensorValue > mapping_upper_limit) {
+      mapping_upper_limit = sensorValue;
+    }
+
+    // record the minimum sensor value
+    if (sensorValue < mapping_lower_limit) {
+      mapping_lower_limit = sensorValue;
+    }
+  }
 
 }
 
@@ -539,7 +556,7 @@ void loop() {
   if ( DAC.availableForWrite()) {
 
     if (voice_number == 0) {
-      
+
       updatePlaitsAudio();
       // now apply the envelope
       for (size_t i = 0; i < plaits::kBlockSize; ++i) {
@@ -549,7 +566,7 @@ void loop() {
         DAC.write( sampleL );
         DAC.write( sampleR );
       }
-      
+
     } else if (voice_number == 1) {
       // we're not doing stereo because we get neat poly output with note ins like this
       updateRingsAudio();
@@ -557,7 +574,7 @@ void loop() {
         DAC.write( out_bufferL[i] );
         DAC.write( out_bufferL[i] );
       }
-      
+
     } else if (voice_number == 2) {
       // just mono for now
       updateBraidsAudio();
@@ -593,7 +610,7 @@ void loop() {
     for (int i = 0; i < 32; i++) {
 
     float sample = (float) ( inst[0].pd.buffer[i] / 32768.0f ) * 0.5f;
-    //float sample = (float) ( analogRead(CV7) / 1023.0f ) * 0.9f;
+    //float sample = (float) ( analogRead(CV7) / 4095.0f ) * 0.9f;
     input[i].l = sample;
     input[i].r = sample;  // Mono input
 
@@ -618,9 +635,9 @@ void setup1() {
 void loop1() {
 
   if (! writing) { // don't do shit when eeprom is being written
-    
-    MIDI.read();
-    
+
+
+
     // we need these on boot so the second loop can catch the startup button.
     btn_one.update();
     btn_two.update();
@@ -645,16 +662,15 @@ void loop1() {
     // need faster updates
     read_encoders();
 
+    if ( midi_switch == false && midi_switch_setting == false ) {
+      voct_midi(CV1);
+    }
+    read_trigger();
+    MIDI.read();
+    
     if ( now - update_timer > 5 ) {
-
-      if ( midi_switch == false && midi_switch_setting == false ) {
-        voct_midi(CV1);
-      }
-      read_trigger();
       read_cv();
       read_buttons();
-      update_timer = now;
-
       // display updates
       if (voice_number == 0) {
         displayPlaits();
@@ -665,6 +681,8 @@ void loop1() {
       } else {
         displayUpdate();
       }
+      
+      update_timer = now;
     }
   }
 }
@@ -785,20 +803,20 @@ float voct_midiBraids(int cv_in) {
   int val = 0;
   for (int j = 0; j < cv_avg; ++j) val += analogRead(cv_in); // read the A/D a few times and average for a more stable value
   val = val / cv_avg;
-  pitch = pitch_offset + map(val, 0.0, 1023.0, mapping_upper_limit, 0.0); // convert pitch CV data value to a MIDI note number
+  pitch = pitch_offset + map(val, 0.0, 4095.0, mapping_upper_limit, 0.0); // convert pitch CV data value to a MIDI note number
   return pitch - 37; // don't know why, probably tuned to A so -5 + -36 to drop two octaves
 }
 
 
 void voct_midi(int cv_in) {
   int val = 0;
-  for (int j = 0; j < cv_avg; ++j) val += analogRead(cv_in); // read the A/D a few times and average for a more stable value
-  val = val / cv_avg;
+  for (int j = 0; j < 15; ++j) val += analogRead(cv_in); // read the A/D a few times and average for a more stable value
+  val = val / 15;
 
-  data = (float) val * 1.0f;
-  pitch = map(data, 0.0, 1023.0, mapping_upper_limit, mapping_lower_limit); // convert pitch CV data value to a MIDI note number
+  // data = (float) val * 1.0f;
+  pitch = map(val, mapping_lower_limit, mapping_upper_limit, 36, 96); // convert pitch CV data value to a MIDI note number
 
-  pitch = pitch - pitch_offset;
+  //pitch = pitch - pitch_offset;
 
   pitch_in = pitch;
 
@@ -849,20 +867,20 @@ void read_cv() {
   //plaits and rings cv
   int16_t timbre = avg_cv(CV2);
   timb_mod = (float)timbre;
-  timb_mod = mapf( timb_mod, 180.0f, 1023.0f, 0.00f, 1.00f);
+  timb_mod = mapf( timb_mod, 180.0f, 4095.0f, 0.00f, 1.00f);
 
   int16_t morph = avg_cv(CV3) ;
   morph_mod = (float) morph;
-  morph_mod = mapf ( (float) morph_mod, 180.0f, 1023.0f, 0.00f, 1.000f);
+  morph_mod = mapf ( (float) morph_mod, 180.0f, 4095.0f, 0.00f, 1.000f);
 
   // don't remember if this was important
   float pos = avg_cv(CV4) * 1.0f ; // f&d noise floor
-  pos_mod = mapf (  pos, 180.0f, 1023.0f, 0.00f, 1.000f);
+  pos_mod = mapf (  pos, 180.0f, 4095.0f, 0.00f, 1.000f);
   pos_mod = constrain(pos, 0.00f, 1.00f);
 
   // plaits
   //int16_t lpgColor =  avg_cv(CV5);
-  //lpg_in = mapf( (float) lpgColor, 180.0f, 1023.0f, 0.00f, 1.000f);
+  //lpg_in = mapf( (float) lpgColor, 180.0f, 4095.0f, 0.00f, 1.000f);
 
   if (voice_number == 0 || voice_number == 1) {
     // plaits
