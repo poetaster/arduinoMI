@@ -23,6 +23,15 @@ bool debug = true;
 
 //#include <MIDI.h>
 //#include <mozzi_midi.h>
+// create ADSR env
+
+#include "ADSR.h"
+ADSR *env = new ADSR();
+float envAttack;
+float envDecay;
+int envRelease;
+float envSustain;
+long envTimer = 0;
 
 long midiTimer;
 
@@ -99,7 +108,8 @@ bool TimerHandler0(struct repeating_timer *t) {
   bool sync = true;
   if ( DAC.availableForWrite()) {
     for (size_t i = 0; i < BLOCK_SIZE; i++) {
-      DAC.write( voices[0].pd.buffer[i], sync);
+        int16_t sample =   (int16_t) ( (float) voices[0].pd.buffer[i] * env->process() ) ;
+        DAC.write( sample );
     }
     counter =  1;
   }
@@ -120,7 +130,7 @@ void cb() {
 void HandleNoteOn(byte channel, byte note, byte velocity) {
   pitch_in = note << 7;
   trigger_in = velocity / 127.0;
-
+  env->gate(true);
   //aSin.setFreq(mtof(float(note)));
   //envelope.noteOn();
   //digitalWrite(LED, HIGH);
@@ -128,7 +138,7 @@ void HandleNoteOn(byte channel, byte note, byte velocity) {
 void HandleNoteOff(byte channel, byte note, byte velocity) {
 
   trigger_in = 0.0f;
-
+  env->gate(false);
   //aSin.setFreq(mtof(float(note)));
   //envelope.noteOn();
   //digitalWrite(LED, LOW);
@@ -149,6 +159,17 @@ void setup() {
   pinMode(AIN1, INPUT);
   pinMode(AIN2, INPUT);
   pinMode(SCL, INPUT_PULLDOWN);
+ // initialize envelope settings
+
+  envAttack = 0.05f;
+  envDecay = 0.3f;
+  envRelease = 8;
+  envSustain = 0.8f;
+  env->setAttackRate(envAttack * SAMPLERATE);  // .01 second
+  env->setDecayRate(envDecay * SAMPLERATE);
+  env->setReleaseRate(envRelease * SAMPLERATE);
+  env->setSustainLevel(envSustain);
+
 
   //pinMode(LED, OUTPUT);
   //MIDI.setHandleNoteOn(HandleNoteOn);  // Put only the name of the function
@@ -214,7 +235,7 @@ void loop() {
 // second core dedicated to display foo
 
 void setup1() {
-  delay (200); // wait for main core to start up perhipherals
+  delay (900); // wait for main core to start up perhipherals
 }
 
 
@@ -232,17 +253,27 @@ void loop1() {
   timbre_in = timbre;
   int16_t morph = (map(potvalue[1], POT_MIN, POT_MAX, 0, 32767));
   morph_in = morph;
-
+  //if (debug) Serial.println(morph_in);
+  //if (debug) Serial.println(timbre_in);
   // fm / pitch updates
   // int16_t  pitch = map(potvalue[2], POT_MIN, POT_MAX, 170, 0); // convert pitch CV data value to valid range
   // pitch_fm = pitch;
 
   int16_t pitch = map(potvalue[2], POT_MIN, POT_MAX, 3072, 8192); // convert pitch CV data value to valid range
+  if (debug) Serial.println(pitch);
   int16_t pitch_delta = abs(previous_pitch - pitch);
   if (pitch_delta > 10) {
     pitch_in = pitch;
     previous_pitch = pitch;
-    //trigger_in = 1.0f; //retain for cv only input?
+    if (digitalRead(SCL) ) {
+      if (debug) Serial.println("trigger");
+      trigger_in = 1.0f;
+      env->gate(true);
+    } else {
+      if (debug) Serial.println("trigger off");
+      trigger_in = 0.0f;
+      env->gate(false);
+    }
   }
 
   button.update();
@@ -252,20 +283,35 @@ void loop1() {
       engineCount = 0;
     }
     engine_in = engineCount;
+    if (debug) Serial.println(engine_in);
+  }
+/*
+  if (digitalRead(SCL) ) {
+    if (debug) Serial.println("trigger");
+    trigger_in = 1.0f;
+    env->gate(true);
+  } else {
+    trigger_in = 0.0f;
+    env->gate(false);
+  }
+*/
+  // reading A/D seems to cause noise in the audio so don't do it too often
+
+  if ((now - pot_timer) > POT_SAMPLE_TIME) {
+  
+  if (digitalRead(SCL) ) {
+    if (debug) Serial.println("trigger");
+    trigger_in = 1.0f;
+    env->gate(true);
+  } else {
+    trigger_in = 0.0f;
+    env->gate(false);
   }
 
   // reading A/D seems to cause noise in the audio so don't do it too often
-
-
-  if ((now - pot_timer) > POT_SAMPLE_TIME) {
     readpot(0);
     readpot(1);
     readpot(2);
-    if (digitalRead(SCL) ) {
-      trigger_in = 1.0f;
-    } else {
-      trigger_in = 0.0f;
-    }
     pot_timer = now;
   }
 

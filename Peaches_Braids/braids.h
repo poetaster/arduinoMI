@@ -53,7 +53,7 @@ const uint16_t bit_reduction_masks[] = {
 #define     SAMP_SCALE          (float)(1.0 / 32756.0)
 
 
-braids::Envelope envelope;
+//braids::Envelope envelope;
 
 typedef struct
 {
@@ -115,13 +115,13 @@ void updateBraidsAudio() {
   int16_t *buffer = voices[0].pd.buffer;
   uint8_t *sync_buffer = voices[0].pd.sync_buffer;
   size_t  size = BLOCK_SIZE;
-  
-  envelope.Update(
+
+  /*
+   * envelope.Update(
       0 * 8,
       5 * 8);
-      
   uint32_t ad_value = envelope.Render();
-
+*/
 
   braids::MacroOscillator *osc = voices[0].pd.osc;
   //int offset = 274 * 3; //1638
@@ -133,7 +133,7 @@ void updateBraidsAudio() {
   uint8_t shape = (int)(engine_in);
   if (shape >= braids::MACRO_OSC_SHAPE_LAST)
     shape -= braids::MACRO_OSC_SHAPE_LAST;
-    
+
   osc->set_shape(static_cast<braids::MacroOscillatorShape>(shape));
 
   bool trigger = (trigger_in != 0.0f);
@@ -142,7 +142,7 @@ void updateBraidsAudio() {
 
   if (trigger_flag) {
     osc->Strike();
-    envelope.Trigger(braids::ENV_SEGMENT_ATTACK);
+    //envelope.Trigger(braids::ENV_SEGMENT_ATTACK);
   }
 
   // render
@@ -183,7 +183,7 @@ void initVoices() {
   voices[0].last_trig = false;
 
   //envelope = new braids::Envelope;
-  envelope.Init();
+  //envelope.Init();
 
   // get some samples initially
   updateBraidsAudio();
