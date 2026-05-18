@@ -98,10 +98,11 @@ void updateRingsControl() {
 
   // check input rates for excitation input
 
-  if ( timb_mod > 0.08f ) {
+  if ( analogRead(CV8) > 100 ) {
     // input on CV3
     // intern_exciter should be off, but user can override
     instance[0].input = CV1_buffer;
+    //instance[0].input = instance[0].silence;
     ps->internal_exciter = intern_exciter;
   } else {
     // if there's no audio input, set input to zero...

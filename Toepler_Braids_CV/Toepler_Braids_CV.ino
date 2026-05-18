@@ -23,6 +23,14 @@ bool debug = false;
 
 //#include <MIDI.h>
 //#include <mozzi_midi.h>
+ 
+#include "ADSR.h"
+ADSR *env = new ADSR();
+float envAttack;
+float envDecay;
+int envRelease;
+float envSustain;
+long envTimer = 0;
 
 long midiTimer;
 
@@ -103,7 +111,10 @@ bool TimerHandler0(struct repeating_timer *t) {
   bool sync = true;
   if ( DAC.availableForWrite()) {
     for (size_t i = 0; i < BLOCK_SIZE; i++) {
-      DAC.write( voices[0].pd.buffer[i], sync);
+        int16_t sample =   (int16_t) ( ( float) voices[0].pd.buffer[i] * env->process() ) ;
+        DAC.write( sample );
+        //sample =   (int16_t) ( 1024 * env->process() ) ;
+        //DAC.write(  sample );
     }
     counter =  1;
   }
@@ -140,21 +151,27 @@ void HandleNoteOff(byte channel, byte note, byte velocity) {
 
 void voct_midi(int cv_in) {
   
+  if(debug) Serial.println(potvalue[cv_in]);
 
-  pitch = map(potvalue[cv_in], 0.0, 4095.0, mapping_upper_limit, 0.0); // convert pitch CV data value to a MIDI note number
-  
-  pitch = pitch - pitch_offset; // pitch offset drops this octaves down
-
+  //pitch = map(potvalue[cv_in], 0.0, 4095.0, 120, 0); // convert pitch CV data value to a MIDI note number
+  //pitch = pitch - pitch_offset; // pitch offset drops this octaves down
+  pitch = map(potvalue[cv_in], 0, 4095, 5120, 15360); // convert pitch CV data value to valid range
+  //pitch = potvalue[cv_in] + 6144;
   if (debug) Serial.println(pitch);
-  
-  if (pitch > 68) pitch = pitch - 1; //adc correction
-  
-  pitch_in = pitch ;
-  if (pitch != previous_pitch) { 
-    trigger_in = 0.0f;  
+  int16_t pitch_delta = abs(previous_pitch - pitch);
+
+  if (pitch_delta > 5) {
+  //if (pitch != previous_pitch) {
+    pitch_in = pitch;
+    trigger_in = 0.0f;
+    //env->reset();
     previous_pitch = pitch;
     trigger_in = 1.0f; //retain for cv only input?
+    env->gate(true);
   }
+
+  if (debug) Serial.println(pitch);
+
 
 }
 
@@ -167,7 +184,6 @@ void setup() {
     Serial.begin(57600);
     Serial.println(F("YUP"));
   }
-  //Serial1.begin(9600);
   
   analogReadResolution(12);
   // thi is to switch to PWM for power to avoid ripple noise
@@ -228,7 +244,16 @@ void setup() {
   // pitch_in = pitch - 1638;
   // used to switch between FM and note on cv3
 
-  midiTimer = millis();
+  envTimer = millis();
+
+  envAttack = 0.05f;
+  envDecay = 0.3f;
+  envRelease = 6;
+  envSustain = 0.8f;
+  env->setAttackRate(envAttack * SAMPLERATE);  // .01 second
+  env->setDecayRate(envDecay * SAMPLERATE);
+  env->setReleaseRate(envRelease * SAMPLERATE);
+  env->setSustainLevel(envSustain);
 
 }
 
@@ -284,10 +309,12 @@ void loop1() {
     readpot(0);
     readpot(1);
     readpot(2);
-
-
-
     pot_timer = now;
+    if ( (now - envTimer ) >= envRelease) {
+      env->gate(false);
+      envTimer = now;
+    }
+
   }
 
 

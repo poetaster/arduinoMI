@@ -49,6 +49,14 @@ float mapf(float value, float fromLow, float fromHigh, float toLow, float toHigh
   return result;
 }
 
+// create ADSR env
+#include "ADSR.h"
+ADSR *env = new ADSR();
+float envAttack;
+float envDecay;
+int envRelease;
+float envSustain;
+long envTimer = 0;
 
 // volts to octave for 3.3 volts
 // based onhttps://little-scale.blogspot.com/2018/05/pitch-cv-to-frequency-conversion-via.html
@@ -159,6 +167,7 @@ int   braids_engine = 0;
 float fm_mod = 0.0f ; //IN(7);
 float timb_mod = 0.0f; //IN(8);
 float morph_mod = 0.0f; //IN(9);
+float harm_mod = 0.0f; //IN(9);
 float decay_in = 0.5f; // IN(10);
 float lpg_in = 0.2f ;// IN(11);
 float pitch_in = 44.0f;
@@ -434,6 +443,15 @@ void setup() {
 
   // lets seee
   analogReadResolution(12);
+  // initialize envelope settings
+  envAttack = 0.05f;
+  envDecay = 0.3f;
+  envRelease = 5;
+  envSustain = 0.8f;
+  env->setAttackRate(envAttack * SAMPLERATE);  // .01 second
+  env->setDecayRate(envDecay * SAMPLERATE);
+  env->setReleaseRate(envRelease * SAMPLERATE);
+  env->setSustainLevel(envSustain);
 
   // ENCODER
   enc1.begin();
@@ -537,7 +555,7 @@ void loop() {
       updatePlaitsAudio();
       // now apply the envelope
       for (size_t i = 0; i < plaits::kBlockSize; ++i) {
-        int16_t sampleL = (int16_t) ( (float) outputPlaits[i].out  ) ;
+        int16_t sampleL = (int16_t) ( (float) outputPlaits[i].out * env->process()  ) ;
         //int16_t sampleR = (int16_t) ( (float) outputPlaits[i].aux  ) ;
         //out_bufferL[i] = sample;
         DAC.write( sampleL );
@@ -556,7 +574,7 @@ void loop() {
       // just mono for now
       updateBraidsAudio();
       for (size_t i = 0; i < 32; i++) {
-        int16_t sample =   (int16_t) ( (float) inst[0].pd.buffer[i] ) ;
+        int16_t sample =   (int16_t) ( (float) inst[0].pd.buffer[i] * env->process() ) ;
         DAC.write( sample );
         //DAC.write( sample );
       }
@@ -566,10 +584,12 @@ void loop() {
       updateBraidsAudio();
       // copy the braids audio to the clouds input buffer
       clouds::FloatFrame  *input = cloud[0].input;
-      
       for (int i = 0; i < 32; i++) {
-        float sample = (float) ( inst[0].pd.buffer[i] / 32768.0f ) * 0.5f;
-        //float sample = (float) ( analogRead(CV7) / 4095.0f ) * 0.9f;
+        float sample;
+        sample = (float) ( analogRead(CV7) ) ;
+        if (sample < 50.0f) {
+          sample = (float) ( inst[0].pd.buffer[i]  ) ;
+        }
         input[i].l = sample;
         input[i].r = sample;  // Mono input
 
@@ -578,7 +598,9 @@ void loop() {
       clouds::FloatFrame  *output = cloud[0].output;
       for (int i = 0; i < 32; i++) {
         int16_t sampleL =  stmlib::Clip16( static_cast<int32_t>(  (  output[i].l )  * 32768.0f  ) ) ;
+        int16_t sampleR =  stmlib::Clip16( static_cast<int32_t>(  (  output[i].r )  * 32768.0f  ) ) ;
         DAC.write( sampleL );
+        DAC.write( sampleR );
         //DAC.write( sampleR );
       }
     }
@@ -860,20 +882,28 @@ void voct_midi(int cv_in) {
 
   // this is a temporary move to get around clicking on trigger + note cv in
   if (pitch != previous_pitch) {
+    env->gate(true);
+    envTimer = millis();
     previous_pitch = pitch;
     // this is the plaits version
 
   }
 }
 
+
 void read_trigger() {
   int16_t trig = analogRead(CV2);
   if (trig > 2048 ) {
+    if (debug) Serial.println("trig on");
     trigger_in = 1.0f;
+    //envTimer = millis();
+    //env->gate(true);
     if (voice_number == 0) updateVoicetrigger();
-
   } else  {
+    if (debug) Serial.println("trig off");
     //don't turn off here?
+    //envTimer = 0;
+    //env->gate(false);
     trigger_in = 0.0f;
   }
 
@@ -895,18 +925,25 @@ void read_cv() {
   int16_t morph = analogRead(CV4) ;
   morph_mod = (float) morph / 4095.0f;
 
+  // don't remember if this was important
+  int16_t harm = analogRead(CV5) ; // f&d noise floor
+  harm_mod = (float) harm / 4095.0f;
 
   // don't remember if this was important
-  int16_t pos = analogRead(CV5) ; // f&d noise floor
-  if (pos > 50) pos_mod = (float) pos / 4095.0f;
+  int16_t pos = analogRead(CV6) ; // f&d noise floor
+  if (pos > 150) {
+    pos_mod = (float) pos / 4095.0f;
+  } else {
+    pos_mod = 0.0f;
+  }
 
-  int16_t lpgColor = (float) ( analogRead(CV6) ) / 4095.f ;
+  int16_t lpgColor = (float) ( analogRead(CV7) ) / 4095.f ;
   lpg_in = lpgColor;
 
   if (voice_number == 0 || voice_number == 1) {
     // plaits
 
-    timb_mod = mapf(timb_mod, 0.0f, 1.0f, 0.0f, 0.8f);
+    //timb_mod = mapf(timb_mod, 0.0f, 1.0f, 0.0f, 0.8f);
 
     if (debug) Serial.print(timb_mod);
 
@@ -914,16 +951,16 @@ void read_cv() {
     //voices[0].modulations.timbre_patched = false;
     //morph_mod = mapf(morph_mod, 0.02f, 1.0f, -1.0f, 1.0f);
 
-    morph_mod = mapf(morph_mod, 0.0f, 1.0f, 0.0f, 0.8f);
+    //morph_mod = mapf(morph_mod, 0.0f, 1.0f, 0.0f, 0.8f);
 
     //voices[0].modulations.morph_patched = true;
 
   }
 
-  if (voice_number == 1 && timb_mod > 0.05f) {
+  if (voice_number == 1 && analogRead(CV8) > 100) {
     //rings
     for (size_t i = 0; i < 32; ++i) {
-      CV1_buffer[i] = (float) ( analogRead(CV3) / 4095.0f) ; // arbitrary +1 gain
+      CV1_buffer[i] = (float) ( analogRead(CV8) / 4095.0f) ; // arbitrary +1 gain
     }
   }
 

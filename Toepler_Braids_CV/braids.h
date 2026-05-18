@@ -83,7 +83,7 @@ void updateBraidsAudio() {
   braids::MacroOscillator *osc = voices[0].pd.osc;
   
   //osc->set_pitch( ( pitch_in - pitch_adj)  + pitch_fm ); // << 7);
-  osc->set_pitch( pitch_in << 7);
+  osc->set_pitch( pitch_in );// << 7);
 
   osc->set_parameters(timbre_in, morph_in);
 

@@ -23,7 +23,6 @@ bool debugging = true;
 #define pWS (pBCLK+1)
 #define pDOUT 10
 
-
 I2S DAC(OUTPUT, pBCLK, pDOUT);
 
 // braids dsp

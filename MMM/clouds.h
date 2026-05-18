@@ -26,11 +26,11 @@ struct Cloud {
   clouds::GranularProcessor   *processor;
 
   // buffers
-  //uint8_t     *large_buffer;
-  //uint8_t     *small_buffer;
+  uint8_t     *large_buffer;
+  uint8_t     *small_buffer;
   // Pre-allocate big blocks in main memory and CCM. No malloc here.
-  uint8_t     large_buffer[118784];
-  uint8_t     small_buffer[65536 - 128];
+  //uint8_t     large_buffer[118784];
+  //uint8_t     small_buffer[65536 - 128];
 
   // parameters
   float       in_gain;
@@ -66,8 +66,8 @@ void initClouds() {
   int smallBufSize =  65536 - 128;
 
   // we fixed it with static inits in the unit
-  //cloud[0].large_buffer = (uint8_t*)malloc(largeBufSize * sizeof(uint8_t));
-  //cloud[0].small_buffer = (uint8_t*)malloc(smallBufSize * sizeof(uint8_t));
+  cloud[0].large_buffer = (uint8_t*)malloc(largeBufSize * sizeof(uint8_t));
+  cloud[0].small_buffer = (uint8_t*)malloc(smallBufSize * sizeof(uint8_t));
 
   cloud[0].sr = 32000.0f ;// SAMPLERATE;
   cloud[0].processor = new clouds::GranularProcessor;
@@ -98,9 +98,6 @@ void initClouds() {
   cloud[0].pcount = 0;
   // have to think about this :)
   //uint16_t numAudioInputs = cloud[0].mNumInputs - kNumArgs;
-  if (debug) Serial.println(F("INIT DONE"));
-
-
 
 }
 

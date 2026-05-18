@@ -100,16 +100,18 @@ void updatePlaitsControl() {
 
   float morph = (morph_in + morph_mod);
   CONSTRAIN(morph, 0.0f, 1.0f);
-  
+
+  float harm = (harm_in + harm_mod);
+  CONSTRAIN(harm, 0.0f, 1.0f);
 
   if (pos_mod < 0.05) {
     modulation = 1.0f;
   } else {
     modulation = pos_mod;
   }
-  float harm = (harm_in);
-  CONSTRAIN(harm, 0.0f, 1.0f);
-  
+  //float harm = (harm_in);
+  //CONSTRAIN(harm, 0.0f, 1.0f);
+
   voices[0].patch.engine = engine_in;
   voices[0].patch.note = pitch_in;
   voices[0].patch.harmonics = harm;

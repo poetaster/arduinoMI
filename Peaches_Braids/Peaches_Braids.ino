@@ -13,7 +13,7 @@
   #define CV3 (28u)
 
 */
-bool debug = true;
+bool debug = false;
 
 #include <Arduino.h>
 #include "stdio.h"
@@ -265,15 +265,6 @@ void loop1() {
   if (pitch_delta > 10) {
     pitch_in = pitch;
     previous_pitch = pitch;
-    if (digitalRead(SCL) ) {
-      if (debug) Serial.println("trigger");
-      trigger_in = 1.0f;
-      env->gate(true);
-    } else {
-      if (debug) Serial.println("trigger off");
-      trigger_in = 0.0f;
-      env->gate(false);
-    }
   }
 
   button.update();
@@ -285,6 +276,19 @@ void loop1() {
     engine_in = engineCount;
     if (debug) Serial.println(engine_in);
   }
+
+  if (digitalRead(SCL) ) {
+    if (debug) Serial.println("trigger");
+    trigger_in = 1.0f;
+    env->gate(true);
+  } else {
+    trigger_in = 0.0f;
+    env->gate(false);
+  }
+
+  // reading A/D seems to cause noise in the audio so don't do it too often
+
+  if ((now - pot_timer) > POT_SAMPLE_TIME) {
 /*
   if (digitalRead(SCL) ) {
     if (debug) Serial.println("trigger");
@@ -295,19 +299,6 @@ void loop1() {
     env->gate(false);
   }
 */
-  // reading A/D seems to cause noise in the audio so don't do it too often
-
-  if ((now - pot_timer) > POT_SAMPLE_TIME) {
-  
-  if (digitalRead(SCL) ) {
-    if (debug) Serial.println("trigger");
-    trigger_in = 1.0f;
-    env->gate(true);
-  } else {
-    trigger_in = 0.0f;
-    env->gate(false);
-  }
-
   // reading A/D seems to cause noise in the audio so don't do it too often
     readpot(0);
     readpot(1);
