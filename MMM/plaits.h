@@ -129,7 +129,7 @@ void updatePlaitsControl() {
 }
 
 void updateVoicetrigger() {
-  bool trigger = (trigger_in > 0.0f);
+  bool trigger = (trigger_in == 1.0f);
   bool trigger_flag = (trigger && (!voices[0].last_trig));
   voices[0].last_trig = trigger;
 

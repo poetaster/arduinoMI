@@ -144,6 +144,8 @@ float harm_in = 0.5f;
 float timbre_in = 0.5f;
 int engine_in;
 char engine_name;
+bool prev_trig = false;
+bool gate = false;
 
 // these are the last settings per voice
 float plaits_morph = morph_in;
@@ -153,9 +155,9 @@ int   plaits_engine = 0;
 
 // Rings modulation
 float pos_mod = 0.25f; // position
-float rings_morph = morph_in;
-float rings_harm = harm_in;
-float rings_timbre = timbre_in;
+float rings_morph = 0.4;
+float rings_harm = 0.4;
+float rings_timbre = 0.4;
 float rings_pos = 0.0f;
 int   rings_engine = 0;
 
@@ -445,8 +447,8 @@ void setup() {
   analogReadResolution(12);
   // initialize envelope settings
   envAttack = 0.05f;
-  envDecay = 0.3f;
-  envRelease = 5;
+  envDecay = 0.2f;
+  envRelease = 4;
   envSustain = 0.8f;
   env->setAttackRate(envAttack * SAMPLERATE);  // .01 second
   env->setDecayRate(envDecay * SAMPLERATE);
@@ -885,34 +887,34 @@ void voct_midi(int cv_in) {
 
   // this is a temporary move to get around clicking on trigger + note cv in
   if (pitch != previous_pitch) {
-    //env->gate(true);
-    //envTimer = millis();
     previous_pitch = pitch;
-    // this is the plaits version
-  }
-  if ( envTimer > ( envRelease * 1000 ) ) {
-    //env->reset();
-    //envTimer = 0;
   }
 }
 
 
 void read_trigger() {
   int16_t trig = analogRead(CV2);
-  if (trig > 2048 ) {
-    if (debug) Serial.println("trig on");
+  if (trig < 150 && prev_trig == false ) {
+
     trigger_in = 1.0f;
     envTimer = millis();
-    env->gate(false);
-    if (voice_number == 0) updateVoicetrigger();
-  } else  {
-    if (debug) Serial.println("trig off");
-    //don't turn off here?
-    envTimer = 0;
     env->gate(true);
+    prev_trig == true;
+    gate = true;
+
+  } else if ( trig < 150 && prev_trig == true && gate == true) {
     trigger_in = 0.0f;
+  } else  {
+
+    envTimer = 0;
+    env->gate(false);
+
+    prev_trig == false;
+    trigger_in = 0.0f;
+    gate = false;
   }
 
+    if (voice_number == 0) updateVoicetrigger();
 
 
 }
@@ -924,33 +926,25 @@ void read_cv() {
   // this should be worked out into calls for the engines instead of conditionals ....
 
 
-  //plaits and rings cv
-  int16_t timbre = analogRead(CV3);
-  timb_mod = (float)timbre;
-  timb_mod = mapf( timb_mod, 5.0f, 4090.0f, 0.00f, 0.60f);
-  timb_mod = constrain(timb_mod, 0.00f, 1.00f);
+  int16_t timbre = analogRead(CV5);
+  timb_mod = (float)  timbre / 2056.0f;
+  // invert
+  timb_mod = constrain( 1.0f - timb_mod, 0.0f, 0.40f);
 
-  int16_t morph = analogRead(CV4) ;
-  morph_mod = (float) morph;
-  morph_mod = mapf ( (float) morph_mod, 5.0f, 4090.0f, 0.00f, 0.60f);
-  morph_mod = constrain(morph_mod, 0.00f, 1.00f);
+  int16_t morph = analogRead(CV3) ;
+  morph_mod = (float)   morph / 2056.0f;
+  morph_mod = constrain( 1.0f - morph_mod , 0.0f, 0.40f);
 
-  // don't remember if this was important
-  int16_t harm = analogRead(CV5) ; // f&d noise floor
-  harm_mod = (float) harm;
-  harm_mod = mapf (  harm, 5.0f, 4090.0f, 0.00f, 0.60f);
-  harm_mod = constrain(harm_mod, 0.00f, 1.00f);
+  int16_t harm = analogRead(CV4) ; // f&d noise floor
+  harm_mod = (float) harm / 2056.0f; 
+  harm_mod = constrain(1.0f - harm_mod, 0.0f, 0.40f);
 
-  // don't remember if this was important
-  int16_t pos = analogRead(CV6) ; // f&d noise floor
-  if (pos > 150) {
-    pos_mod = (float) pos / 4095.0f;
-  } else {
-    pos_mod = 0.0f;
-  }
+  int16_t pos =  analogRead(CV6) ; // f&d noise floor
+  pos_mod = (float) pos / 2056.0f;
+  pos_mod = constrain(1.0f - pos_mod, 0.0f, 0.40f);
 
-  int16_t lpgColor = (float) ( analogRead(CV7) ) / 4095.f ;
-  lpg_in = lpgColor;
+  int16_t lpgColor =  analogRead(CV7) ;
+  //lpg_in = (float) mapf( lpgColor 0, 2056, 0.00f, 0.60f);
 
   if (voice_number == 0 || voice_number == 1) {
     // plaits
@@ -969,10 +963,10 @@ void read_cv() {
 
   }
 
-  if (voice_number == 1 && analogRead(CV8) > 100) {
+  if (voice_number == 1 && analogRead(CV8) < 2000) {
     //rings
     for (size_t i = 0; i < 32; ++i) {
-      CV1_buffer[i] = (float) ( analogRead(CV8) / 4095.0f) ; // arbitrary +1 gain
+     // CV1_buffer[i] = (float) ( analogRead(CV8) ) ; // arbitrary +1 gain
     }
   }
 

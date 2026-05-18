@@ -39,7 +39,8 @@ void updateRingsAudio() {
   size_t  size = rings::kMaxBlockSize;
 
   // only do trigger actions if we are in focus.
-  bool trigger = (trigger_in > 0.0f);
+  // observe using gate too since we only have a gate input
+  bool trigger = (trigger_in == 1.0f );
   bool trigger_flag = (trigger && (!instance[0].prev_trig));
   if ( trigger_flag) {
     ps->strum = true;
@@ -68,7 +69,7 @@ void updateRingsAudio() {
   for (size_t i = 0; i < size; ++i) {
     // we're reducing to mono for now. the stereo below does work..
     out_bufferL[i] =   stmlib::Clip16(static_cast<int32_t>( 
-          ( ( instance[0].out[i] * 0.5f)  + (instance[0].aux[i] * 0.5f)  ) 
+          ( ( instance[0].out[i] * 0.6f)  + (instance[0].aux[i] * 0.6f)  ) 
           * 32768.0f) );
   }
 
@@ -79,13 +80,13 @@ void updateRingsControl() {
   float   *trig_in; // = IN(1);
   float   voct_in = pitch_in * 1.0f;
 
-  float   struct_in = harm_in ;//+ harm_mod;
-  float   bright_in = timbre_in + timb_mod;
+  float   struct_in = harm_in + harm_mod;
+  float   bright_in = timbre_in; //+ timb_mod;
   float   damp_in = morph_in + morph_mod;
-  float   pos_in = 0.1f; //pos_mod;
+  float   pos_in = 0.0f; //pos_mod;
 
   short   model = engine_in;
-  short   polyphony = 1;
+  short   polyphony = 4;
   bool    intern_exciter = false;
   bool    easter_egg = easterEgg;
   bool    bypass = false;

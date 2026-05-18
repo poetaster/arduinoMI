@@ -139,7 +139,11 @@ void displayRings() {
 
   // play/pause
   display.setCursor(line_3_1.x, line_3_1.y);
-  display.print("FOOBAR");
+  display.print(analogRead(CV3) );
+  display.print(" ");
+  display.print(analogRead(CV4) );
+  display.print(" ");
+  display.print( analogRead(CV5) );
   //display.print(display_mode);
 
   updateGauges();
