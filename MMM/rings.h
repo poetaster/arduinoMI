@@ -16,7 +16,7 @@ struct Ring {
   rings::PerformanceState performance_state;
   rings::Patch            patch;
 
-  uint16_t                reverb_buffer[32768];
+  uint16_t                *reverb_buffer;
 
   float                   *silence;
   float                   *out, *aux;     // output buffers
@@ -57,19 +57,19 @@ void updateRingsAudio() {
     instance[0].part.Process(*ps, *patch, instance[0].input, instance[0].out, instance[0].aux, size);
   }
   float gain;
-  if (engine_in == 5) {
-    gain = 1.1;
+  if (engine_in == 3) {
+     gain = 1.0;
+  } else if (engine_in == 5) {
+    gain = 1.4;
   } else {
-    gain = 1.0;
-  }
+    gain = 1.1;
+   }
 
   for (size_t i = 0; i < size; ++i) {
     // we're reducing to mono for now. the stereo below does work..
-    out_bufferL[i] =   stmlib::Clip16(static_cast<int32_t>( ( instance[0].out[i]  + instance[0].aux[i]  ) * 32768.0f) );
-      
-    //out_bufferR[i] = stmlib::Clip16(static_cast<int32_t>((instance[0].aux[i]+.11) * 32768.0f)); // the .11 is gainwhich should be done by calibration.
-    //out_bufferL[i] = stmlib::Clip16(static_cast<int32_t>((instance[0].out[i]+.11) * 32768.0f)); // was obuff
-
+    out_bufferL[i] =   stmlib::Clip16(static_cast<int32_t>( 
+          ( ( instance[0].out[i] * 0.5f)  + (instance[0].aux[i] * 0.5f)  ) 
+          * 32768.0f) );
   }
 
 
@@ -79,13 +79,13 @@ void updateRingsControl() {
   float   *trig_in; // = IN(1);
   float   voct_in = pitch_in * 1.0f;
 
-  float   struct_in = harm_in;
+  float   struct_in = harm_in ;//+ harm_mod;
   float   bright_in = timbre_in + timb_mod;
   float   damp_in = morph_in + morph_mod;
-  float   pos_in = pos_mod;
+  float   pos_in = 0.1f; //pos_mod;
 
   short   model = engine_in;
-  short   polyphony = 3;
+  short   polyphony = 1;
   bool    intern_exciter = false;
   bool    easter_egg = easterEgg;
   bool    bypass = false;
@@ -97,12 +97,11 @@ void updateRingsControl() {
   size_t  size = rings::kMaxBlockSize;
 
   // check input rates for excitation input
-
+  //
+  /*
   if ( analogRead(CV8) > 100 ) {
-    // input on CV3
     // intern_exciter should be off, but user can override
     instance[0].input = CV1_buffer;
-    //instance[0].input = instance[0].silence;
     ps->internal_exciter = intern_exciter;
   } else {
     // if there's no audio input, set input to zero...
@@ -110,7 +109,9 @@ void updateRingsControl() {
     // ... and use internal exciter!
     ps->internal_exciter = true;
   }
-
+  */
+    instance[0].input = instance[0].silence;
+    ps->internal_exciter = true;
 
   /* from the original with gain foo
     for (size_t i = 0; i < size; ++i) {
@@ -171,11 +172,11 @@ void updateRingsControl() {
 // initialize voice parameters
 void initRings() {
 
-  //rings::Dsp::setSr(SAMPLERATE); // we removed this
+  rings::Dsp::setSr(SAMPLERATE); // we removed this
 
   // allocate memory + init with zeros
-  //instance[0].reverb_buffer = (uint16_t*)malloc(32768 * sizeof(uint16_t));
-  //memset(instance[0].reverb_buffer, 0, 32768 * sizeof(uint16_t));
+  instance[0].reverb_buffer = (uint16_t*)malloc(65536 * sizeof(uint16_t));
+  memset(instance[0].reverb_buffer, 0, 65536  * sizeof(uint16_t));
 
   instance[0].silence = (float*)malloc(rings::kMaxBlockSize * sizeof(float));
   memset(instance[0].silence, 0, rings::kMaxBlockSize * sizeof(float));
@@ -195,10 +196,10 @@ void initRings() {
   instance[0].part.Init(instance[0].reverb_buffer);
   instance[0].string_synth.Init(instance[0].reverb_buffer);
 
-  instance[0].part.set_polyphony(2);
+  instance[0].part.set_polyphony(1);
   instance[0].part.set_model(rings::RESONATOR_MODEL_MODAL);
 
-  instance[0].string_synth.set_polyphony(2);
+  instance[0].string_synth.set_polyphony(1);
   instance[0].string_synth.set_fx(rings::FX_FORMANT);
   instance[0].prev_poly = 1;
 

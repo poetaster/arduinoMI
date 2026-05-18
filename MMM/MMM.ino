@@ -202,8 +202,8 @@ int max_engines = 18; // varies per backend
 #include "braids.h"
 
 // clouds dsp
-#include <CLOUDS.h>
-#include "clouds.h"
+//#include <CLOUDS.h>
+//#include "clouds.h"
 
 #include "Midier.h"
 // midi related functions
@@ -529,8 +529,8 @@ void setup() {
   initRings();
   delay(100);
   initBraids();
-  delay(100);
-  initClouds();
+  //delay(100);
+  //initClouds();
 
   // Initialize wave switch states
   update_timer = millis();
@@ -578,7 +578,9 @@ void loop() {
         DAC.write( sample );
         //DAC.write( sample );
       }
-    } else if (voice_number == 3) {
+    }
+    /*
+       else if (voice_number == 3) {
       // clouds, samplebuffer at same time
       // or braids into buffer directly.
       updateBraidsAudio();
@@ -603,7 +605,8 @@ void loop() {
         DAC.write( sampleR );
         //DAC.write( sampleR );
       }
-    }
+    } 
+     */
   }
 
   /*
@@ -735,7 +738,7 @@ void read_buttons() {
 
       voice_number++;
 
-      if (voice_number > 3) voice_number = 0;
+      if (voice_number > 2) voice_number = 0;
 
       if (voice_number == 0) {
         engine_in = plaits_engine; // engine_in % 17;
@@ -882,11 +885,14 @@ void voct_midi(int cv_in) {
 
   // this is a temporary move to get around clicking on trigger + note cv in
   if (pitch != previous_pitch) {
-    env->gate(true);
-    envTimer = millis();
+    //env->gate(true);
+    //envTimer = millis();
     previous_pitch = pitch;
     // this is the plaits version
-
+  }
+  if ( envTimer > ( envRelease * 1000 ) ) {
+    //env->reset();
+    //envTimer = 0;
   }
 }
 
@@ -896,14 +902,14 @@ void read_trigger() {
   if (trig > 2048 ) {
     if (debug) Serial.println("trig on");
     trigger_in = 1.0f;
-    //envTimer = millis();
-    //env->gate(true);
+    envTimer = millis();
+    env->gate(false);
     if (voice_number == 0) updateVoicetrigger();
   } else  {
     if (debug) Serial.println("trig off");
     //don't turn off here?
-    //envTimer = 0;
-    //env->gate(false);
+    envTimer = 0;
+    env->gate(true);
     trigger_in = 0.0f;
   }
 
@@ -920,14 +926,20 @@ void read_cv() {
 
   //plaits and rings cv
   int16_t timbre = analogRead(CV3);
-  timb_mod = (float)timbre / 4095.0f;
+  timb_mod = (float)timbre;
+  timb_mod = mapf( timb_mod, 5.0f, 4090.0f, 0.00f, 0.60f);
+  timb_mod = constrain(timb_mod, 0.00f, 1.00f);
 
   int16_t morph = analogRead(CV4) ;
-  morph_mod = (float) morph / 4095.0f;
+  morph_mod = (float) morph;
+  morph_mod = mapf ( (float) morph_mod, 5.0f, 4090.0f, 0.00f, 0.60f);
+  morph_mod = constrain(morph_mod, 0.00f, 1.00f);
 
   // don't remember if this was important
   int16_t harm = analogRead(CV5) ; // f&d noise floor
-  harm_mod = (float) harm / 4095.0f;
+  harm_mod = (float) harm;
+  harm_mod = mapf (  harm, 5.0f, 4090.0f, 0.00f, 0.60f);
+  harm_mod = constrain(harm_mod, 0.00f, 1.00f);
 
   // don't remember if this was important
   int16_t pos = analogRead(CV6) ; // f&d noise floor

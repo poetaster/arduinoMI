@@ -143,5 +143,5 @@ void updateVoicetrigger() {
     voices[0].modulations.trigger = 0.0f;
   }
   // seem to need to do this for plaits?
-  trigger_in = 0.0f;
+  //trigger_in = 0.0f;
 }
