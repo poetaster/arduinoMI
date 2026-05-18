@@ -137,15 +137,15 @@ int voice_number = 0; // for switching  between modules
 
 // we are reusing the plaits nomenclature for all modules
 // Plaits modulation vars
-float morph_in = 0.6f; // IN(4);
-float trigger_in = 0.0f; //IN(5);
-float level_in = 0.0f; //IN(6);
-float harm_in = 0.5f;
-float timbre_in = 0.5f;
-int engine_in;
-char engine_name;
-bool prev_trig = false;
-bool gate = false;
+volatile float morph_in = 0.6f; // IN(4);
+volatile float trigger_in = 0.0f; //IN(5);
+volatile float level_in = 0.0f; //IN(6);
+volatile float harm_in = 0.5f;
+volatile float timbre_in = 0.5f;
+volatile int engine_in;
+volatile char engine_name;
+volatile bool prev_trig = false;
+volatile bool gate = false;
 
 // these are the last settings per voice
 float plaits_morph = morph_in;
@@ -166,13 +166,13 @@ float braids_morph = morph_in;
 int   braids_engine = 0;
 
 
-float fm_mod = 0.0f ; //IN(7);
-float timb_mod = 0.0f; //IN(8);
-float morph_mod = 0.0f; //IN(9);
-float harm_mod = 0.0f; //IN(9);
-float decay_in = 0.5f; // IN(10);
-float lpg_in = 0.2f ;// IN(11);
-float pitch_in = 44.0f;
+volatile float fm_mod = 0.0f ; //IN(7);
+volatile float timb_mod = 0.0f; //IN(8);
+volatile float morph_mod = 0.0f; //IN(9);
+volatile float harm_mod = 0.0f; //IN(9);
+volatile float decay_in = 0.5f; // IN(10);
+volatile float lpg_in = 0.2f ;// IN(11);
+volatile float pitch_in = 44.0f;
 
 
 //clouds
@@ -446,8 +446,8 @@ void setup() {
   // lets seee
   analogReadResolution(12);
   // initialize envelope settings
-  envAttack = 0.05f;
-  envDecay = 0.2f;
+  envAttack = 0.01f;
+  envDecay = 0.3f;
   envRelease = 4;
   envSustain = 0.8f;
   env->setAttackRate(envAttack * SAMPLERATE);  // .01 second
@@ -642,9 +642,10 @@ void loop1() {
 
     unsigned long now = millis();
 
+      read_trigger();
+
     if ( now - update_timer > 5 ) {
       voct_midi(CV1);
-      read_trigger();
       read_cv();
       read_encoders();
       read_buttons();
@@ -755,7 +756,9 @@ void read_buttons() {
         morph_in = rings_morph;
         harm_in = rings_harm;
         timbre_in = rings_timbre;
-        //pos_mod = rings_pos;
+        pos_mod = rings_pos;
+        // we don't use the env here, reset it.
+        env->reset();
 
       } else if (voice_number == 2 ) {
         engine_in = braids_engine; // engine_in % 46;
@@ -876,13 +879,14 @@ float voct_midiBraids(int cv_in) {
 void voct_midi(int cv_in) {
   // this seems sufficient with 3 reads.
   int val = 0;
-  for (int j = 0; j < cv_avg; ++j) val += analogRead(cv_in); // read the A/D a few times and average for a more stable value
-  val = val / cv_avg;
-  data = (float) val * 1.0f;
+  //for (int j = 0; j < cv_avg; ++j) val += analogRead(cv_in); // read the A/D a few times and average for a more stable value
+  //val = val / cv_avg;
+  //data = (float) val * 1.0f;
+
+  data = (float) analogRead(cv_in);
   pitch = map(data, 0.0, 4095.0, mapping_upper_limit, mapping_lower_limit); // convert pitch CV data value to a MIDI note number
 
   pitch = pitch - pitch_offset;
-
   pitch_in = pitch;
 
   // this is a temporary move to get around clicking on trigger + note cv in
@@ -893,28 +897,30 @@ void voct_midi(int cv_in) {
 
 
 void read_trigger() {
+
   int16_t trig = analogRead(CV2);
-  if (trig < 150 && prev_trig == false ) {
-
+  if (trig < 100 && prev_trig == false) {
     trigger_in = 1.0f;
-    envTimer = millis();
-    env->gate(true);
-    prev_trig == true;
-    gate = true;
-
-  } else if ( trig < 150 && prev_trig == true && gate == true) {
+    if (voice_number != 1) {
+      envTimer = millis();
+      env->gate(true);
+    }
+    prev_trig = true;
+  } else if ( trig < 100 && prev_trig == true) {
+    // now we're a gate
     trigger_in = 0.0f;
-  } else  {
-
-    envTimer = 0;
-    env->gate(false);
-
-    prev_trig == false;
+    gate = true;
+  }else  {
+    if (voice_number != 1) {
+      envTimer = 0;
+      env->gate(false);
+    }
+    prev_trig = false;
     trigger_in = 0.0f;
     gate = false;
   }
 
-    if (voice_number == 0) updateVoicetrigger();
+  if (voice_number == 0) updateVoicetrigger();
 
 
 }

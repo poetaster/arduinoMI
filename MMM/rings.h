@@ -40,8 +40,10 @@ void updateRingsAudio() {
 
   // only do trigger actions if we are in focus.
   // observe using gate too since we only have a gate input
-  bool trigger = (trigger_in == 1.0f );
-  bool trigger_flag = (trigger && (!instance[0].prev_trig));
+
+  bool trigger = ( trigger_in == 1.0f  && gate == false );
+  bool trigger_flag = (trigger && (instance[0].prev_trig == false));
+
   if ( trigger_flag) {
     ps->strum = true;
   } else {
@@ -57,20 +59,19 @@ void updateRingsAudio() {
     instance[0].strummer.Process(instance[0].input, size, ps);
     instance[0].part.Process(*ps, *patch, instance[0].input, instance[0].out, instance[0].aux, size);
   }
+
   float gain;
   if (engine_in == 3) {
      gain = 1.0;
   } else if (engine_in == 5) {
-    gain = 1.4;
+    gain = 1.3;
   } else {
     gain = 1.1;
    }
 
   for (size_t i = 0; i < size; ++i) {
     // we're reducing to mono for now. the stereo below does work..
-    out_bufferL[i] =   stmlib::Clip16(static_cast<int32_t>( 
-          ( ( instance[0].out[i] * 0.6f)  + (instance[0].aux[i] * 0.6f)  ) 
-          * 32768.0f) );
+    out_bufferL[i] =   stmlib::Clip16(static_cast<int32_t>( ( ( instance[0].out[i]   + instance[0].aux[i]   ) * 32768.0f) ));
   }
 
 
@@ -83,11 +84,11 @@ void updateRingsControl() {
   float   struct_in = harm_in + harm_mod;
   float   bright_in = timbre_in; //+ timb_mod;
   float   damp_in = morph_in + morph_mod;
-  float   pos_in = 0.0f; //pos_mod;
+  float   pos_in = 0.3f + pos_mod;
 
   short   model = engine_in;
-  short   polyphony = 4;
-  bool    intern_exciter = false;
+  short   polyphony = 2;
+  bool    intern_exciter = true;
   bool    easter_egg = easterEgg;
   bool    bypass = false;
 
@@ -197,10 +198,10 @@ void initRings() {
   instance[0].part.Init(instance[0].reverb_buffer);
   instance[0].string_synth.Init(instance[0].reverb_buffer);
 
-  instance[0].part.set_polyphony(1);
+  instance[0].part.set_polyphony(3);
   instance[0].part.set_model(rings::RESONATOR_MODEL_MODAL);
 
-  instance[0].string_synth.set_polyphony(1);
+  instance[0].string_synth.set_polyphony(3);
   instance[0].string_synth.set_fx(rings::FX_FORMANT);
   instance[0].prev_poly = 1;
 

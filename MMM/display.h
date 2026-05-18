@@ -139,11 +139,13 @@ void displayRings() {
 
   // play/pause
   display.setCursor(line_3_1.x, line_3_1.y);
-  display.print(analogRead(CV3) );
+  display.print(morph_mod );
   display.print(" ");
-  display.print(analogRead(CV4) );
+  display.print(harm_mod );
   display.print(" ");
-  display.print( analogRead(CV5) );
+  display.print( gate );
+  display.print(" ");
+  display.print( pitch_in, 1 );
   //display.print(display_mode);
 
   updateGauges();
